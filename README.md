@@ -241,3 +241,4 @@ The Full Stack FastAPI Template is licensed under the terms of the MIT license.
 ### Update by Andrew Panettiere
 
 This edit was made by Andrew to demonstrate branching, editing, and creating a pull request.
+This edit was made by Adrian to demonstrate branching, editing, and creating a pull request.
