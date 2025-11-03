@@ -15,5 +15,6 @@ jobs:
       - uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/fastapi/projects/2
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: github-token: ${{ secrets.PROJECTS_TOKEN }}
+
 
