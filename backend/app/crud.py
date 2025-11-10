@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from database import DBUser, DBRole, DBProfile
-from models import UserCreate
+from models import UserCreate, ProfileUpdate, UserUpdate
 from passlib.context import CryptContext
+from auth import convert_db_user_to_user
+
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -97,7 +99,7 @@ def get_profile_by_user_id(db: Session, user_id: int):
     return db.query(DBProfile).filter(DBProfile.user_id == user_id).first()
 
 
-def update_profile(db: Session, user_id: int, profile_update):
+def update_profile(db: Session, user_id: int, profile_update: ProfileUpdate):
     """Update a user's profile."""
     db_profile = get_profile_by_user_id(db, user_id)
     if db_profile:
@@ -107,4 +109,22 @@ def update_profile(db: Session, user_id: int, profile_update):
         db.commit()
         db.refresh(db_profile)
     return db_profile
+
+
+def update_user(db: Session, user_id: int, user_update: UserUpdate):
+    pass
+
+
+def update_password(db: Session, user_id: int, old_password: str, new_password: str):
+    """Update a user's password."""
+    user = get_user_by_id(db, user_id)
+    if user and verify_password(old_password, user.hashed_password):
+        user.hashed_password = get_password_hash(new_password)
+        db.commit()
+        return True
+    return False
+
+
+
+
 

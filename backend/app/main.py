@@ -12,7 +12,7 @@ from auth import (
     create_access_token, get_current_active_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from models import User, UserCreate, Token, Profile, ProfileCreate, ProfileUpdate
+from models import User, UserCreate, Token, Profile, ProfileCreate, ProfileUpdate, UpdatePassword
 
 
 app = FastAPI()
@@ -82,6 +82,23 @@ async def login_for_access_token(
 @app.get("/users/me", response_model=User)
 async def read_users_me(current_user: User = Depends(get_current_active_user)):
     """Get current user information."""
+    return current_user
+
+@app.put("/users/me/update_password", response_model=User)
+async def update_my_password(
+    password_update: UpdatePassword,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update current user's password."""
+    updated_user = crud.update_password(
+        db, 
+        user_id=current_user.id, 
+        old_password=password_update.old_password, 
+        new_password=password_update.new_password
+    )
+    if not updated_user:
+        raise HTTPException(status_code=400, detail="Old password is incorrect")
     return current_user
 
 
