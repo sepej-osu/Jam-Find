@@ -53,8 +53,19 @@ class DBProfile(Base):
     location = Column(String, nullable=True)
     experience_level = Column(String, nullable=True)  # Added experience_level column
 # removed created_at for debugging
-
+    posts = relationship("DBPost", back_populates="profile")
     user = relationship("DBUser", back_populates="profile")
+
+class DBPost(Base):
+    __tablename__ = "posts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+    content = Column(String(500))
+    profile_id = Column(Integer, ForeignKey("profiles.id"))
+    created_at = Column(DateTime, server_default=func.now())
+
+    profile = relationship("DBProfile", back_populates="posts")
     
 
 # Create tables

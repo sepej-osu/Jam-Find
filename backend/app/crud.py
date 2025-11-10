@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from database import DBUser, DBRole, DBProfile
-from models import UserCreate, ProfileUpdate, UserUpdate
+from database import DBUser, DBRole, DBProfile, DBPost
+from models import UserCreate, ProfileUpdate, UserUpdate, Post, MyPosts, PostCreate, Profile
 from passlib.context import CryptContext
 from auth import convert_db_user_to_user
 
@@ -123,6 +123,25 @@ def update_password(db: Session, user_id: int, old_password: str, new_password: 
         db.commit()
         return True
     return False
+
+
+def create_post(db: Session, post: PostCreate, profile_id: int) -> DBPost:
+    """Create a new post."""
+    db_post = DBPost(
+        title=post.title,
+        content=post.content,
+        profile_id=profile_id,
+    )
+    db.add(db_post)
+    db.commit()
+    db.refresh(db_post)
+    return db_post
+
+
+
+def get_posts_by_profile_id(db: Session, profile_id: int):
+    """Get posts by profile ID."""
+    return db.query(DBPost).filter(DBPost.profile_id == profile_id).all()
 
 
 

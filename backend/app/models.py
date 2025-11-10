@@ -67,6 +67,25 @@ class Profile(ProfileBase):
     class Config:
         from_attributes = True
 
+class Post(BaseModel):
+    id: Optional[int] = None
+    title: str
+    content: str
+    profile_id: int
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class PostCreate(BaseModel):
+    title: str
+    content: str
+
+
+class MyPosts(BaseModel):
+    posts: List[Post] = []
+
 
 
 

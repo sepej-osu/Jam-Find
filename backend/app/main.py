@@ -12,7 +12,7 @@ from auth import (
     create_access_token, get_current_active_user,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
-from models import User, UserCreate, Token, Profile, ProfileCreate, ProfileUpdate, UpdatePassword
+from models import User, UserCreate, Token, Profile, ProfileCreate, ProfileUpdate, UpdatePassword, Post, MyPosts, PostCreate
 
 
 app = FastAPI()
@@ -125,6 +125,51 @@ async def update_my_profile(
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
     return profile
+
+
+@app.post("/new_post/", response_model=Post)
+async def create_new_post(
+    post: PostCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new post for the current user."""
+    profile = crud.get_profile_by_user_id(db, current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    db_post = crud.create_post(db, post, profile.id)
+    return Post(
+        id=db_post.id,
+        title=db_post.title,
+        content=db_post.content,
+        profile_id=db_post.profile_id,
+        created_at=str(db_post.created_at)
+    )
+
+
+@app.get("/posts/", response_model=MyPosts)
+async def get_my_posts(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Get all posts for the current user."""
+    profile = crud.get_profile_by_user_id(db, current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    posts = crud.get_posts_by_profile_id(db, profile.id)
+    return MyPosts(
+        posts=[
+            Post(
+                id=post.id,
+                title=post.title,
+                content=post.content,
+                profile_id=post.profile_id,
+                created_at=str(post.created_at)
+            ) for post in posts
+        ]
+    )
 
 
 if __name__ == "__main__":
