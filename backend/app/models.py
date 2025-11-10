@@ -27,3 +27,28 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+class ProfileBase(BaseModel):
+    bio: Optional[str] = None
+    display_name: Optional[str] = None
+    location: Optional[str] = None
+    experience_level: Optional[str] = None  # Added experience_level field
+
+
+class ProfileCreate(ProfileBase):
+    pass
+
+class ProfileUpdate(ProfileBase):
+    pass
+
+class Profile(ProfileBase):
+    id: int
+    user_id: int
+    created_at: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+
+

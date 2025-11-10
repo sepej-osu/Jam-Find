@@ -31,6 +31,8 @@ class DBUser(Base):
     created_at = Column(DateTime, default=func.now())
 
     roles = relationship("DBRole", secondary=user_roles, back_populates="users")
+    profile = relationship("DBProfile", uselist=False, back_populates="user")
+
 
 class DBRole(Base):
     __tablename__ = "roles"
@@ -40,6 +42,20 @@ class DBRole(Base):
     description = Column(String)
 
     users = relationship("DBUser", secondary=user_roles, back_populates="roles")
+
+class DBProfile(Base):
+    __tablename__ = "profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    bio = Column(String, nullable=True)
+    display_name = Column(String, nullable=True)
+    location = Column(String, nullable=True)
+    experience_level = Column(String, nullable=True)  # Added experience_level column
+    created_at = Column(DateTime, default=func.now())
+    
+    user = relationship("DBUser", back_populates="profile")
+    
 
 # Create tables
 Base.metadata.create_all(bind=engine)

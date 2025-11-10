@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from database import DBUser, DBRole
+from database import DBUser, DBRole, DBProfile
 from models import UserCreate
 from passlib.context import CryptContext
 
@@ -39,6 +39,18 @@ def create_user(db: Session, user: UserCreate):
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
+
+    db_profile = DBProfile(
+        user_id=db_user.id,
+        bio="",
+        display_name=user.first_name,
+        location="",
+        experience_level=""
+    )
+    db.add(db_profile)
+    db.commit()
+    db.refresh(db_profile)
+
     return db_user
 
 
@@ -78,3 +90,4 @@ def assign_role_to_user(db: Session, user_id: int, role_name: str):
             db.commit()
             return True
     return False
+
