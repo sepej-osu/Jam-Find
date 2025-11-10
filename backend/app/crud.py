@@ -1,15 +1,19 @@
 from sqlalchemy.orm import Session
-from passlib.context import CryptContext
 from database import DBUser, DBRole
 from models import UserCreate
-from typing import Optional
+from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def get_user_by_id(db: Session, user_id: int):
-    """Get user by ID."""
-    return db.query(DBUser).filter(DBUser.id == user_id).first()
+def get_password_hash(password: str):
+    """Hash a password."""
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str):
+    """Verify a password against its hash."""
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 def get_user_by_email(db: Session, email: str):
@@ -17,21 +21,21 @@ def get_user_by_email(db: Session, email: str):
     return db.query(DBUser).filter(DBUser.email == email).first()
 
 
+def get_user_by_id(db: Session, user_id: int):
+    """Get user by ID."""
+    return db.query(DBUser).filter(DBUser.id == user_id).first()
+
+
 def create_user(db: Session, user: UserCreate):
     """Create a new user."""
-    hashed_password = pwd_context.hash(user.password)
+    hashed_password = get_password_hash(user.password)
     db_user = DBUser(
         email=user.email,
         first_name=user.first_name,
         last_name=user.last_name,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        is_active=True
     )
-
-    # Assign default user role
-    user_role = db.query(DBRole).filter(DBRole.name == "user").first()
-    if user_role:
-        db_user.roles.append(user_role)
-
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -39,16 +43,22 @@ def create_user(db: Session, user: UserCreate):
 
 
 def authenticate_user(db: Session, email: str, password: str):
-    """Authenticate user with email and password."""
+    """Authenticate a user by email and password."""
     user = get_user_by_email(db, email)
     if not user:
         return False
-    if not pwd_context.verify(password, user.hashed_password):
+    if not verify_password(password, user.hashed_password):
         return False
     return user
 
 
-def create_role(db: Session, name: str, description: str = ""):
+# Role-related functions
+def get_role_by_name(db: Session, name: str):
+    """Get role by name."""
+    return db.query(DBRole).filter(DBRole.name == name).first()
+
+
+def create_role(db: Session, name: str, description: str):
     """Create a new role."""
     db_role = DBRole(name=name, description=description)
     db.add(db_role)
@@ -57,12 +67,14 @@ def create_role(db: Session, name: str, description: str = ""):
     return db_role
 
 
-def get_all_users(db: Session, skip: int = 0, limit: int = 100):
-    """Get all users with pagination."""
-    return db.query(DBUser).offset(skip).limit(limit).all()
-
-
-def get_role_by_name(db: Session, name: str):
-    """Get role by name."""
-    return db.query(DBRole).filter(DBRole.name == name).first()
-
+def assign_role_to_user(db: Session, user_id: int, role_name: str):
+    """Assign a role to a user."""
+    user = get_user_by_id(db, user_id)
+    role = get_role_by_name(db, role_name)
+    
+    if user and role:
+        if role not in user.roles:
+            user.roles.append(role)
+            db.commit()
+            return True
+    return False

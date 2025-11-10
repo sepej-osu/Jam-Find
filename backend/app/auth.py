@@ -4,11 +4,10 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from models import User, UserInDB
+from models import User
 from sqlalchemy.orm import Session
 from database import get_db, DBUser
 import crud
-
 
 # Configuration
 SECRET_KEY = "your-secret-key-here"  # In production, use environment variables
@@ -25,14 +24,13 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 def convert_db_user_to_user(db_user: DBUser) -> User:
     """Convert database user to Pydantic user model."""
     return User(
+        id=db_user.id,
         email=db_user.email,
         first_name=db_user.first_name,
         last_name=db_user.last_name,
         disabled=not db_user.is_active,
         roles=[role.name for role in db_user.roles]
     )
-
-
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -58,13 +56,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        email: str = payload.get("sub")  # Changed from username to email
+        if email is None:
             raise credentials_exception
     except JWTError:
         raise credentials_exception
 
-    db_user = crud.get_user_by_username(db, username=username)
+    db_user = crud.get_user_by_email(db, email=email)  # Changed to use email
     if db_user is None:
         raise credentials_exception
     return convert_db_user_to_user(db_user)
