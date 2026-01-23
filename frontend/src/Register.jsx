@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { auth } from './firebase';
-import { createUserWithEmailAndPassword, getAuth, validatePassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
 
 function Register() {
   const [email, setEmail] = useState('');
@@ -19,12 +19,6 @@ const [password_confirm, setPassword_confirm] = useState('');
     }
     setError('');
     setSuccess('');
-
-    const validationError = validatePassword(password);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
 
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
