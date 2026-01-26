@@ -74,14 +74,37 @@ async def get_profile(
     user_id: str,
     current_user_id: str = Depends(get_current_user)
 ):
-    """Get a user profile by user_id (user can only view their own profile)"""
-    # TODO: Verify user can only access their own profile
-    # TODO: Get database connection
-    # TODO: Fetch profile document from Firestore
-    # TODO: Check if profile exists (raise 404 if not)
-    # TODO: Return the profile data
-    # TODO: Handle errors
-    pass
+    """Get a user profile (user needs to be logged in to view profiles)"""
+    # Verify only logged in users can view profiles
+    verify_user_logged_in(current_user_id)
+    
+    try:
+        # Get database connection
+        db = get_db()
+        profiles_ref = db.collection(COLLECTION_NAME)
+
+        # Fetch profile document from Firestore
+        profile_doc = profiles_ref.document(user_id).get()
+        if not profile_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Profile not found for user_id: {user_id}"
+            )
+        profile_data = profile_doc.to_dict()
+        return ProfileResponse(**profile_data)
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except gcp_exceptions.GoogleCloudError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating profile: {str(e)}"
+        )
 
 
 @router.put("/profiles/{user_id}", response_model=ProfileResponse)
