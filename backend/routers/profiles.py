@@ -114,7 +114,7 @@ async def update_profile(
     current_user_id: str = Depends(get_current_user)
 ):
     """Update a user profile (user can only update their own profile)"""
-    # Verify user can only create their own profile
+    # Verify user can only update their own profile
     verify_user_access(current_user_id, user_id)
     
     try:
