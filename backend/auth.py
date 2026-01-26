@@ -77,3 +77,19 @@ def verify_user_access(authenticated_user_id: str, resource_user_id: str):
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to access this resource"
         )
+
+def verify_user_logged_in(authenticated_user_id: Optional[str]):
+    """
+    Verify that the user is logged in.
+    
+    Raises 401 Unauthorized if there is no authenticated user.
+    
+    Args:
+        authenticated_user_id: The UID from the verified Firebase token
+    """
+    if not authenticated_user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required to access this resource",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
