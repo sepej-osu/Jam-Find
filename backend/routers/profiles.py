@@ -103,7 +103,7 @@ async def get_profile(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating profile: {str(e)}"
+            detail=f"An error occurred while getting profile: {str(e)}"
         )
 
 
@@ -115,7 +115,7 @@ async def update_profile(
 ):
     """Update a user profile (user can only update their own profile)"""
     # Verify user can only create their own profile
-    verify_user_access(current_user_id, profile.user_id)
+    verify_user_access(current_user_id, user_id)
     
     try:
         # Get database connection
@@ -151,7 +151,7 @@ async def update_profile(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while creating profile: {str(e)}"
+            detail=f"An error occurred while updating profile: {str(e)}"
         )
 
 
@@ -160,9 +160,8 @@ async def delete_profile(
     user_id: str,
     current_user_id: str = Depends(get_current_user)
 ):
-    """Delete a user profile (user can only delete their own profile)"""
     # Verify user can only delete their own profile
-    verify_user_access(current_user_id, profile.user_id)
+    verify_user_access(current_user_id, user_id)
 
     try:
         # Get database connection
@@ -194,16 +193,6 @@ async def delete_profile(
             detail=f"An error occurred while deleting profile: {str(e)}"
         )
 
-
-    # TODO: Verify user can only delete their own profile
-    # TODO: Get database connection
-    # TODO: Check if profile exists (raise 404 if not)
-    # TODO: Delete the document from Firestore
-    # TODO: Return None
-    # TODO: Handle errors
-    pass
-
-
 @router.get("/profiles", response_model=List[ProfileResponse])
 async def list_profiles(
     limit: int = 10,
@@ -216,11 +205,37 @@ async def list_profiles(
         limit: Maximum number of profiles to return (default: 10, max: 100)
         start_after: User ID to start after for pagination
     """
-    # TODO: Get database connection
-    # TODO: Limit the max number of results to 100
-    # TODO: Build query with ordering and limit
-    # TODO: Apply pagination cursor if start_after is provided
-    # TODO: Fetch documents and convert to ProfileResponse objects
-    # TODO: Return list of profiles
-    # TODO: Handle errors
-    pass
+    # Verify only logged in users can view profiles
+    verify_user_logged_in(current_user_id)
+
+    # Limit the max number of results to 100
+    max_allowed_limit = 100
+    limit = min(limit, max_allowed_limit)
+    try:
+        db = get_db()
+        profiles_ref = db.collection(COLLECTION_NAME)
+        query = profiles_ref.limit(limit)
+        if start_after:
+            start_doc = profiles_ref.document(start_after).get()
+            if not start_doc.exists:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"start_after user_id {start_after} does not exist"
+                )
+            query = query.start_after(start_doc)
+        profile_docs = query.stream()
+        profiles = [ProfileResponse(**doc.to_dict()) for doc in profile_docs]
+        return profiles
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except gcp_exceptions.GoogleCloudError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while getting profiles: {str(e)}"
+        )
