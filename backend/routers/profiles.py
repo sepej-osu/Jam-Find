@@ -114,16 +114,45 @@ async def update_profile(
     current_user_id: str = Depends(get_current_user)
 ):
     """Update a user profile (user can only update their own profile)"""
-    # TODO: Verify user can only update their own profile
-    # TODO: Get database connection
-    # TODO: Check if profile exists
-    # TODO: Get only the fields that were provided (exclude_unset=True)
-    # TODO: If email is being updated, check if it's already taken by another user
-    # TODO: Add updated_at timestamp
-    # TODO: Update the document in Firestore
-    # TODO: Fetch and return the updated profile
-    # TODO: Handle errors
-    pass
+    # Verify user can only create their own profile
+    verify_user_access(current_user_id, profile.user_id)
+    
+    try:
+        # Get database connection
+        db = get_db()
+        profiles_ref = db.collection(COLLECTION_NAME)
+
+        # Check if profile exists
+        profile_doc = profiles_ref.document(user_id).get()
+        if not profile_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Profile not found for user_id: {user_id}"
+            )
+        existing_data = profile_doc.to_dict()
+        update_data = profile_update.model_dump(exclude_unset=True)
+
+        # Add updated_at timestamp
+        update_data["updated_at"] = datetime.utcnow()
+        # Update the document in Firestore
+        profiles_ref.document(user_id).update(update_data)
+        # Fetch and return the updated profile
+        updated_profile_doc = profiles_ref.document(user_id).get()
+        updated_profile_data = updated_profile_doc.to_dict()
+        return ProfileResponse(**updated_profile_data)
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except gcp_exceptions.GoogleCloudError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating profile: {str(e)}"
+        )
 
 
 @router.delete("/profiles/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -132,6 +161,40 @@ async def delete_profile(
     current_user_id: str = Depends(get_current_user)
 ):
     """Delete a user profile (user can only delete their own profile)"""
+    # Verify user can only delete their own profile
+    verify_user_access(current_user_id, profile.user_id)
+
+    try:
+        # Get database connection
+        db = get_db()
+        profiles_ref = db.collection(COLLECTION_NAME)
+
+        # Check if profile exists
+        profile_doc = profiles_ref.document(user_id).get()
+        if not profile_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Profile not found for user_id: {user_id}"
+            )
+        
+        # Delete the document from Firestore
+        profiles_ref.document(user_id).delete()
+        return None  # 204 No Content
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except gcp_exceptions.GoogleCloudError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while deleting profile: {str(e)}"
+        )
+
+
     # TODO: Verify user can only delete their own profile
     # TODO: Get database connection
     # TODO: Check if profile exists (raise 404 if not)
