@@ -1,23 +1,55 @@
-from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from typing import Optional, List
 from datetime import datetime
+
+
+class Location(BaseModel):
+    place_id: str = Field(..., alias="placeId")
+    formatted_address: str = Field(..., alias="formattedAddress")
+    lat: float
+    lng: float
+    
+    class Config:
+        populate_by_name = True
+
+
+class Instrument(BaseModel):
+    name: str
+    experience_level: int = Field(..., ge=1, le=10, alias="experienceLevel")
+    
+    class Config:
+        populate_by_name = True
+
 
 class ProfileBase(BaseModel):
     email: EmailStr
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
     bio: Optional[str] = Field(None, max_length=500)
-    location: Optional[str] = None
+    experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
+    location: Optional[Location] = None
+    profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
+    instruments: Optional[List[Instrument]] = Field(default_factory=list)
+    genres: Optional[List[str]] = Field(default_factory=list)
+    
+    class Config:
+        populate_by_name = True
+
 
 class ProfileCreate(ProfileBase):
     user_id: str = Field(..., description="Firebase Auth UID")
 
+
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
-    first_name: Optional[str] = None
-    last_name: Optional[str] = None
     bio: Optional[str] = Field(None, max_length=500)
-    location: Optional[str] = None
+    experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
+    location: Optional[Location] = None
+    profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
+    instruments: Optional[List[Instrument]] = None
+    genres: Optional[List[str]] = None
+    
+    class Config:
+        populate_by_name = True
+
 
 class ProfileResponse(ProfileBase):
     user_id: str
@@ -26,3 +58,4 @@ class ProfileResponse(ProfileBase):
     
     class Config:
         from_attributes = True
+        populate_by_name = True

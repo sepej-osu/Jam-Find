@@ -18,15 +18,55 @@ async def create_profile(
     current_user_id: str = Depends(get_current_user)
 ):
     """Create a new user profile (user can only create their own profile)"""
-    # TODO: Verify user can only create their own profile
-    # TODO: Get database connection
-    # TODO: Check if profile already exists for this user_id
-    # TODO: Check if email is already taken
-    # TODO: Create profile document with timestamps
-    # TODO: Save to Firestore
-    # TODO: Return the created profile
-    # TODO: Handle errors (HTTPException, GoogleCloudError, general exceptions)
-    pass
+    # Verify user can only create their own profile
+    verify_user_access(current_user_id, profile.user_id)
+    
+    try:
+        # Get database connection
+        db = get_db()
+        profiles_ref = db.collection(COLLECTION_NAME)
+        
+        # Check if profile already exists for this user_id
+        existing_profile = profiles_ref.document(profile.user_id).get()
+        if existing_profile.exists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Profile already exists for user_id: {profile.user_id}"
+            )
+        
+        # Check if email is already taken
+        email_query = profiles_ref.where(filter=FieldFilter("email", "==", profile.email)).limit(1).get()
+        if len(list(email_query)) > 0:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Email {profile.email} is already registered"
+            )
+        
+        # Create profile document with timestamps
+        now = datetime.utcnow()
+        profile_data = profile.model_dump()
+        profile_data["created_at"] = now
+        profile_data["updated_at"] = now
+        
+        # Save to Firestore
+        profiles_ref.document(profile.user_id).set(profile_data)
+        
+        # Return the created profile
+        return ProfileResponse(**profile_data)
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except gcp_exceptions.GoogleCloudError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"An error occurred while creating profile: {str(e)}"
+        )
 
 
 @router.get("/profiles/{user_id}", response_model=ProfileResponse)
