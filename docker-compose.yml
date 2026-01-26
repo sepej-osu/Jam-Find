@@ -1,17 +1,24 @@
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: backend
-    command: ["python", "-m", "app.main", "false"]
+    env_file:
+      - ./backend/.env
     volumes:
-      - ./backend:/code  # Mount the entire backend folder for the code
-      - ./backend/data:/code/data  # Mount only the data folder for SQLite persistence
+      - ./backend:/code
+      - sqlite_data:/code/data
+      - ./backend/secrets/serviceAccountKey.json:/code/serviceAccountKey.json:ro
 
     ports:
       - "8000:8000"
-  
+
+
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: frontend
     ports:
       - "3000:3000"
@@ -20,9 +27,8 @@ services:
     env_file:
       - ./frontend/.env
     volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/public:/app/public
-    command: ["serve", "-s", "build", "-l", "tcp://0.0.0.0:3000"]
+      - ./frontend:/app
+      - /app/node_modules
 
 volumes:
   sqlite_data:

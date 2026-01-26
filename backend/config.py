@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     
     # Service account key (fallback for local development)
     FIREBASE_CREDENTIALS_PATH: str = "serviceAccountKey.json"
+
+    # Google Maps (used by /location endpoints)
+    GOOGLE_MAPS_API_KEY: str = ""
     
     class Config:
         env_file = ".env"
