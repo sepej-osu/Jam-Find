@@ -44,7 +44,7 @@ async def create_profile(
         
         # Create profile document with timestamps
         now = datetime.utcnow()
-        profile_data = profile.model_dump()
+        profile_data = profile.model_dump(by_alias=True)
         profile_data["created_at"] = now
         profile_data["updated_at"] = now
         
@@ -75,9 +75,6 @@ async def get_profile(
     current_user_id: str = Depends(get_current_user)
 ):
     """Get a user profile (user needs to be logged in to view profiles)"""
-    # Verify only logged in users can view profiles
-    verify_user_logged_in(current_user_id)
-    
     try:
         # Get database connection
         db = get_db()
@@ -114,7 +111,7 @@ async def update_profile(
     current_user_id: str = Depends(get_current_user)
 ):
     """Update a user profile (user can only update their own profile)"""
-    # Verify user can only create their own profile
+    # Verify user can only  their own profile
     verify_user_access(current_user_id, user_id)
     
     try:
@@ -132,14 +129,33 @@ async def update_profile(
         existing_data = profile_doc.to_dict()
         update_data = profile_update.model_dump(exclude_unset=True)
 
+        # Check email uniqueness only if email is being changed
+        if "email" in update_data:
+            new_email = update_data["email"]
+            current_email = existing_data.get("email")
+            
+            # Only check uniqueness if email is actually changing
+            if new_email != current_email:
+                email_query = profiles_ref.where(
+                    filter=FieldFilter("email", "==", new_email)
+                ).limit(1).get()
+                
+                # Check if any other user has this email
+                for doc in email_query:
+                    if doc.id != user_id:
+                        raise HTTPException(
+                            # TODO: Add rate limiting or email verification to prevent abuse
+                            status_code=status.HTTP_409_CONFLICT,
+                            detail=f"Email {new_email} is already registered"
+                        )
+
         # Add updated_at timestamp
         update_data["updated_at"] = datetime.utcnow()
         # Update the document in Firestore
         profiles_ref.document(user_id).update(update_data)
-        # Fetch and return the updated profile
-        updated_profile_doc = profiles_ref.document(user_id).get()
-        updated_profile_data = updated_profile_doc.to_dict()
-        return ProfileResponse(**updated_profile_data)
+        # Return the updated profile
+        existing_data.update(update_data)
+        return ProfileResponse(**existing_data)
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
@@ -199,22 +215,19 @@ async def list_profiles(
     start_after: Optional[str] = None,
     current_user_id: str = Depends(get_current_user)
 ):
-    """List all profiles (paginated)
+    """List all profiles (paginated) sorted by creation date.
     
     Args:
         limit: Maximum number of profiles to return (default: 10, max: 100)
         start_after: User ID to start after for pagination
     """
-    # Verify only logged in users can view profiles
-    verify_user_logged_in(current_user_id)
-
     # Limit the max number of results to 100
     max_allowed_limit = 100
     limit = min(limit, max_allowed_limit)
     try:
         db = get_db()
         profiles_ref = db.collection(COLLECTION_NAME)
-        query = profiles_ref.limit(limit)
+        query = profiles_ref.order_by("created_at").limit(limit)
         if start_after:
             start_doc = profiles_ref.document(start_after).get()
             if not start_doc.exists:

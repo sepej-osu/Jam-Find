@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class Location(BaseModel):
-    place_id: str = Field(..., alias="placeId")
+    place_id: Optional[str] = Field(None, alias="placeId")
     formatted_address: str = Field(..., alias="formattedAddress")
     lat: float
     lng: float

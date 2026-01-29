@@ -53,17 +53,33 @@ function CreateProfile() {
           email: user.email,
           bio: formData.bio,
           experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
-          location: formData.location.formattedAddress ? formData.location : null,
+          location: (formData.location.placeId && formData.location.formattedAddress) ? formData.location : null,
           profilePicUrl: formData.profilePicUrl || null,
           instruments: formData.instruments,
           genres: formData.genres
         })
       });
 
-      const data = await response.json();
+      let data = null;
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Failed to create profile');
+        let errorMsg = 'Failed to create profile';
+        try {
+          const errorData = await response.json();
+          if (errorData && typeof errorData === 'object' && errorData.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch (_){
+          // Ignore JSON parsing errors
+        }
+        throw new Error(errorMsg);
+      }
+
+      try {
+        data = await response.json();
+      }
+      catch (_){
+        data = null;
       }
 
       setSuccess('Profile created successfully!');
