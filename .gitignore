@@ -29,6 +29,12 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Script generated files
+.backend.pid
+.frontend.pid
+backend.log
+frontend.log
+
 # ===== Environment Variables =====
 .env
 .env.local

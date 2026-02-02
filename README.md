@@ -55,4 +55,16 @@ cd frontend
 npm run dev
 ```
 
+### Scripts to run both
+There are two Claude AI generated .sh scripts you can run to run the development. start.sh runs both the frontend and backend run scripts listed above and stop.sh stops their processes and shuts down the servers.
+Use at your own risk.
+
+```bash
+./start.sh
+```
+
+```bash
+./stop.sh
+```
+
 API docs available at `http://localhost:8000/docs`

@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     
+    # Development mode
+    # bypass authentication for testing changing DEV_MODE to True in the .env file
+    DEV_MODE: bool = False
+    DEV_USER_ID: str = "dev_test_user_123"
+    
     # CORS configuration
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
     
@@ -16,8 +21,8 @@ class Settings(BaseSettings):
     FIREBASE_CREDENTIALS_PATH: str = "serviceAccountKey.json"
     
     class Config:
-        env_file = ".env"
-        case_sensitive = True
+        env_file: str = ".env"
+        case_sensitive: bool = True
 
 @lru_cache()
 def get_settings():

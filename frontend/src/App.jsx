@@ -3,6 +3,7 @@ import { auth } from './firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import Register from './Register';
 import Login from './Login';
+import CreateProfile from './CreateProfile';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -32,12 +33,15 @@ function App() {
 
   if (user) {
     return (
-      <div style={{ maxWidth: '400px', margin: '50px auto', padding: '20px' }}>
-        <h2>Welcome, {user.email}!</h2>
-        <p>You are now logged in to Jam Find</p>
-        <button onClick={handleLogout} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-          Logout
-        </button>
+      <div style={{ maxWidth: '800px', margin: '50px auto', padding: '20px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <h2>Welcome, {user.email}!</h2>
+          <p>User ID: {user.uid}</p>
+          <button onClick={handleLogout} style={{ padding: '10px 20px', cursor: 'pointer' }}>
+            Logout
+          </button>
+        </div>
+        <CreateProfile />
       </div>
     );
   }
