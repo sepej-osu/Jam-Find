@@ -29,6 +29,22 @@ cp .env.example .env
 # Edit .env if needed
 ```
 
+**Development Mode (for testing without authentication):**
+```bash
+# In backend/.env
+DEV_MODE=True
+DEV_USER_ID=dev_test_user_123
+```
+
+**⚠️ WARNING:** Never enable `DEV_MODE` in production!
+
+When `DEV_MODE=True`:
+- All API endpoints work without Firebase JWT tokens
+- The test user ID `dev_test_user_123` is used for all requests
+- Perfect for testing in Swagger UI (`/docs`) without frontend authentication
+
+For production, set `DEV_MODE=False` or remove the variable entirely.
+
 ### 5. Run the Server
 ```bash
 # Make sure virtual environment is activated
@@ -57,6 +73,10 @@ The API will be available at `http://localhost:8000`
 Once the server is running, visit:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+**Testing with Swagger UI:**
+1. **Development Mode (No Auth Required):** Set `DEV_MODE=True` in `.env` and restart server. All endpoints work immediately.
+2. **Production Mode (Auth Required):** Click the "Authorize" button in Swagger UI, paste your Firebase ID token in the "Value" field, and click "Authorize".
 
 ## Example Usage
 
