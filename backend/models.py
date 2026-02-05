@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 
@@ -9,17 +9,17 @@ class Location(BaseModel):
     lat: float
     lng: float
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
-
+    )
 
 class Instrument(BaseModel):
     name: str
     experience_level: int = Field(..., ge=1, le=10, alias="experienceLevel")
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
-
+    )
 
 class ProfileBase(BaseModel):
     email: EmailStr
@@ -31,8 +31,9 @@ class ProfileBase(BaseModel):
     instruments: Optional[List[Instrument]] = Field(default_factory=list)
     genres: Optional[List[str]] = Field(default_factory=list)
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
 
 
 class ProfileCreate(ProfileBase):
@@ -49,8 +50,9 @@ class ProfileUpdate(BaseModel):
     instruments: Optional[List[Instrument]] = None
     genres: Optional[List[str]] = None
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
 
 
 class ProfileResponse(ProfileBase):
@@ -58,6 +60,7 @@ class ProfileResponse(ProfileBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes = True,
         populate_by_name = True
+    )
