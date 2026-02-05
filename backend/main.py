@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import profiles
 from config import settings
 from firebase_config import initialize_firebase
+from contextlib import asynccontextmanager
 
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize Firebase on startup
     initialize_firebase()
