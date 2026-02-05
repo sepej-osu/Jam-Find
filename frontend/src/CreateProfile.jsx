@@ -1,6 +1,16 @@
 import { useState } from 'react';
 import { auth } from './firebase';
 
+
+
+const GENRES = [
+  'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
+  'Hip Hop', 'Hardcore', 'Electronic', 'Classical', 'Metal',
+  'Death Metal', 'Folk', 'Reggae', 'Punk', 'Indie', 'Soul',
+  'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'other'
+];
+
+
 function CreateProfile() {
   const [formData, setFormData] = useState({
     bio: '',
