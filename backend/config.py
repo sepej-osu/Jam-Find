@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from functools import lru_cache
 from typing import List
 
@@ -20,9 +21,10 @@ class Settings(BaseSettings):
     # Service account key (fallback for local development)
     FIREBASE_CREDENTIALS_PATH: str = "serviceAccountKey.json"
     
-    class Config:
-        env_file: str = ".env"
-        case_sensitive: bool = True
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True
+    )
 
 @lru_cache()
 def get_settings():
