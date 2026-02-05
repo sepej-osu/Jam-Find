@@ -24,6 +24,7 @@ class Instrument(BaseModel):
 class ProfileBase(BaseModel):
     email: EmailStr
     bio: Optional[str] = Field(None, max_length=500)
+    gender: Optional[str] = None
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
@@ -41,6 +42,7 @@ class ProfileCreate(ProfileBase):
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     bio: Optional[str] = Field(None, max_length=500)
+    gender: Optional[str] = None
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
