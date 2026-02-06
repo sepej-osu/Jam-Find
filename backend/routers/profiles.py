@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from models import ProfileCreate, ProfileUpdate, ProfileResponse
 from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
@@ -43,7 +43,7 @@ async def create_profile(
             )
         
         # Create profile document with timestamps
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         profile_data = profile.model_dump(by_alias=True)
         profile_data["created_at"] = now
         profile_data["updated_at"] = now
@@ -150,7 +150,7 @@ async def update_profile(
                         )
 
         # Add updated_at timestamp
-        update_data["updated_at"] = datetime.utcnow()
+        update_data["updated_at"] = datetime.now(timezone.utc)
         # Update the document in Firestore
         profiles_ref.document(user_id).update(update_data)
         # Return the updated profile
