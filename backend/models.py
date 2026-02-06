@@ -1,6 +1,14 @@
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict
 from typing import Optional, List
 from datetime import datetime
+from enum import Enum
+
+
+class Gender(str, Enum):
+    """To validate gender field."""
+    MALE = "male"
+    FEMALE = "female"
+    NON_BINARY = "non-binary"
 
 
 class Location(BaseModel):
@@ -15,16 +23,21 @@ class Location(BaseModel):
 
 class Instrument(BaseModel):
     name: str
-    experience_level: int = Field(..., ge=1, le=10, alias="experienceLevel")
+    experience_level: int = Field(..., ge=1, le=5, alias="experienceLevel")   # 1 to 5 scale
     
     model_config = ConfigDict(
         populate_by_name = True
     )
 
+   # an elipses in the Field indicates a required field
 class ProfileBase(BaseModel):
+    user_id: str = Field(..., description="Firebase Auth UID", alias="userId")
+    first_name: str = Field(..., alias="firstName")
+    last_name: str = Field(..., alias="lastName")
+    birth_date: Optional[datetime] = Field(..., alias="birthDate")
+    gender: Optional[Gender] = Field(..., alias="gender")  
     email: EmailStr
     bio: Optional[str] = Field(None, max_length=500)
-    gender: Optional[str] = None
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
@@ -43,7 +56,7 @@ class ProfileCreate(ProfileBase):
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     bio: Optional[str] = Field(None, max_length=500)
-    gender: Optional[str] = None
+    gender: Optional[Gender] = Field(..., alias="gender") 
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
