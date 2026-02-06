@@ -9,6 +9,7 @@ os.chdir(backend_dir)
 from config import get_settings
 get_settings.cache_clear()
 
+# This will load the test settings from .env
 settings = get_settings()
 
 from fastapi.testclient import TestClient
