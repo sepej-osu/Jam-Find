@@ -2,6 +2,8 @@
 import { useState } from 'react';
 import { auth } from './firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { Link } from 'react-router-dom';
+
 
 function Login() {
   const [email, setEmail] = useState('');
@@ -50,9 +52,14 @@ function Login() {
           Login
         </button>
       </form>
+      <p style={{ marginTop: 15 }}>
+        Need an account? <Link to="/register">Register</Link>
+      </p>
+
 
       {error && <p style={{ color: 'red', marginTop: '10px' }}>{error}</p>}
     </div>
+    
   );
 }
 
