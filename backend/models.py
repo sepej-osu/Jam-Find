@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict
 from typing import Optional, List
 from datetime import datetime
 from enum import Enum
@@ -17,19 +17,19 @@ class Location(BaseModel):
     lat: float
     lng: float
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
-
+    )
 
 class Instrument(BaseModel):
     name: str
     experience_level: int = Field(..., ge=1, le=5, alias="experienceLevel")   # 1 to 5 scale
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
 
    # an elipses in the Field indicates a required field
-
 class ProfileBase(BaseModel):
     user_id: str = Field(..., description="Firebase Auth UID", alias="userId")
     first_name: str = Field(..., alias="firstName")
@@ -44,8 +44,9 @@ class ProfileBase(BaseModel):
     instruments: Optional[List[Instrument]] = Field(default_factory=list)
     genres: Optional[List[str]] = Field(default_factory=list)
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
 
 
 class ProfileCreate(ProfileBase):
@@ -55,14 +56,16 @@ class ProfileCreate(ProfileBase):
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     bio: Optional[str] = Field(None, max_length=500)
+    gender: Optional[Gender] = Field(..., alias="gender") 
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
     instruments: Optional[List[Instrument]] = None
     genres: Optional[List[str]] = None
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
 
 
 class ProfileResponse(ProfileBase):
@@ -70,6 +73,7 @@ class ProfileResponse(ProfileBase):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(
+        from_attributes = True,
         populate_by_name = True
+    )

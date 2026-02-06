@@ -14,6 +14,7 @@ const GENRES = [
 function CreateProfile() {
   const [formData, setFormData] = useState({
     bio: '',
+    gender: '',
     experienceYears: '',
     location: {
       placeId: '',
@@ -62,6 +63,7 @@ function CreateProfile() {
           user_id: user.uid,
           email: user.email,
           bio: formData.bio,
+          gender: formData.gender || null,
           experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
           location: (formData.location.placeId && formData.location.formattedAddress) ? formData.location : null,
           profilePicUrl: formData.profilePicUrl || null,
@@ -98,6 +100,7 @@ function CreateProfile() {
       // Reset form
       setFormData({
         bio: '',
+        gender: '',
         experienceYears: '',
         location: {
           placeId: '',
@@ -132,6 +135,18 @@ function CreateProfile() {
             style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
           />
           <small style={{ color: '#666' }}>{formData.bio.length}/500 characters</small>
+        </div>
+
+        <div style={{ marginBottom: '15px' }}>
+          <label style={{ display: 'block', marginBottom: '5px' }}>Gender (Optional):</label>
+          <input
+            type="text"
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            placeholder="e.g., Male, Female, Non-binary, Prefer not to say"
+            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
+          />
         </div>
 
         <div style={{ marginBottom: '15px' }}>

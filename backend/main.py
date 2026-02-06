@@ -3,17 +3,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import profiles
 from config import settings
 from firebase_config import initialize_firebase
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Initialize Firebase on startup
+    initialize_firebase()
+    yield
+    # Shutdown actions can be added here
 
 app = FastAPI(
     title="Jam Find Profile API",
     description="API for managing user profiles",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
-
-# Initialize Firebase on startup
-@app.on_event("startup")
-async def startup_event():
-    initialize_firebase()
 
 # CORS middleware configuration
 app.add_middleware(
