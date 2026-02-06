@@ -1,16 +1,15 @@
 import os
-import sys
+from pathlib import Path
 
 # Set working directory to backend folder
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+backend_dir = Path(__file__).parent.parent
 os.chdir(backend_dir)
-
-os.environ["DEV_MODE"] = "True"
-os.environ["DEV_USER_ID"] = "4s0oN9f77ThHVUhzJspTwrjFnFy1"
 
 # Clear the settings cache BEFORE importing main
 from config import get_settings
 get_settings.cache_clear()
+
+settings = get_settings()
 
 from fastapi.testclient import TestClient
 from main import app
@@ -26,7 +25,7 @@ def test_create_profile():
     response = client.post(
         "/api/v1/profiles",
         json={
-            "user_id": "4s0oN9f77ThHVUhzJspTwrjFnFy1",
+            "user_id": settings.DEV_USER_ID,
             "email": "test@example.com",
             "bio": "Guitarist",
             "gender": "Male"
@@ -39,7 +38,7 @@ def test_create_profile():
 def test_get_profile():
     """Get the profile we just created"""
     response = client.get(
-        "/api/v1/profiles/4s0oN9f77ThHVUhzJspTwrjFnFy1"
+        f"/api/v1/profiles/{settings.DEV_USER_ID}"
     )
     print(f"Status: {response.status_code}")
     print(f"Response: {response.text}")
@@ -48,7 +47,7 @@ def test_get_profile():
 def test_update_profile():
     """Update the profile"""
     response = client.put(
-        "/api/v1/profiles/4s0oN9f77ThHVUhzJspTwrjFnFy1",
+        f"/api/v1/profiles/{settings.DEV_USER_ID}",
         json={
             "bio": "Updated Bio",
             "gender": "Female"
@@ -61,7 +60,7 @@ def test_update_profile():
 def test_delete_profile():
     """Clean up - delete the test profile"""
     response = client.delete(
-        "/api/v1/profiles/4s0oN9f77ThHVUhzJspTwrjFnFy1"
+        f"/api/v1/profiles/{settings.DEV_USER_ID}"
     )
     print(f"Status: {response.status_code}")
     assert response.status_code == 204
