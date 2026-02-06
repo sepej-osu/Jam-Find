@@ -15,6 +15,10 @@ get_settings.cache_clear()
 from fastapi.testclient import TestClient
 from main import app
 
+# Override the collection name for tests
+import routers.profiles as profiles_module
+profiles_module.COLLECTION_NAME = "test_profiles"
+
 client = TestClient(app)
 
 def test_create_profile():
