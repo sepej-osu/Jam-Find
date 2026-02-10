@@ -24,14 +24,12 @@ import PasswordField from './components/PasswordField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 
-
 const GENRES = [
   'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
   'Hip Hop', 'Hardcore', 'Electronic', 'Classical', 'Metal',
   'Death Metal', 'Folk', 'Reggae', 'Punk', 'Indie', 'Soul',
   'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'Other'
 ];
-
 
 function Register() {
   const navigate = useNavigate();
@@ -344,6 +342,8 @@ const handleStep2Submit = async (e) => {
               onChange={handleChange}
               required
             />
+
+
 
             <InputField
               label="Gender"
