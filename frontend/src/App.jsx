@@ -44,6 +44,7 @@ function App() {
       <Route
         path="/home"
         element={
+          // We need to create a backend API route to check if the user has completed their profile and redirect them to CreateProfile.
           user ? <Home /> : <Navigate to="/login" replace />
         }
       />
