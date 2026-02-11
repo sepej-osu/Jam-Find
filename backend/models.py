@@ -94,8 +94,17 @@ class PostBase(BaseModel):
         populate_by_name = True
     )
 
-class PostCreate(PostBase):
-    user_id: str = Field(..., description="Firebase Auth UID")
+class PostCreate(BaseModel):
+    title: str = Field(..., max_length=100)
+    body: str = Field(..., max_length=1000)
+    post_type: str = Field(..., alias="postType")
+    location: Optional[Location] = None
+    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments")
+    genres: Optional[List[str]] = Field(default_factory=list)
+    
+    model_config = ConfigDict(
+        populate_by_name = True
+    )
     
 class PostUpdate(BaseModel):
     title: Optional[str] = Field(None, max_length=100)
