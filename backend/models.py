@@ -3,7 +3,7 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
-
+### Profile models
 class Gender(str, Enum):
     """To validate gender field."""
     MALE = "male"
@@ -69,6 +69,47 @@ class ProfileUpdate(BaseModel):
 
 
 class ProfileResponse(ProfileBase):
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(
+        from_attributes = True,
+        populate_by_name = True
+    )
+
+### Post models
+class PostBase(BaseModel):
+    user_id: str = Field(..., description="Firebase Auth UID", alias="userId")
+    title: str = Field(..., max_length=100)
+    body: str = Field(..., max_length=1000)
+    post_type: str = Field(..., alias="postType")  # "looking_for_band", "looking_for_musicians", "looking_to_jam", "sharing_music"
+    ## not sure on this one below
+    #show_on_profile: bool = Field(default=True, alias="showOnProfile")
+    location: Optional[Location] = None
+    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments")
+    genres: Optional[List[str]] = Field(default_factory=list)
+
+    model_config = ConfigDict(
+        populate_by_name = True
+    )
+
+class PostCreate(PostBase):
+    user_id: str = Field(..., description="Firebase Auth UID")
+    
+class PostUpdate(BaseModel):
+    title: Optional[str] = Field(None, max_length=100)
+    body: Optional[str] = Field(None, max_length=1000)
+    post_type: Optional[str] = Field(None, alias="postType")  # "looking_for_band", "looking_for_musicians", "looking_to_jam", "sharing_music"
+    location: Optional[Location] = None
+    instruments: Optional[List[Instrument]] = None
+    genres: Optional[List[str]] = None
+    
+    model_config = ConfigDict(
+        populate_by_name = True
+    )
+
+class PostResponse(PostBase):
     user_id: str
     created_at: datetime
     updated_at: datetime
