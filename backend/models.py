@@ -110,7 +110,7 @@ class PostUpdate(BaseModel):
     )
 
 class PostResponse(PostBase):
-    user_id: str
+    post_id: str = Field(..., alias="postId")
     created_at: datetime
     updated_at: datetime
     
