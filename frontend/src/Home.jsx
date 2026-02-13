@@ -1,6 +1,6 @@
 
-import { Box, Heading, Text, VStack } from '@chakra-ui/react';
-
+import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
+import { Link as RouterLink } from 'react-router-dom';
 import LogoutButton from './components/LogoutButton';
 
 
@@ -25,11 +25,20 @@ function Home() {
           You can build your dashboard or profile here later.
         </Text>
 
-        <LogoutButton   />
-
+        <Button 
+          as={RouterLink} 
+          to="/create-post" 
+          colorScheme="blue"
+          size="lg"
+          width="100%"
+        >
+          Create a Post
+        </Button>
+        <LogoutButton />
       </VStack>
     </Box>
   );
+        
 }
 
 export default Home;

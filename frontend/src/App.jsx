@@ -6,6 +6,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import Login from './Login';
 import Register from './Register';
 import Home from './Home';
+import CreatePost from './CreatePost';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -45,6 +46,13 @@ function App() {
         path="/home"
         element={
           user ? <Home /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/create-post"
+        element={
+          user ? <CreatePost /> : <Navigate to="/login" replace />
         }
       />
 

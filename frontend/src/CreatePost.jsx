@@ -178,7 +178,7 @@ function CreatePost() {
           />
 
           <InputField
-            label="Description"
+            label="Body"
             name="body"
             type="textarea"
             value={formData.body}
