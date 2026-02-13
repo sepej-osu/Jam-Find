@@ -89,11 +89,14 @@ class PostBase(BaseModel):
     location: Optional[Location] = None
     instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments")
     genres: Optional[List[str]] = Field(default_factory=list)
+    liked_by: Optional[List[str]] = Field(default_factory=list, alias="likedBy")  # List of user IDs who liked the post
+    # We can calculate the number of likes from the length of liked_by array, so we don't need a separate likes field.
 
     model_config = ConfigDict(
         populate_by_name = True
     )
 
+## use the front end components
 class PostCreate(BaseModel):
     title: str = Field(..., max_length=100)
     body: str = Field(..., max_length=1000)
@@ -101,6 +104,8 @@ class PostCreate(BaseModel):
     location: Optional[Location] = None
     instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments")
     genres: Optional[List[str]] = Field(default_factory=list)
+    media: Optional[List[HttpUrl]] = Field(default_factory=list, alias="media")  # List of media URLs (images, audio, video)
+    liked_by: Optional[List[str]] = Field(default_factory=list, alias="likedBy")  # List of user IDs who liked the post
     
     model_config = ConfigDict(
         populate_by_name = True
@@ -113,6 +118,8 @@ class PostUpdate(BaseModel):
     location: Optional[Location] = None
     instruments: Optional[List[Instrument]] = None
     genres: Optional[List[str]] = None
+    media: Optional[List[HttpUrl]] = Field(default_factory=list, alias="media")  # List of media URLs (images, audio, video)
+    # likes can only be modified through the /posts/{post_id}/like endpoint
     
     model_config = ConfigDict(
         populate_by_name = True
@@ -120,6 +127,8 @@ class PostUpdate(BaseModel):
 
 class PostResponse(PostBase):
     post_id: str = Field(..., alias="postId")
+    likes: int = Field(..., description="Computed from liked_by array length")
+    edited: bool = Field(..., description="True if post was edited (created_at < updated_at)")
     created_at: datetime
     updated_at: datetime
     
