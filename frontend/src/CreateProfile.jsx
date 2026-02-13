@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from './firebase';
+import { useAuth} from './contexts/AuthContext';
 import {
   Box,
   Center,
@@ -24,11 +24,11 @@ const GENRES = [
 
 
 function CreateProfile() {
-  const navigate = useNavigate();
-  const toast = useToast();
+  const navigate = useNavigate(); // For navigation after profile creation
+  const toast = useToast(); // For showing success/error messages after profile creation
+  const { currentUser, refreshProfile } = useAuth(); // Get current user and refreshProfile function from AuthContext
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+
 
   // All form data in one state object
   const [formData, setFormData] = useState({
@@ -58,12 +58,12 @@ function CreateProfile() {
     });
   };
 
-const handleStep2Submit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
 
   try {
-    const user = auth.currentUser;
+    const user = currentUser; // Use currentUser from AuthContext
     if (!user) {
       throw new Error('No user logged in');
     }
@@ -89,11 +89,7 @@ const handleStep2Submit = async (e) => {
       genres: formData.selectedGenres
     };
 
-    console.log('=== SENDING TO BACKEND ===');
-    console.log('URL:', `${import.meta.env.VITE_API_URL}/api/v1/profiles`);
-    console.log('Payload:', payload);
-    console.log('Token:', token);
-
+    // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
       method: 'POST',
       headers: {
@@ -106,6 +102,7 @@ const handleStep2Submit = async (e) => {
     if (!response.ok) {
       let errorMsg = 'Failed to create profile';
       try {
+        // Try to extract error message from response body if available
         const errorData = await response.json();
         if (errorData?.detail) {
           errorMsg = errorData.detail;
@@ -124,6 +121,7 @@ const handleStep2Submit = async (e) => {
       isClosable: true,
     });
 
+    await refreshProfile(); // Refresh profile in AuthContext after creation
     navigate('/');
     
   } catch (err) {
@@ -151,11 +149,12 @@ return (
   >
 
       <VStack spacing={4} mb={6}>
-        <Heading size="lg">Create Your Account</Heading>
+        <Heading size="lg">Welcome to Jam Find!</Heading>
+        <Heading size="md" color="gray.600">Let's set up your profile.</Heading>
       </VStack>
 
       {/* Step 2: Profile Setup */}
-        <form onSubmit={handleStep2Submit}>
+        <form onSubmit={handleSubmit}>
           <VStack spacing={4} align="stretch">
             <InputField
               label="First Name"
@@ -235,13 +234,6 @@ return (
               Complete
             </Button>
 
-            <Button
-              variant="ghost"
-              onClick={() => setStep(1)}
-              isDisabled={loading}
-            >
-              Back
-            </Button>
           </VStack>
         </form>
     </Box>
