@@ -11,6 +11,11 @@ router = APIRouter()
 
 COLLECTION_NAME = "posts"
 
+def add_computed_fields(post_data: dict) -> dict:
+    """Add computed likes field"""
+    # Computes likes from length of likedBy array
+    post_data["likes"] = len(post_data.get("likedBy", []))
+    return post_data
 
 @router.post("/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
@@ -29,6 +34,7 @@ async def create_post(
         post_data["userId"] = current_user_id
         post_data["created_at"] = now
         post_data["updated_at"] = now
+        post_data["edited"] = False
         
         # Let Firestore auto-generate the document ID
         new_post_ref = posts_ref.document()
@@ -37,7 +43,8 @@ async def create_post(
         # Save to Firestore
         new_post_ref.set(post_data)
         
-        # Return the created post
+        # Return the created post with computed fields
+        post_data["likes"] = 0
         return PostResponse(**post_data)
         
     except HTTPException:
@@ -74,7 +81,7 @@ async def get_post(
                 detail=f"Post not found with post_id: {post_id}"
             )
         post_data = post_doc.to_dict()
-        return PostResponse(**post_data)
+        return PostResponse(**add_computed_fields(post_data))
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
@@ -116,13 +123,14 @@ async def update_post(
         
         update_data = post_update.model_dump(exclude_unset=True, by_alias=True)
 
-        # Add updated_at timestamp
+        # Add updated_at timestamp and mark as edited
         update_data["updated_at"] = datetime.now(timezone.utc)
+        update_data["edited"] = True  # Mark post as edited
         # Update the document in Firestore
         posts_ref.document(post_id).update(update_data)
         # Return the updated post
         existing_data.update(update_data)
-        return PostResponse(**existing_data)
+        return PostResponse(**add_computed_fields(existing_data))
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
@@ -213,7 +221,7 @@ async def list_posts(
                 )
             query = query.start_after(start_doc)
         post_docs = query.stream()
-        posts = [PostResponse(**doc.to_dict()) for doc in post_docs]
+        posts = [PostResponse(**add_computed_fields(doc.to_dict())) for doc in post_docs]
         return posts
     except HTTPException:
         # Re-raise HTTP exceptions
