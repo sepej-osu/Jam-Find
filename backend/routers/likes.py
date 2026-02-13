@@ -3,20 +3,11 @@ from firebase_config import get_db
 from google.cloud import exceptions as gcp_exceptions
 from google.cloud.firestore import ArrayUnion, ArrayRemove
 from auth import get_current_user
-from pydantic import BaseModel
+from models import LikeResponse
 
 router = APIRouter()
 
 COLLECTION_NAME = "posts"
-
-
-class LikeResponse(BaseModel):
-    """Response model for like/unlike operations"""
-    post_id: str
-    likes: int
-    liked: bool  # True if user liked, False if user unliked
-    message: str
-
 
 @router.post("/posts/{post_id}/like", response_model=LikeResponse)
 async def toggle_like_post(
