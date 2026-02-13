@@ -136,3 +136,15 @@ class PostResponse(PostBase):
         from_attributes = True,
         populate_by_name = True
     )
+    
+### Like models
+class LikeResponse(BaseModel):
+    """Response model for like/unlike operations"""
+    post_id: str = Field(..., alias="postId")
+    likes: int
+    liked: bool  # True if user liked, False if user unliked
+    message: str
+    
+    model_config = ConfigDict(
+        populate_by_name = True
+    )
