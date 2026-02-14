@@ -55,6 +55,8 @@ class ProfileCreate(ProfileBase):
 
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(..., alias="firstName")
+    last_name: Optional[str] = Field(..., alias="lastName")
     bio: Optional[str] = Field(None, max_length=500)
     gender: Optional[Gender] = Field(..., alias="gender") 
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")

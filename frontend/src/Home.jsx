@@ -1,12 +1,13 @@
 
-import { Box, Heading, Text, VStack } from '@chakra-ui/react';
-import { useAuth } from './contexts/AuthContext';
-
+import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
+import { useAuth,  } from './contexts/AuthContext';
 import LogoutButton from './components/LogoutButton';
+import { useNavigate } from 'react-router-dom';
 
 
 function Home() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
+  const navigate = useNavigate();
   return (
     <Box
       maxW="600px"
@@ -25,6 +26,10 @@ function Home() {
           This is your placeholder page.  
           You can build your dashboard or profile here later.
         </Text>
+
+        <Button colorScheme="teal" onClick={() => navigate('/update-profile')}>
+          Update Profile
+        </Button>
 
         <LogoutButton   />
 

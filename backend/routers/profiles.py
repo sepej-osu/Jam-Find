@@ -127,7 +127,7 @@ async def update_profile(
                 detail=f"Profile not found for user_id: {user_id}"
             )
         existing_data = profile_doc.to_dict()
-        update_data = profile_update.model_dump(exclude_unset=True)
+        update_data = profile_update.model_dump(exclude_unset=True, by_alias=True)
 
         # Check email uniqueness only if email is being changed
         if "email" in update_data:

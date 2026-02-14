@@ -4,6 +4,7 @@ import Login from './Login';
 import Register from './Register';
 import Home from './Home';
 import CreateProfile from './CreateProfile';
+import UpdateProfile from './UpdateProfile';
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';
@@ -62,6 +63,13 @@ function App() {
         path="/home"
         element={
           (currentUser && hasProfile) ? <Home /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/update-profile"
+        element={
+          (currentUser && hasProfile) ? <UpdateProfile /> : <Navigate to="/login" />
         }
       />
 
