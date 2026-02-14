@@ -4,6 +4,7 @@ import Login from './Login';
 import Register from './Register';
 import Home from './Home';
 import CreateProfile from './CreateProfile';
+import Profile from './Profile';
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';
@@ -62,6 +63,22 @@ function App() {
         path="/home"
         element={
           (currentUser && hasProfile) ? <Home /> : <Navigate to="/login" replace />
+        }
+      />
+
+      // Profile page - view own profile
+      <Route
+        path="/profile"
+        element={
+          (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
+        }
+      />
+
+      // Profile page - view any user's profile
+      <Route
+        path="/profile/:userId"
+        element={
+          (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
         }
       />
 
