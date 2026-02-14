@@ -119,7 +119,7 @@ class PostUpdate(BaseModel):
     location: Optional[Location] = None
     instruments: Optional[List[Instrument]] = None
     genres: Optional[List[str]] = None
-    media: Optional[List[HttpUrl]] = Field(default_factory=list, alias="media")  # List of media URLs (images, audio, video)
+    media: Optional[List[HttpUrl]] = Field(None, alias="media")  # List of media URLs (images, audio, video)
     # likes can only be modified through the /posts/{post_id}/like endpoint
     
     model_config = ConfigDict(
