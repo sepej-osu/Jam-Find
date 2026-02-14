@@ -9,7 +9,7 @@ import {
   Text
 } from '@chakra-ui/react';
 
-function InputField({ label, name, type, value, onChange, placeholder, error, required, maxLength }) {
+function InputField({ label, name, type, value, onChange, placeholder, error, required, maxLength, selectOptions }) {
   
   // Function to render the appropriate input based on type
   const renderInput = () => {
@@ -35,14 +35,24 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
           </>
         );
 
-      // Gender field - dropdown select
+      // Dropdown select - uses custom options if provided, otherwise defaults to gender options
       case 'select':
         return (
           <Select name={name} value={value} onChange={onChange} placeholder="Select...">
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-            <option value="non-binary">Non-Binary</option>
-            <option value="prefer-not-to-say">Prefer not to say</option>
+            {selectOptions ? (
+              selectOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))
+            ) : (
+              <>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="non-binary">Non-Binary</option>
+                <option value="prefer-not-to-say">Prefer not to say</option>
+              </>
+            )}
           </Select>
         );
 
