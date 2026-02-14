@@ -1,6 +1,18 @@
 import { useState } from 'react';
-import { auth } from './firebase';
+import { useNavigate } from 'react-router-dom';
+import { useAuth} from './contexts/AuthContext';
+import {
+  Box,
+  Center,
+  Button,
+  Heading,
+  VStack,
+  useToast,
+} from '@chakra-ui/react';
 
+import InputField from './components/InputField';
+import InstrumentSelector from './components/InstrumentSelector';
+import GenreSelector from './components/GenreSelector';
 
 
 const GENRES = [
@@ -12,23 +24,32 @@ const GENRES = [
 
 
 function CreateProfile() {
+  const navigate = useNavigate(); // For navigation after profile creation
+  const toast = useToast(); // For showing success/error messages after profile creation
+  const { currentUser, refreshProfile } = useAuth(); // Get current user and refreshProfile function from AuthContext
+  const [loading, setLoading] = useState(false);
+
+
+  // All form data in one state object
   const [formData, setFormData] = useState({
-    bio: '',
+    // Profile fields
+    email: '',
     gender: '',
+    firstName: '',
+    lastName: '',
+    bio: '',
+    birthDate: '',
     experienceYears: '',
+    selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
+    selectedGenres: [],       // ['Rock', 'Jazz']
     location: {
       placeId: '',
       formattedAddress: '',
       lat: 0,
       lng: 0
-    },
-    profilePicUrl: '',
-    instruments: [],
-    genres: []
+    }, profilePicUrl: ''
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+
 
   const handleChange = (e) => {
     setFormData({
@@ -37,235 +58,187 @@ function CreateProfile() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    setLoading(true);
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No user logged in');
-      }
-
-      // Get Firebase ID token
-      const token = await user.getIdToken();
-
-      // Make API request
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          user_id: user.uid,
-          email: user.email,
-          bio: formData.bio,
-          gender: formData.gender || null,
-          experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
-          location: (formData.location.placeId && formData.location.formattedAddress) ? formData.location : null,
-          profilePicUrl: formData.profilePicUrl || null,
-          instruments: formData.instruments,
-          genres: formData.genres
-        })
-      });
-
-      let data = null;
-
-      if (!response.ok) {
-        let errorMsg = 'Failed to create profile';
-        try {
-          const errorData = await response.json();
-          if (errorData && typeof errorData === 'object' && errorData.detail) {
-            errorMsg = errorData.detail;
-          }
-        } catch (_){
-          // Ignore JSON parsing errors
-        }
-        throw new Error(errorMsg);
-      }
-
-      try {
-        data = await response.json();
-      }
-      catch (_){
-        data = null;
-      }
-
-      setSuccess('Profile created successfully!');
-      console.log('Profile created:', data);
-      
-      // Reset form
-      setFormData({
-        bio: '',
-        gender: '',
-        experienceYears: '',
-        location: {
-          placeId: '',
-          formattedAddress: '',
-          lat: 0,
-          lng: 0
-        },
-        profilePicUrl: '',
-        instruments: [],
-        genres: []
-      });
-    } catch (err) {
-      setError(err.message);
-      console.error('Error creating profile:', err);
-    } finally {
-      setLoading(false);
+  try {
+    const user = currentUser; // Use currentUser from AuthContext
+    if (!user) {
+      throw new Error('No user logged in');
     }
-  };
+    const token = await user.getIdToken();
+    
+    // convert selectedInstruments object to array of { name, experienceLevel } for the API
+    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+      name,
+      experienceLevel
+    }));
 
-  return (
-    <div style={{ maxWidth: '500px', margin: '20px auto', padding: '20px', border: '1px solid #ddd', borderRadius: '8px' }}>
-      <h2>Create Your Profile</h2>
-      <form onSubmit={handleSubmit}>
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Bio:</label>
-          <textarea
-            name="bio"
-            value={formData.bio}
-            onChange={handleChange}
-            maxLength={500}
-            rows={4}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-          <small style={{ color: '#666' }}>{formData.bio.length}/500 characters</small>
-        </div>
+    const payload = {
+      user_id: user.uid,
+      email: user.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      birthDate: formData.birthDate,
+      gender: formData.gender,
+      bio: formData.bio,
+      experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
+      location: formData.location,
+      instruments: instruments,
+      genres: formData.selectedGenres
+    };
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Gender (Optional):</label>
-          <input
-            type="text"
-            name="gender"
-            value={formData.gender}
-            onChange={handleChange}
-            placeholder="e.g., Male, Female, Non-binary, Prefer not to say"
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
+    // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Years of Experience:</label>
-          <input
-            type="number"
-            name="experienceYears"
-            value={formData.experienceYears}
-            onChange={handleChange}
-            min="0"
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
+    if (!response.ok) {
+      let errorMsg = 'Failed to create profile';
+      try {
+        // Try to extract error message from response body if available
+        const errorData = await response.json();
+        if (errorData?.detail) {
+          errorMsg = errorData.detail;
+        }
+      } catch (_) {
+        // Ignore JSON parsing errors
+      }
+      throw new Error(errorMsg);
+    }
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Location (City, State):</label>
-          <input
-            type="text"
-            name="formattedAddress"
-            value={formData.location.formattedAddress}
-            onChange={(e) => setFormData({
-              ...formData,
-              location: { ...formData.location, formattedAddress: e.target.value }
-            })}
-            placeholder="e.g., Portland, OR"
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-          <small style={{ color: '#666' }}>Note: Coordinates will be added with geocoding later</small>
-        </div>
+    toast({
+      title: 'Profile created successfully!',
+      description: 'Welcome to Jam Find',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
 
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Profile Picture URL:</label>
-          <input
-            type="url"
-            name="profilePicUrl"
-            value={formData.profilePicUrl}
-            onChange={handleChange}
-            placeholder="https://example.com/photo.jpg"
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Genres (comma-separated):</label>
-          <input
-            type="text"
-            name="genres"
-            value={formData.genres.join(', ')}
-            onChange={(e) => setFormData({
-              ...formData,
-              genres: e.target.value.split(',').map(g => g.trim()).filter(g => g)
-            })}
-            placeholder="Jazz, Rock, Blues"
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-        </div>
-
-        <div style={{ marginBottom: '15px' }}>
-          <label style={{ display: 'block', marginBottom: '5px' }}>Instruments (name:level, comma-separated):</label>
-          <input
-            type="text"
-            name="instruments"
-            placeholder="Guitar:8, Piano:5, Drums:6"
-            onChange={(e) => {
-              const instruments = e.target.value.split(',').map(i => {
-                const [name, level] = i.trim().split(':');
-                if (name && level) {
-                  return { name: name.trim(), experienceLevel: parseInt(level) || 5 };
-                }
-                return null;
-              }).filter(i => i !== null);
-              setFormData({ ...formData, instruments });
-            }}
-            style={{ width: '100%', padding: '8px', boxSizing: 'border-box' }}
-          />
-          <small style={{ color: '#666' }}>Format: InstrumentName:Level (1-10)</small>
-        </div>
-
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ 
-            padding: '10px 20px', 
-            cursor: loading ? 'not-allowed' : 'pointer',
-            backgroundColor: loading ? '#ccc' : '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px'
-          }}
-        >
-          {loading ? 'Creating...' : 'Create Profile'}
-        </button>
-      </form>
-
-      {error && (
-        <div style={{ 
-          marginTop: '15px', 
-          padding: '10px', 
-          backgroundColor: '#f8d7da', 
-          color: '#721c24',
-          borderRadius: '4px'
-        }}>
-          {error}
-        </div>
-      )}
-
-      {success && (
-        <div style={{ 
-          marginTop: '15px', 
-          padding: '10px', 
-          backgroundColor: '#d4edda', 
-          color: '#155724',
-          borderRadius: '4px'
-        }}>
-          {success}
-        </div>
-      )}
-    </div>
-  );
+    await refreshProfile(); // Refresh profile in AuthContext after creation
+    navigate('/');
+    
+  } catch (err) {
+    toast({
+      title: 'Error creating a profile',
+      description: err.message,
+      status: 'error',
+      duration: 5000,
+      isClosable: true,
+    });
+  } finally {
+    setLoading(false);
+  }
 }
+return (
+  <Center minH="100vh" bg="gray.50" px={4}>
+  <Box 
+    maxW="600px" 
+    w="full"
+    p={10} 
+    borderWidth="1px" 
+    borderRadius="lg" 
+    shadow="lg"
+    bg="white"
+  >
+
+      <VStack spacing={4} mb={6}>
+        <Heading size="lg">Welcome to Jam Find!</Heading>
+        <Heading size="md" color="gray.600">Let's set up your profile.</Heading>
+      </VStack>
+
+      {/* Step 2: Profile Setup */}
+        <form onSubmit={handleSubmit}>
+          <VStack spacing={4} align="stretch">
+            <InputField
+              label="First Name"
+              name="firstName"
+              type="text"
+              value={formData.firstName}
+              onChange={handleChange}
+              required
+            />
+
+            <InputField
+              label="Last Name"
+              name="lastName"
+              type="text"
+              value={formData.lastName}
+              onChange={handleChange}
+              required
+            />
+
+            <InputField
+              label="Birthdate"
+              name="birthDate"
+              type="date"
+              value={formData.birthDate}
+              onChange={handleChange}
+              required
+            />
+
+            <InputField
+              label="Gender"
+              name="gender"
+              type="select"
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            />
+
+            <InputField
+              label="Bio"
+              name="bio"
+              type="textarea"
+              value={formData.bio}
+              onChange={handleChange}
+              maxLength={500}
+            />
+
+            // TODO: add input field for location here.
+
+            <InputField
+              label="Years of Experience"
+              name="experienceYears"
+              type="number"
+              value={formData.experienceYears}
+              onChange={handleChange}
+            />
+
+            <InstrumentSelector
+              value={formData.selectedInstruments}
+              onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
+            />
+
+            <GenreSelector
+              value ={formData.selectedGenres}
+              onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
+              options={GENRES}
+              label="Select Your Preferred Genres"
+            />  
+            
+            <Button
+              type="submit"
+              colorScheme="blue"
+              size="lg"
+              width="100%"
+              isLoading={loading}
+              loadingText="Creating Profile..."
+            >
+              Complete
+            </Button>
+
+          </VStack>
+        </form>
+    </Box>
+    </Center>
+  );
+};
 
 export default CreateProfile;

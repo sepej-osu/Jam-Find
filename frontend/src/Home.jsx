@@ -1,11 +1,12 @@
 
 import { Box, Heading, Text, VStack } from '@chakra-ui/react';
+import { useAuth } from './contexts/AuthContext';
 
 import LogoutButton from './components/LogoutButton';
 
 
 function Home() {
-
+  const { user, profile } = useAuth();
   return (
     <Box
       maxW="600px"
@@ -18,7 +19,7 @@ function Home() {
       bg="white"
     >
       <VStack spacing={4} textAlign="center">
-        <Heading size="lg">You’re logged in!</Heading>
+        <Heading size="lg">Hi, {profile?.firstName}!</Heading>
 
         <Text fontSize="md" color="gray.600">
           This is your placeholder page.  
