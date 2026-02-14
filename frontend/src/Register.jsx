@@ -1,11 +1,8 @@
-// Register.jsx
-// This component implements a two-step registration process:
-// Step 1: collects email, password and birthdate 
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { useAuth } from './contexts/AuthContext';
 import {
   Box,
   Center,
@@ -36,6 +33,7 @@ const GENRES = [
 function Register() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { refreshProfile } = useAuth(); // called after successful profile creation to update AuthContext with new profile data
   
   // Tracks which step the user is on (1 or 2)
   const [step, setStep] = useState(1);
@@ -69,7 +67,7 @@ function Register() {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value 
     });
   };
 
@@ -188,10 +186,7 @@ const handleStep2Submit = async (e) => {
       genres: formData.selectedGenres
     };
 
-    console.log('=== SENDING TO BACKEND ===');
-    console.log('URL:', `${import.meta.env.VITE_API_URL}/api/v1/profiles`);
-    console.log('Payload:', payload);
-    console.log('Token:', token);
+    // Send profile data to backend API
 
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
       method: 'POST',
@@ -201,7 +196,7 @@ const handleStep2Submit = async (e) => {
       },
       body: JSON.stringify(payload)
     });
-
+    // Check if response is ok, if not try to extract error message from response body and throw an error to be caught in catch block
     if (!response.ok) {
       let errorMsg = 'Failed to create profile';
       try {
@@ -215,6 +210,9 @@ const handleStep2Submit = async (e) => {
       throw new Error(errorMsg);
     }
 
+    // Refresh the profile in AuthContext so hasProfile becomes true
+    await refreshProfile();
+
     toast({
       title: 'Profile created successfully!',
       description: 'Welcome to Jam Find',
@@ -223,7 +221,7 @@ const handleStep2Submit = async (e) => {
       isClosable: true,
     });
 
-    navigate('/');
+    navigate('/home');
     
   } catch (err) {
     toast({
