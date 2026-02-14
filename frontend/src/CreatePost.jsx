@@ -10,8 +10,7 @@ import {
   Button,
   Heading,
   VStack,
-  useToast,
-  Text
+  useToast
 } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
@@ -58,81 +57,81 @@ function CreatePost() {
     
     setLoading(true);
 
-  try {
-    // Create Post in Firestore via backend API
-    const user = auth.currentUser;
-    if (!user) {
-      throw new Error('No user logged in');
-    }
-    
-    // Get Firebase ID token
-    const token = await user.getIdToken();
-    
-    // Convert selectedInstruments object to array of { name, experienceLevel } for the API
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
-      name,
-      experienceLevel
-    }));
-
-    const payload = {
-      title: formData.title,
-      body: formData.body,
-      postType: formData.postType,
-      location: formData.location,
-      instruments,
-      genres: formData.selectedGenres,
-      media: formData.media
-    };
-
-    console.log('=== SENDING TO BACKEND ===');
-    console.log('URL:', `${import.meta.env.VITE_API_URL}/api/v1/posts`);
-    console.log('Payload:', payload);
-    console.log('Token:', token);
-
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-      let errorMsg = 'Failed to create post';
-      try {
-        const errorData = await response.json();
-        if (errorData?.detail) {
-          errorMsg = errorData.detail;
-        }
-      } catch (_) {
-        // Ignore JSON parsing errors
+    try {
+      // Create Post in Firestore via backend API
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user logged in');
       }
-      throw new Error(errorMsg);
+      
+      // Get Firebase ID token
+      const token = await user.getIdToken();
+      
+      // Convert selectedInstruments object to array of { name, experienceLevel } for the API
+      const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+        name,
+        experienceLevel
+      }));
+
+      const payload = {
+        title: formData.title,
+        body: formData.body,
+        postType: formData.postType,
+        location: formData.location,
+        instruments,
+        genres: formData.selectedGenres,
+        media: formData.media
+      };
+
+      console.log('=== SENDING TO BACKEND ===');
+      console.log('URL:', `${import.meta.env.VITE_API_URL}/api/v1/posts`);
+      console.log('Payload:', payload);
+      console.log('Token:', token);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to create post';
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch (_) {
+          // Ignore JSON parsing errors
+        }
+        throw new Error(errorMsg);
+      }
+
+      toast({
+        title: 'Post created successfully!',
+        description: 'Your post has been created.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      navigate('/home');
+      
+    } catch (err) {
+      toast({
+        title: 'Error creating post',
+        description: err.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+    } finally {
+      setLoading(false);
     }
-
-    toast({
-      title: 'Post created successfully!',
-      description: 'Your post has been created.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-
-    navigate('/');
-    
-  } catch (err) {
-    toast({
-      title: 'Error creating post',
-      description: err.message,
-      status: 'error',
-      duration: 5000,
-      isClosable: true,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
 

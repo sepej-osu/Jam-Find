@@ -37,7 +37,9 @@ async def toggle_like_post(
             post_ref.update({
                 "likedBy": ArrayRemove([current_user_id])
             })
-            new_likes_count = len(liked_by) - 1
+            # Refetch to get accurate count after update
+            updated_post = post_ref.get().to_dict()
+            new_likes_count = len(updated_post.get("likedBy", []))
             return LikeResponse(
                 post_id=post_id,
                 likes=new_likes_count,
@@ -49,7 +51,9 @@ async def toggle_like_post(
             post_ref.update({
                 "likedBy": ArrayUnion([current_user_id])
             })
-            new_likes_count = len(liked_by) + 1
+            # Refetch to get accurate count after update
+            updated_post = post_ref.get().to_dict()
+            new_likes_count = len(updated_post.get("likedBy", []))
             return LikeResponse(
                 post_id=post_id,
                 likes=new_likes_count,

@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import pytest
 
 # Set working directory to backend folder
 backend_dir = Path(__file__).parent.parent

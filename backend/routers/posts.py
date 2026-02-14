@@ -35,6 +35,7 @@ async def create_post(
         post_data["created_at"] = now
         post_data["updated_at"] = now
         post_data["edited"] = False
+        post_data["likedBy"] = []
         
         # Let Firestore auto-generate the document ID
         new_post_ref = posts_ref.document()
