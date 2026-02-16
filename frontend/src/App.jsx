@@ -69,7 +69,7 @@ function App() {
       <Route
         path="/create-post"
         element={
-          (currentUser ? <CreatePost /> : <Navigate to="/login" replace />
+          (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
         }
       />
 
