@@ -1,7 +1,7 @@
 // CreatePost.jsx
 // Form for creating a new post (looking for band/musicians, jam session, or sharing music)
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -16,7 +16,8 @@ import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 import postService from './services/postService';
-
+import profileService from './services/profileService';
+import { useAuth } from './contexts/AuthContext';
 
 const GENRES = [
   'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
@@ -29,6 +30,7 @@ const GENRES = [
 function CreatePost() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { currentUser } = useAuth();
   
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +44,41 @@ function CreatePost() {
     selectedGenres: [],
     media: []
   });
+
+  // Grab instruments/genres when post type is looking_to_jam or looking_for_band
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (formData.postType === 'looking_to_jam' || formData.postType === 'looking_for_band') {
+        try {
+          const profile = await profileService.getProfile(currentUser?.uid);
+          if (profile) {
+            // Convert instruments array to selectedInstruments object format
+            const instrumentsObj = {};
+            profile.instruments?.forEach(instrument => {
+              instrumentsObj[instrument.name] = instrument.experienceLevel;
+            });
+            
+            setFormData(prev => ({
+              ...prev,
+              selectedInstruments: instrumentsObj,
+              selectedGenres: profile.genres || []
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load profile data:', error);
+        }
+      }
+      else {
+        setFormData(prev => ({
+          ...prev,
+          selectedInstruments: {},
+          selectedGenres: []
+        }));
+      }
+    };
+
+    loadProfileData();
+  }, [formData.postType, currentUser?.uid]);
 
   // Handle input changes for text fields
   const handleChange = (e) => {
