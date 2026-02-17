@@ -5,11 +5,8 @@ import Register from './Register';
 import Home from './Home';
 import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
-<<<<<<< HEAD
 import UpdateProfile from './UpdateProfile';
-=======
 import Profile from './Profile';
->>>>>>> main
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';

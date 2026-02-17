@@ -1,9 +1,7 @@
 
 import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
-import { useAuth,  } from './contexts/AuthContext';
-import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-
+import { Link as RouterLink } from 'react-router-dom';
 import LogoutButton from './components/LogoutButton';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,8 +31,6 @@ function Home() {
         <Button colorScheme="teal" onClick={() => navigate('/update-profile')}>
           Update Profile
         </Button>
-
-        <LogoutButton   />
 
         <Button 
           as={RouterLink} 
