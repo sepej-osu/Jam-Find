@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import profiles, posts
+from routers import profiles, posts, likes
 from config import settings
 from firebase_config import initialize_firebase
 from contextlib import asynccontextmanager
@@ -31,6 +31,7 @@ app.add_middleware(
 # Include routers
 app.include_router(profiles.router, prefix="/api/v1", tags=["profiles"])
 app.include_router(posts.router, prefix="/api/v1", tags=["posts"])
+app.include_router(likes.router, prefix="/api/v1", tags=["likes"])
 
 @app.get("/")
 async def root():

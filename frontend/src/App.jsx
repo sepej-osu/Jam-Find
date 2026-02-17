@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
 import Home from './Home';
+import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
 import Profile from './Profile';
 import { useAuth } from './contexts/AuthContext';
@@ -76,6 +77,13 @@ function App() {
         path="/profile/:userId"
         element={
           (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
+        }
+      />
+            
+       <Route
+        path="/create-post"
+        element={
+          (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
         }
       />
 

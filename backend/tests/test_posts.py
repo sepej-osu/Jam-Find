@@ -58,6 +58,8 @@ def test_create_post():
     assert response.status_code == 201
     data = response.json()
     assert "postId" in data
+    assert data["likes"] == 0  # New posts should have 0 likes
+    assert data["edited"] == False  # New posts should not be edited
     created_post_id = data["postId"]
     print(f"Created post with ID: {created_post_id}")
 
@@ -92,6 +94,8 @@ def test_get_post():
     data = response.json()
     assert data["title"] == "Looking for a drummer"
     assert data["postType"] == "looking_for_musicians"
+    assert data["likes"] == 0  # Should still have 0 likes
+    assert data["edited"] == False  # Should not be edited yet
 
 def test_list_all_posts():
     """List all posts"""
@@ -144,6 +148,7 @@ def test_update_post():
     data = response.json()
     assert data["title"] == "Updated: Looking for a drummer"
     assert "metal" in data["genres"]
+    assert data["edited"] == True  # Should be marked as edited
 
 def test_delete_first_post():
     """Clean up - delete the first test post"""
