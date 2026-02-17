@@ -1,12 +1,9 @@
 
 import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
-<<<<<<< HEAD
 import { useAuth,  } from './contexts/AuthContext';
-=======
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 
->>>>>>> main
 import LogoutButton from './components/LogoutButton';
 import { useNavigate } from 'react-router-dom';
 
