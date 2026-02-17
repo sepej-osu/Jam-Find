@@ -115,6 +115,42 @@ const postService = {
 
   deletePost: async (postId) => {
     // TODO: Implement the delete post logic using the API endpoint for deleting posts.
+  },
+
+  toggleLike: async (postId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts/${postId}/like`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to toggle like';
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch (_) {
+          // Ignore JSON parsing errors
+        }
+        throw new Error(errorMsg);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to toggle like:', error);
+      throw error;
+    }
   }
 };
 
