@@ -12,10 +12,11 @@ import {
   AlertIcon,
   Badge,
   Divider,
-  Avatar
+  Avatar,
+  IconButton
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';
-import { IoMusicalNotes } from 'react-icons/io5';
+import { IoMusicalNotes, IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { 
   GiGuitarHead, 
   GiGuitarBassHead,
@@ -38,6 +39,9 @@ function Post() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLiked, setIsLiked] = useState(false);
+  const [likingInProgress, setLikingInProgress] = useState(false);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -46,6 +50,10 @@ function Post() {
         setError(null);
         const data = await postService.getPost(postId);
         setPost(data);
+        
+        // Set initial like state from backend response
+        setLikesCount(data.likes || 0);
+        setIsLiked(data.likedByCurrentUser || false);
         
         // Fetch the profile of the user who created the post
         if (data?.userId) {
@@ -63,6 +71,23 @@ function Post() {
       fetchPost();
     }
   }, [postId]);
+
+  const handleLikeToggle = async () => {
+    if (likingInProgress) return;
+    
+    try {
+      setLikingInProgress(true);
+      const response = await postService.toggleLike(postId);
+      
+      // Update local state based on response
+      setLikesCount(response.likes);
+      setIsLiked(response.liked);
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+    } finally {
+      setLikingInProgress(false);
+    }
+  };
 
   const getPostTypeLabel = (type) => {
     const typeMap = {
@@ -239,6 +264,27 @@ function Post() {
         )}
 
         <Divider my={4} />
+        
+        {/* Likes Section */}
+        <Flex justify="space-between" align="center" mb={4}>
+          <Flex align="center" gap={2}>
+            <IconButton
+              aria-label={isLiked ? "Unlike post" : "Like post"}
+              icon={<Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} />}
+              colorScheme={isLiked ? "red" : "gray"}
+              variant="ghost"
+              onClick={handleLikeToggle}
+              isLoading={likingInProgress}
+              size="lg"
+            />
+            <Text fontWeight="semibold" fontSize="md">
+              {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+            </Text>
+          </Flex>
+        </Flex>
+
+        <Divider mb={4} />
+        
         <Flex justify="space-between" fontSize="sm" color="gray.500">
           <Text>{new Date(post.created_at).toLocaleDateString()}</Text>
           {post.edited && <Text>(edited)</Text>}
