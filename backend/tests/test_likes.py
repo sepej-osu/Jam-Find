@@ -75,7 +75,7 @@ def test_verify_like_persisted():
     assert response.status_code == 200
     data = response.json()
     assert data["likes"] == 1
-    assert settings.DEV_USER_ID in data["likedBy"]
+    assert data["likedByCurrentUser"] == True
 
 def test_unlike_post():
     """Unlike the post (toggle off)"""
@@ -99,7 +99,7 @@ def test_verify_unlike_persisted():
     assert response.status_code == 200
     data = response.json()
     assert data["likes"] == 0
-    assert settings.DEV_USER_ID not in data["likedBy"]
+    assert data["likedByCurrentUser"] == False
 
 def test_like_post_again():
     """Like the post again to prepare for multiple likes test"""
@@ -125,16 +125,17 @@ def test_edit_post_with_likes():
     assert data["likes"] == 1  # Likes should be preserved
 
 def test_verify_user_in_liked_by():
-    """Verify user is still in likedBy array after editing"""
+    """Verify user's like persists after editing and likedByCurrentUser flag is correct"""
     assert test_post_id is not None
     response = client.get(f"/api/v1/posts/{test_post_id}")
     print(f"Status: {response.status_code}")
     print(f"Response: {response.text}")
     assert response.status_code == 200
     data = response.json()
-    assert settings.DEV_USER_ID in data["likedBy"]
-    assert len(data["likedBy"]) == 1
     assert data["likes"] == 1
+    assert data["likedByCurrentUser"] == True
+    # Verify likedBy is not exposed in response for privacy
+    assert "likedBy" not in data
 
 def test_like_nonexistent_post():
     """Try to like a post that doesn't exist"""
@@ -142,6 +143,43 @@ def test_like_nonexistent_post():
     print(f"Status: {response.status_code}")
     print(f"Response: {response.text}")
     assert response.status_code == 404
+
+def test_privacy_liked_by_not_exposed():
+    """Verify that likedBy array is not exposed in API responses for privacy"""
+    assert test_post_id is not None
+    response = client.get(f"/api/v1/posts/{test_post_id}")
+    assert response.status_code == 200
+    data = response.json()
+    # likedBy should not be in the response
+    assert "likedBy" not in data
+    # But we should have the privacy-friendly fields
+    assert "likes" in data
+    assert "likedByCurrentUser" in data
+
+def test_liked_by_current_user_false_for_new_post():
+    """Verify likedByCurrentUser is false for a post the user hasn't liked"""
+    # Create a new post
+    response = client.post(
+        "/api/v1/posts",
+        json={
+            "title": "Another test post",
+            "body": "Testing likedByCurrentUser flag",
+            "postType": "looking_to_jam",
+            "genres": ["jazz"]
+        }
+    )
+    assert response.status_code == 201
+    new_post_id = response.json()["postId"]
+    
+    # Fetch the post
+    response = client.get(f"/api/v1/posts/{new_post_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["likedByCurrentUser"] == False
+    assert data["likes"] == 0
+    
+    # Clean up
+    client.delete(f"/api/v1/posts/{new_post_id}")
 
 def test_cleanup_test_post():
     """Delete the test post"""
