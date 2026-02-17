@@ -162,10 +162,10 @@ function CreatePost() {
             onChange={handleChange}
             required
             selectOptions={[
-              { value: 'looking_for_band', label: 'Looking for a Band' },
-              { value: 'looking_for_musicians', label: 'Looking for Musicians' },
-              { value: 'looking_to_jam', label: 'Looking to Jam' },
-              { value: 'sharing_music', label: 'Sharing Music' }
+              { value: 'looking_to_jam', label: 'Looking to Jam 🎶' },
+              { value: 'looking_for_band', label: 'Looking for a Band 🎤' },
+              { value: 'looking_for_musicians', label: 'Looking for Musicians 🎸' },
+              { value: 'sharing_music', label: 'Sharing Music 🎵' }
             ]}
           />
 
