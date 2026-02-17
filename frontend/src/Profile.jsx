@@ -1,8 +1,9 @@
 
-import { Box, Heading, Text, Image, Grid, GridItem, Stack, IconButton, Flex, Tag, Icon, Progress, VStack, Spinner, Alert, AlertIcon } from '@chakra-ui/react';
+import { Box, Heading, Text, Image, Grid, GridItem, IconButton, Flex, Tag, Icon, Progress, VStack, Spinner, Alert, AlertIcon } from '@chakra-ui/react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { FaGuitar, FaMapMarkerAlt } from 'react-icons/fa';
+import { CgPlayButtonO, CgProfile } from "react-icons/cg";
 import { 
   GiGuitarHead, 
   GiGuitarBassHead,
@@ -128,23 +129,36 @@ function Profile() {
       maxW="1400px"
       mx="auto"
     >
-      <GridItem rowSpan={2} colSpan={1}>
-        <Box>
-          {profile?.profilePictureUrl && (
+      <GridItem rowSpan={2} colSpan={1} pt={1}>
+        <Box 
+          p={3}
+          borderWidth="1px" 
+          borderRadius="md" 
+          bg="white"
+          boxShadow="sm"
+          height="100%" 
+          width="100%"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+        >
+          {profile?.profilePictureUrl ? (
             <Image borderRadius="full" boxSize="150px" src={profile.profilePictureUrl} alt={`${profile?.firstName}'s profile picture`} />
+          ) : (
+            <Icon as={CgProfile} boxSize="150px" color="gray.300" />
           )}
         </Box>
       </GridItem>
-      <GridItem colSpan={4} textAlign={'left'}>
-        <Box>
+      <GridItem colSpan={4} textAlign={'left'} pl={6}>
+        <Box mb={4}>
           <Heading size="lg">{profile?.firstName} {profile?.lastName}</Heading>
-          <Text fontSize="sm" color="gray.500">
-            {profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : ''} - <Icon as={FaMapMarkerAlt} display="inline" mb="-1px" mr="1" />{profile?.location?.formattedAddress || 'No location set'}
+          <Text fontSize="sm" fontWeight="semibold" color="gray.600" mt={1}>
+            {profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : ''} - <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />{profile?.location?.formattedAddress || 'No location set'}
           </Text>
         </Box>
         <Box mt={2}>
           <Box mb={2}>
-            <Text fontSize="sm" fontWeight="semibold" mb={1}>Instruments:</Text>
+            <Text fontSize="lg" fontWeight="semibold" mb={1}>Instruments:</Text>
             <Flex gap={3} flexWrap="wrap">
               {profile?.instruments?.length > 0 ? (
                 profile.instruments.map((instrument, index) => (
@@ -159,12 +173,12 @@ function Profile() {
                   >
                     <Flex align="center" mb={2}>
                       <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
-                      <Text fontSize="sm" fontWeight="semibold">{instrument.name}</Text>
+                      <Text fontSize="md" fontWeight="semibold">{instrument.name}</Text>
                     </Flex>
                     <VStack align="stretch" spacing={1}>
                       <Flex justify="space-between" align="center">
-                        <Text fontSize="xs" color="gray.600">Experience Level</Text>
-                        <Text fontSize="xs" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>{instrument.experienceLevel}/5</Text>
+                        <Text fontSize="sm" color="gray.600">Experience Level</Text>
+                        <Text fontSize="sm" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>{instrument.experienceLevel}/5</Text>
                       </Flex>
                       <Progress 
                         value={instrument.experienceLevel * 20} 
@@ -176,34 +190,44 @@ function Profile() {
                   </Box>
                 ))
               ) : (
-                <Text fontSize="sm" color="gray.600">No instruments listed</Text>
+                <Text fontSize="md" color="gray.600">No instruments listed</Text>
               )}
             </Flex>
           </Box>
           <Box>
-            <Text fontSize="sm" fontWeight="semibold" mb={1}>Genres Played:</Text>
+            <Text fontSize="lg" fontWeight="semibold" mb={1}>Genres Played:</Text>
             <Flex gap={2} flexWrap="wrap">
               {profile?.genres?.length > 0 ? (
                 profile.genres.map((genre, index) => (
-                  <Tag key={index} size="md" color="white" bg="blue.500">
+                  <Tag key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
                     {genre}
                   </Tag>
                 ))
               ) : (
-                <Text fontSize="sm" color="gray.600">No genres listed</Text>
+                <Text fontSize="md" color="gray.600">No genres listed</Text>
               )}
             </Flex>
           </Box>
         </Box>
       </GridItem>
-      <GridItem colSpan={4} textAlign={'left'}>
+      <GridItem colSpan={4} textAlign={'left'} pl={6}>
         <Box>
-          <Text fontSize="md" fontWeight="bold" mb={1}>
-            Bio
+          <Text fontSize="lg" fontWeight="semibold" mb={1}>
+            Bio:
           </Text>
-          <Text fontSize="md" color="gray.900">
+          <Text fontSize="lg" color="gray.900">
             {profile?.bio}
           </Text>
+        </Box>
+      </GridItem>
+      <GridItem colSpan={1}>
+        {/* Spacer to align with the profile picture column */}
+      </GridItem>
+      <GridItem colSpan={4} textAlign={'left'} pl={6}>
+        <Box mt={2}>
+          <Box mb={2}>
+            <Text fontSize="lg" fontWeight="semibold" mb={1}>Media:</Text>
+          </Box>
         </Box>
       </GridItem>
       <GridItem colSpan={5}>
@@ -218,14 +242,14 @@ function Profile() {
                 <Box
                   key={index}
                   minW="100%"
-                  h="300px"
+                  h="100px"
                   bg="gray.100"
                   display="flex"
                   alignItems="center"
                   justifyContent="center"
                   fontSize="2.5rem"
                 >
-                  {index + 1}
+                  <Icon as={CgPlayButtonO} color="blue.500" />
                 </Box>
               ))}
             </Box>
