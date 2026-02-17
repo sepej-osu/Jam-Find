@@ -28,7 +28,12 @@ function Home() {
           You can build your dashboard or profile here later.
         </Text>
 
-        <Button colorScheme="teal" onClick={() => navigate('/update-profile')}>
+        <Button colorScheme="teal"
+          as={RouterLink}
+          to="/update-profile"
+          size="lg"
+          width="100%"
+        >
           Update Profile
         </Button>
 

@@ -31,7 +31,6 @@ function UpdateProfile() {
   const [loading, setLoading] = useState(false);
 
 
-  // All form data in one state object
   const [formData, setFormData] = useState({
     // Profile fields
     email: profile?.email || currentUser?.email || '', // Pre-fill email from profile or currentUser
@@ -41,10 +40,11 @@ function UpdateProfile() {
     bio: profile?.bio || '',
     birthDate: profile?.birthDate || '',
     experienceYears: profile?.experienceYears || '',
+
     // For instruments, we convert the array of { name, experienceLevel } to an object for easier form handling
     selectedInstruments: Object.fromEntries(
     profile?.instruments?.map(instrument => [instrument.name, instrument.experienceLevel]) || []
-    ) || {}, 
+    ) || {},  // This will create an object like { "Electric Guitar": "Intermediate", "Drums": "Beginner" }
     selectedGenres: profile?.genres || [], 
     location: profile?.location || {
       placeId: '',
@@ -58,7 +58,7 @@ function UpdateProfile() {
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value // Update the specific field that changed
     });
   };
 
@@ -67,7 +67,7 @@ const handleSubmit = async (e) => {
   setLoading(true);
 
   try {
-    // Convert selectedInstruments object to array for the API
+    // Convert selectedInstruments object back to an array for the API request
     const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
       name,
       experienceLevel
@@ -95,10 +95,10 @@ const handleSubmit = async (e) => {
       duration: 3000,
       isClosable: true,
     });
-    console.log('Refreshing profile after update...', profile);
-    await refreshProfile();
-    console.log('Profile after refresh:', profile);
-    navigate('/');
+    
+    await refreshProfile();   // Refresh the profile data in AuthContext after updating
+  
+    navigate('/'); // Redirect to home or profile page after successful update
     
   } catch (err) {
     toast({
@@ -200,6 +200,15 @@ return (
               loadingText="Updating Profile..."
             >
               Complete
+            </Button>
+            <Button
+              colorScheme="red"
+              size="sm"
+              width="100%"
+              alignSelf="center"
+              onClick={() => navigate('/')}
+            >
+              Back
             </Button>
 
           </VStack>
