@@ -3,7 +3,6 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from './firebase';
 import {
   Box,
   Center,
@@ -16,6 +15,7 @@ import {
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+import postService from './services/postService';
 
 
 const GENRES = [
@@ -58,15 +58,6 @@ function CreatePost() {
     setLoading(true);
 
     try {
-      // Create Post in Firestore via backend API
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No user logged in');
-      }
-      
-      // Get Firebase ID token
-      const token = await user.getIdToken();
-      
       // Convert selectedInstruments object to array of { name, experienceLevel } for the API
       const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
         name,
@@ -83,32 +74,7 @@ function CreatePost() {
         media: formData.media
       };
 
-      console.log('=== SENDING TO BACKEND ===');
-      console.log('URL:', `${import.meta.env.VITE_API_URL}/api/v1/posts`);
-      console.log('Payload:', payload);
-      console.log('Token:', token);
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        let errorMsg = 'Failed to create post';
-        try {
-          const errorData = await response.json();
-          if (errorData?.detail) {
-            errorMsg = errorData.detail;
-          }
-        } catch (_) {
-          // Ignore JSON parsing errors
-        }
-        throw new Error(errorMsg);
-      }
+      await postService.createPost(payload);
 
       toast({
         title: 'Post created successfully!',
