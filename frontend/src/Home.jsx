@@ -1,7 +1,6 @@
 
 import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
-import { Box, Heading, Text, VStack } from '@chakra-ui/react';
 import { useAuth } from './contexts/AuthContext';
 
 import LogoutButton from './components/LogoutButton';
