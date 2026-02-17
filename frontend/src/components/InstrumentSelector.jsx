@@ -57,13 +57,8 @@ function InstrumentSelector({ value, onChange }) {
           size="xs"
           colorScheme="blue"
           onClick={() => onChange({})} 
-          //visibility={Object.keys(value).length > 0 ? 'visible' : 'hidden'}
           isDisabled={Object.keys(value).length === 0}
           variant="outline"
-          data-state="open"
-          _closed={{
-            animation: "fadeOut 300ms ease-in",
-          }}
         >
           Clear All
         </Button>

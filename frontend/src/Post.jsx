@@ -13,7 +13,8 @@ import {
   Badge,
   Divider,
   Avatar,
-  IconButton
+  IconButton,
+  useToast
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';
 import { IoMusicalNotes, IoHeart, IoHeartOutline } from 'react-icons/io5';
@@ -35,6 +36,7 @@ import profileService from './services/profileService';
 
 function Post() {
   const { postId } = useParams();
+  const toast = useToast();
   const [post, setPost] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,16 +51,19 @@ function Post() {
         setLoading(true);
         setError(null);
         const data = await postService.getPost(postId);
-        setPost(data);
-        
-        // Set initial like state from backend response
-        setLikesCount(data.likes || 0);
-        setIsLiked(data.likedByCurrentUser || false);
-        
-        // Fetch the profile of the user who created the post
-        if (data?.userId) {
-          const profileData = await profileService.getProfile(data.userId);
-          setProfile(profileData);
+        if (data) {
+          setPost(data);
+          // Set initial like state from backend response
+          setLikesCount(data.likes || 0);
+          setIsLiked(data.likedByCurrentUser || false);
+          // Fetch the profile of the user who created the post
+          if (data.userId) {
+            const profileData = await profileService.getProfile(data.userId);
+            setProfile(profileData);
+          }
+        } else {
+          setPost(null);
+          setError('Post not found');
         }
       } catch (err) {
         setError(err.message || 'Failed to load post');
@@ -84,6 +89,13 @@ function Post() {
       setIsLiked(response.liked);
     } catch (err) {
       console.error('Failed to toggle like:', err);
+      toast({
+        title: 'Failed to update like',
+        description: err.message || 'Please try again later',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
     } finally {
       setLikingInProgress(false);
     }
@@ -175,7 +187,7 @@ function Post() {
           <Flex align="center" mb={4}>
             <Avatar 
               size="md" 
-              src={profile.profilePictureUrl} 
+              src={profile.profilePicUrl} 
               name={`${profile.firstName} ${profile.lastName}`}
               mr={3}
             />

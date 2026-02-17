@@ -37,7 +37,7 @@ const postService = {
     } catch (error) {
       // TODO: We need to eventually handle errors more strategically, but for now we'll just log them and rethrow.
       console.error('Failed to fetch post:', error);
-      throw  new Error('Failed to fetch post');
+      throw new Error('Failed to fetch post');
     }
   },
 
