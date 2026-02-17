@@ -38,11 +38,7 @@ function Profile() {
         setLoading(true);
         setError(null);
         const data = await profileService.getProfile(profileUserId);
-        if (!data) {
-          setError('Profile not found');
-        } else {
-          setProfile(data);
-        }
+        setProfile(data);
       } catch (err) {
         setError(err.message || 'Failed to load profile');
       } finally {
@@ -145,7 +141,7 @@ function Profile() {
           {profile?.profilePictureUrl ? (
             <Image borderRadius="full" boxSize="150px" src={profile.profilePictureUrl} alt={`${profile?.firstName}'s profile picture`} />
           ) : (
-            <Icon as={CgProfile} boxSize="150px" color="gray.300" />
+            <Icon as={CgProfile} boxSize="150px" color="gray.300" aria-label="Profile Picture" />
           )}
         </Box>
       </GridItem>
@@ -153,7 +149,9 @@ function Profile() {
         <Box mb={4}>
           <Heading size="lg">{profile?.firstName} {profile?.lastName}</Heading>
           <Text fontSize="sm" fontWeight="semibold" color="gray.600" mt={1}>
-            {profile?.gender ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1) : ''} - <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />{profile?.location?.formattedAddress || 'No location set'}
+            {profile?.gender && `${profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)} - `}
+            <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />
+            {profile?.location?.formattedAddress || 'No location set'}
           </Text>
         </Box>
         <Box mt={2}>
@@ -262,19 +260,23 @@ function Profile() {
               variant="ghost"
               onClick={prevSlide}
               icon={<LuChevronLeft />}
+              aria-label="Previous Slide"
             />
 
             {/* Indicators */}
             <Flex gap={2}>
               {items.map((_, index) => (
                 <Box
+                  as="button"
+                  type="button"
                   key={index}
                   w="8px"
                   h="8px"
                   borderRadius="full"
                   bg={currentSlide === index ? "blue.500" : "gray.300"}
                   cursor="pointer"
-                  onClick={() => setCurrentSlide(index)}
+                  aria-label={`Go to slide ${index + 1}`}
+                  aria-current={currentSlide === index ? "true" : undefined}
                 />
               ))}
             </Flex>
@@ -284,6 +286,7 @@ function Profile() {
               variant="ghost"
               onClick={nextSlide}
               icon={<LuChevronRight />}
+              aria-label="Next Slide"
             />
           </Flex>
         </Box>

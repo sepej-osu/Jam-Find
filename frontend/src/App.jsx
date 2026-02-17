@@ -58,7 +58,6 @@ function App() {
       } 
       />
 
-      // Temporary Home/Protected Page for registered users
       <Route
         path="/home"
         element={
@@ -66,7 +65,6 @@ function App() {
         }
       />
 
-      // Profile page - view own profile
       <Route
         path="/profile"
         element={
@@ -74,7 +72,6 @@ function App() {
         }
       />
 
-      // Profile page - view any user's profile
       <Route
         path="/profile/:userId"
         element={
