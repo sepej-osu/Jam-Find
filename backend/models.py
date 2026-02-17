@@ -39,6 +39,7 @@ class ProfileBase(BaseModel):
     email: EmailStr
     bio: Optional[str] = Field(None, max_length=500)
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
+    zip_code: Optional[str] = Field(None, alias="zipCode")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
     instruments: Optional[List[Instrument]] = Field(default_factory=list)
@@ -56,8 +57,9 @@ class ProfileCreate(ProfileBase):
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
     bio: Optional[str] = Field(None, max_length=500)
-    gender: Optional[Gender] = Field(..., alias="gender") 
+    gender: Optional[Gender] = Field(None, alias="gender") 
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
+    zip_code: Optional[str] = Field(None, alias="zipCode")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
     instruments: Optional[List[Instrument]] = None
@@ -70,8 +72,8 @@ class ProfileUpdate(BaseModel):
 
 class ProfileResponse(ProfileBase):
     user_id: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     
     model_config = ConfigDict(
         from_attributes = True,
@@ -131,8 +133,8 @@ class PostResponse(PostBase):
     liked_by: Optional[List[str]] = Field(default_factory=list, exclude=True)  # Exclude from API response for privacy
     likes: int = Field(..., description="Computed from liked_by array length")
     edited: bool = Field(..., description="Boolean flag set to true when post is updated via PUT endpoint")
-    created_at: datetime
-    updated_at: datetime
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
     
     model_config = ConfigDict(
         from_attributes = True,

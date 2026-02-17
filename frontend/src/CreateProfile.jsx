@@ -39,6 +39,7 @@ function CreateProfile() {
     lastName: '',
     bio: '',
     birthDate: '',
+    zipCode: '',
     experienceYears: '',
     selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
     selectedGenres: [],       // ['Rock', 'Jazz']
@@ -83,11 +84,17 @@ const handleSubmit = async (e) => {
       birthDate: formData.birthDate,
       gender: formData.gender,
       bio: formData.bio,
+      zipCode: formData.zipCode.trim(),
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres
     };
+
+    const apiBase = import.meta.env.VITE_BACKEND_API_URL;
+    if (!apiBase) {
+      throw new Error('VITE_BACKEND_API_URL is not set');
+    }
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
@@ -201,7 +208,15 @@ return (
               maxLength={500}
             />
 
-            // TODO: add input field for location here.
+            <InputField
+              label="ZIP Code"
+              name="zipCode"
+              type="text"
+              value={formData.zipCode}
+              onChange={handleChange}
+              required
+              placeholder="e.g., 34119"
+            />
 
             <InputField
               label="Years of Experience"

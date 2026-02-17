@@ -53,6 +53,7 @@ function Register() {
     lastName: '',
     bio: '',
     experienceYears: '',
+    zipCode: '',
     selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
     selectedGenres: [],       // ['Rock', 'Jazz']
     location: {
@@ -100,6 +101,8 @@ function Register() {
   // Step 1 Submit - Validate inputs, ensure user is old enough, and move to step 2
   // toast is used to show error messages if validation fails
   // setStep(2) is called to move to the next step and update progress bar
+
+  const isZipValid = (zip) => /^\d{5}(-\d{4})?$/.test((zip || '').trim());
 
   const handleStep1Submit = async (e) => {
     e.preventDefault();
@@ -154,6 +157,19 @@ const handleStep2Submit = async (e) => {
   setLoading(true);
 
   try {
+    // Validate ZIP before creating account/profile  
+    if (!isZipValid(formData.zipCode)) {
+      toast({
+        title: 'Invalid ZIP Code',
+        description: 'Enter a 5-digit ZIP (or ZIP+4)',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setLoading(false);
+      return;
+    }
+
     // Create Firebase account
     const userCredential = await createUserWithEmailAndPassword(
       auth, 
@@ -180,6 +196,7 @@ const handleStep2Submit = async (e) => {
       birthDate: formData.birthDate,
       gender: formData.gender,
       bio: formData.bio,
+      zipCode: formData.zipCode.trim(),
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
@@ -361,7 +378,15 @@ const handleStep2Submit = async (e) => {
               maxLength={500}
             />
 
-            // TODO: add input field for location here.
+            <InputField
+              label="ZIP Code"
+              name="zipCode"
+              type="text"
+              value={formData.zipCode}
+              onChange={handleChange}
+              required
+              placeholder="e.g., 34119"
+            />
 
             <InputField
               label="Years of Experience"
