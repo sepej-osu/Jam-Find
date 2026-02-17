@@ -1,9 +1,9 @@
 import {
   Box,
-  VStack,
   Text,
   Checkbox,
-  SimpleGrid
+  SimpleGrid,
+  Button
 } from "@chakra-ui/react"
 
 function GenreSelector({ value, onChange, options, label }) {
@@ -18,9 +18,21 @@ function GenreSelector({ value, onChange, options, label }) {
   return (
     <Box>
       {label && (
-        <Text fontWeight="bold" mb={2}>
-          {label}
-        </Text>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+          <Text fontWeight="bold">
+            {label}
+          </Text>
+          <Button 
+            size="xs"
+            colorScheme="blue"
+            onClick={() => onChange([])} 
+            //visibility={value.length > 0 ? 'visible' : 'hidden'}
+            isDisabled={value.length === 0}
+            variant="outline"
+          >
+            Clear All
+          </Button>
+        </Box>
       )}
 
     <SimpleGrid columns={3} spacing={2}>
