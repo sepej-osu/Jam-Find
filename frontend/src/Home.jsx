@@ -1,6 +1,12 @@
 
 import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
+<<<<<<< HEAD
 import { useAuth,  } from './contexts/AuthContext';
+=======
+import { Link as RouterLink } from 'react-router-dom';
+import { useAuth } from './contexts/AuthContext';
+
+>>>>>>> main
 import LogoutButton from './components/LogoutButton';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,9 +39,20 @@ function Home() {
 
         <LogoutButton   />
 
+        <Button 
+          as={RouterLink} 
+          to="/create-post" 
+          colorScheme="blue"
+          size="lg"
+          width="100%"
+        >
+          Create a Post
+        </Button>
+        <LogoutButton />
       </VStack>
     </Box>
   );
+        
 }
 
 export default Home;

@@ -3,8 +3,13 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
 import Home from './Home';
+import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
+<<<<<<< HEAD
 import UpdateProfile from './UpdateProfile';
+=======
+import Profile from './Profile';
+>>>>>>> main
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';
@@ -58,7 +63,6 @@ function App() {
       } 
       />
 
-      // Temporary Home/Protected Page for registered users
       <Route
         path="/home"
         element={
@@ -70,6 +74,27 @@ function App() {
         path="/update-profile"
         element={
           (currentUser && hasProfile) ? <UpdateProfile /> : <Navigate to="/login" />
+        }
+      />
+
+      <Route
+        path="/profile"
+        element={
+          (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/profile/:userId"
+        element={
+          (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
+        }
+      />
+            
+       <Route
+        path="/create-post"
+        element={
+          (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
         }
       />
 
