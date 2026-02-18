@@ -212,6 +212,16 @@ function CreatePost() {
           >
             Create Post
           </Button>
+
+          <Button
+              colorScheme="red"
+              size="sm"
+              width="100%"
+              alignSelf="center"
+              onClick={() => navigate('/')}
+          >
+            Back
+          </Button>
         </VStack>
       </form>
     </Box>

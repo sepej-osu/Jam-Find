@@ -5,6 +5,7 @@ import Register from './Register';
 import Home from './Home';
 import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
+import UpdateProfile from './UpdateProfile';
 import Profile from './Profile';
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
@@ -63,6 +64,13 @@ function App() {
         path="/home"
         element={
           (currentUser && hasProfile) ? <Home /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/update-profile"
+        element={
+          (currentUser && hasProfile) ? <UpdateProfile /> : <Navigate to="/login" />
         }
       />
 
