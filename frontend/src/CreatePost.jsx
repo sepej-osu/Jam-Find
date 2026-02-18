@@ -1,9 +1,8 @@
 // CreatePost.jsx
 // Form for creating a new post (looking for band/musicians, jam session, or sharing music)
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { auth } from './firebase';
 import {
   Box,
   Center,
@@ -16,7 +15,9 @@ import {
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-
+import postService from './services/postService';
+import profileService from './services/profileService';
+import { useAuth } from './contexts/AuthContext';
 
 const GENRES = [
   'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
@@ -29,6 +30,7 @@ const GENRES = [
 function CreatePost() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { currentUser } = useAuth();
   
   const [loading, setLoading] = useState(false);
 
@@ -42,6 +44,41 @@ function CreatePost() {
     selectedGenres: [],
     media: []
   });
+
+  // Grab instruments/genres when post type is looking_to_jam or looking_for_band
+  useEffect(() => {
+    const loadProfileData = async () => {
+      if (formData.postType === 'looking_to_jam' || formData.postType === 'looking_for_band') {
+        try {
+          const profile = await profileService.getProfile(currentUser?.uid);
+          if (profile) {
+            // Convert instruments array to selectedInstruments object format
+            const instrumentsObj = {};
+            profile.instruments?.forEach(instrument => {
+              instrumentsObj[instrument.name] = instrument.experienceLevel;
+            });
+            
+            setFormData(prev => ({
+              ...prev,
+              selectedInstruments: instrumentsObj,
+              selectedGenres: profile.genres || []
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to load profile data:', error);
+        }
+      }
+      else {
+        setFormData(prev => ({
+          ...prev,
+          selectedInstruments: {},
+          selectedGenres: []
+        }));
+      }
+    };
+
+    loadProfileData();
+  }, [formData.postType, currentUser?.uid]);
 
   // Handle input changes for text fields
   const handleChange = (e) => {
@@ -58,15 +95,6 @@ function CreatePost() {
     setLoading(true);
 
     try {
-      // Create Post in Firestore via backend API
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No user logged in');
-      }
-      
-      // Get Firebase ID token
-      const token = await user.getIdToken();
-      
       // Convert selectedInstruments object to array of { name, experienceLevel } for the API
       const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
         name,
@@ -83,32 +111,7 @@ function CreatePost() {
         media: formData.media
       };
 
-      console.log('=== SENDING TO BACKEND ===');
-      console.log('URL:', `${import.meta.env.VITE_API_URL}/api/v1/posts`);
-      console.log('Payload:', payload);
-      console.log('Token:', token);
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        let errorMsg = 'Failed to create post';
-        try {
-          const errorData = await response.json();
-          if (errorData?.detail) {
-            errorMsg = errorData.detail;
-          }
-        } catch (_) {
-          // Ignore JSON parsing errors
-        }
-        throw new Error(errorMsg);
-      }
+      await postService.createPost(payload);
 
       toast({
         title: 'Post created successfully!',
@@ -159,10 +162,10 @@ function CreatePost() {
             onChange={handleChange}
             required
             selectOptions={[
-              { value: 'looking_for_band', label: 'Looking for a Band' },
-              { value: 'looking_for_musicians', label: 'Looking for Musicians' },
-              { value: 'looking_to_jam', label: 'Looking to Jam' },
-              { value: 'sharing_music', label: 'Sharing Music' }
+              { value: 'looking_to_jam', label: 'Looking to Jam 🎶' },
+              { value: 'looking_for_band', label: 'Looking for a Band 🎤' },
+              { value: 'looking_for_musicians', label: 'Looking for Musicians 🎸' },
+              { value: 'sharing_music', label: 'Sharing Music 🎵' }
             ]}
           />
 

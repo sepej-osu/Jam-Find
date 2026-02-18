@@ -7,6 +7,7 @@ import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
 import UpdateProfile from './UpdateProfile';
 import Profile from './Profile';
+import Post from './Post';
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';
@@ -92,6 +93,13 @@ function App() {
         path="/create-post"
         element={
           (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
+        }
+      />
+
+      <Route
+        path="/post/:postId"
+        element={
+          (currentUser && hasProfile) ? <Post /> : <Navigate to="/login" replace />
         }
       />
 

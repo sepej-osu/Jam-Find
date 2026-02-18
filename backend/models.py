@@ -132,6 +132,7 @@ class PostResponse(PostBase):
     post_id: str = Field(..., alias="postId")
     liked_by: Optional[List[str]] = Field(default_factory=list, exclude=True)  # Exclude from API response for privacy
     likes: int = Field(..., description="Computed from liked_by array length")
+    liked_by_current_user: bool = Field(default=False, alias="likedByCurrentUser", description="Whether the current user has liked this post")
     edited: bool = Field(..., description="Boolean flag set to true when post is updated via PUT endpoint")
     created_at: datetime
     updated_at: datetime

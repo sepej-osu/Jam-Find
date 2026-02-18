@@ -9,7 +9,8 @@ import {
   SliderThumb,
   Text,
   HStack,
-  SimpleGrid
+  SimpleGrid,
+  Button
 } from '@chakra-ui/react';
 
 // List of available instruments 
@@ -48,9 +49,20 @@ function InstrumentSelector({ value, onChange }) {
 
   return (
     <Box>
-      <Text fontWeight="bold" mb={2}>
-        Instruments & Skill Level
-      </Text>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
+        <Text fontWeight="bold">
+          Instruments & Skill Level
+        </Text>
+        <Button 
+          size="xs"
+          colorScheme="blue"
+          onClick={() => onChange({})} 
+          isDisabled={Object.keys(value).length === 0}
+          variant="outline"
+        >
+          Clear All
+        </Button>
+      </Box>
       
       <SimpleGrid columns={2} spacing={2}>
         {INSTRUMENTS.map((instrument) => {
