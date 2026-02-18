@@ -11,10 +11,17 @@ router = APIRouter()
 
 COLLECTION_NAME = "posts"
 
-def add_computed_fields(post_data: dict) -> dict:
-    """Add computed likes field"""
+def add_computed_fields(post_data: dict, current_user_id: str = None) -> dict:
+    """Add computed likes field and likedByCurrentUser flag"""
     # Computes likes from length of likedBy array
     post_data["likes"] = len(post_data.get("likedBy", []))
+    
+    # Check if current user has liked this post
+    if current_user_id:
+        post_data["liked_by_current_user"] = current_user_id in post_data.get("likedBy", [])
+    else:
+        post_data["liked_by_current_user"] = False
+    
     return post_data
 
 @router.post("/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
@@ -82,7 +89,7 @@ async def get_post(
                 detail=f"Post not found with post_id: {post_id}"
             )
         post_data = post_doc.to_dict()
-        return PostResponse(**add_computed_fields(post_data))
+        return PostResponse(**add_computed_fields(post_data, current_user_id))
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
@@ -131,7 +138,7 @@ async def update_post(
         posts_ref.document(post_id).update(update_data)
         # Return the updated post
         existing_data.update(update_data)
-        return PostResponse(**add_computed_fields(existing_data))
+        return PostResponse(**add_computed_fields(existing_data, current_user_id))
     except HTTPException:
         # Re-raise HTTP exceptions
         raise
@@ -222,7 +229,7 @@ async def list_posts(
                 )
             query = query.start_after(start_doc)
         post_docs = query.stream()
-        posts = [PostResponse(**add_computed_fields(doc.to_dict())) for doc in post_docs]
+        posts = [PostResponse(**add_computed_fields(doc.to_dict(), current_user_id)) for doc in post_docs]
         return posts
     except HTTPException:
         # Re-raise HTTP exceptions

@@ -56,6 +56,8 @@ class ProfileCreate(ProfileBase):
 
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
+    first_name: Optional[str] = Field(..., alias="firstName")
+    last_name: Optional[str] = Field(..., alias="lastName")
     bio: Optional[str] = Field(None, max_length=500)
     gender: Optional[Gender] = Field(None, alias="gender") 
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
@@ -132,6 +134,7 @@ class PostResponse(PostBase):
     post_id: str = Field(..., alias="postId")
     liked_by: Optional[List[str]] = Field(default_factory=list, exclude=True)  # Exclude from API response for privacy
     likes: int = Field(..., description="Computed from liked_by array length")
+    liked_by_current_user: bool = Field(default=False, alias="likedByCurrentUser", description="Whether the current user has liked this post")
     edited: bool = Field(..., description="Boolean flag set to true when post is updated via PUT endpoint")
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None

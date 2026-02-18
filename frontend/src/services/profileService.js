@@ -42,8 +42,33 @@ const profileService = {
   },
 
   updateProfile: async (userId, data) => {
-    // TODO: Implement the update profile logic using the API endpoint for updating profiles.
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      return await response.json(); 
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      throw new Error('Failed to update profile');
+    }
   },
+
 
   deleteProfile: async (userId) => {
     // TODO: Implement the delete profile logic using the API endpoint for deleting profiles.
