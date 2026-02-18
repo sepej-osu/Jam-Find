@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from typing import Optional, List, Dict, Any
 from firebase_config import get_db
 from auth import get_current_user
-from .geo import geocode_zip  
 import math
 
 router = APIRouter()
@@ -18,6 +17,22 @@ def miles_between(lat1, lng1, lat2, lng2) -> float:
     a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
     return R * (2 * math.atan2(math.sqrt(a), math.sqrt(1-a)))
 
+def _get_coords_from_location(loc: Any):
+    if not isinstance(loc, dict):
+        return None, None
+    lat = loc.get("lat")
+    lng = loc.get("lng")
+    if lat is None or lng is None:
+        return None, None
+    try:
+        lat_f = float(lat)
+        lng_f = float(lng)
+    except Exception:
+        return None, None
+    if abs(lat_f) < 0.000001 and abs(lng_f) < 0.000001:
+        return None, None
+    return lat_f, lng_f
+
 @router.get("/search/musicians")
 async def search_musicians(
     radius_miles: float = 25,
@@ -27,7 +42,7 @@ async def search_musicians(
     current_user_id: str = Depends(get_current_user)
 ):
     """
-    Search profiles within radius_miles of the current user, using ZIP-only storage.
+    Search profiles within radius_miles of the current user, using stored profile.location coords.
 
     Optional filters:
       - instrument: match any instrument name in profile.instruments[]
@@ -40,27 +55,15 @@ async def search_musicians(
     db = get_db()
     profiles_ref = db.collection(PROFILES_COLLECTION)
 
-    # Load current user's profile to get their zipCode
     me_doc = profiles_ref.document(current_user_id).get()
     if not me_doc.exists:
         raise HTTPException(status_code=404, detail="Current user profile not found")
-    me = me_doc.to_dict()
+    me = me_doc.to_dict() or {}
 
-    my_zip = me.get("zipCode") or me.get("zip_code")
-    if not my_zip:
-        raise HTTPException(status_code=400, detail="Your profile is missing zipCode")
+    my_lat, my_lng = _get_coords_from_location(me.get("location"))
+    if my_lat is None or my_lng is None:
+        raise HTTPException(status_code=400, detail="Your profile is missing location coordinates")
 
-    try:
-        my_geo = geocode_zip(my_zip)
-        my_lat, my_lng = my_geo.lat, my_geo.lng
-    except HTTPException as e:
-        # Re-raise the HTTP exception from geocode_zip
-        raise e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    # Fetch profiles (simple approach: stream and filter in Python)
-    # Later you can optimize with a geohash strategy.
     docs = profiles_ref.stream()
 
     results: List[Dict[str, Any]] = []
@@ -68,9 +71,8 @@ async def search_musicians(
         if doc.id == current_user_id:
             continue
 
-        p = doc.to_dict()
+        p = doc.to_dict() or {}
 
-        # optional filters
         if genre:
             genres = p.get("genres") or []
             if genre not in genres:
@@ -78,26 +80,16 @@ async def search_musicians(
 
         if instrument:
             instruments = p.get("instruments") or []
-            # instruments is list of dicts like {name, experienceLevel}
             if not any((i.get("name") == instrument) for i in instruments if isinstance(i, dict)):
                 continue
 
-        z = p.get("zipCode") or p.get("zip_code")
-        if not z:
-            continue
-
-        try:
-            # Fixed: Handle object return and HTTPException
-            target_geo = geocode_zip(z)
-            lat, lng = target_geo.lat, target_geo.lng
-        except HTTPException:
-            # If geocoding fails for a user, skip them
-            continue
-        except Exception:
+        lat, lng = _get_coords_from_location(p.get("location"))
+        if lat is None or lng is None:
             continue
 
         dist = miles_between(my_lat, my_lng, lat, lng)
         if dist <= radius_miles:
+            z = p.get("zipCode") or p.get("zip_code") or ""
             p_out = {
                 "userId": p.get("userId") or p.get("user_id") or doc.id,
                 "firstName": p.get("firstName") or p.get("first_name"),

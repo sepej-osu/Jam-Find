@@ -8,11 +8,18 @@ import {
   Heading,
   VStack,
   useToast,
+  HStack, 
+  Slider, 
+  SliderTrack, 
+  SliderFilledTrack, 
+  SliderThumb,
+  Text
 } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+
 
 
 const GENRES = [
@@ -40,6 +47,7 @@ function CreateProfile() {
     bio: '',
     birthDate: '',
     zipCode: '',
+    searchRadiusMiles: 25,
     experienceYears: '',
     selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
     selectedGenres: [],       // ['Rock', 'Jazz']
@@ -69,6 +77,33 @@ const handleSubmit = async (e) => {
       throw new Error('No user logged in');
     }
     const token = await user.getIdToken();
+
+    const zip = (formData.zipCode || '').trim();
+    if (!/^\d{5}$/.test(zip)) {
+      toast({
+        title: 'Invalid ZIP Code',
+        description: 'Enter a 5-digit ZIP code',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setLoading(false);
+      return;
+    }
+
+    const radiusMiles = parseInt(formData.searchRadiusMiles, 10);
+    if (isNaN(radiusMiles) || radiusMiles < 1 || radiusMiles > 500) {
+      toast({
+        title: 'Invalid Distance',
+        description: 'Distance must be between 1 and 500 miles',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setLoading(false);
+      return;
+    }
+
     
     // convert selectedInstruments object to array of { name, experienceLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
@@ -84,17 +119,13 @@ const handleSubmit = async (e) => {
       birthDate: formData.birthDate,
       gender: formData.gender,
       bio: formData.bio,
-      zipCode: formData.zipCode.trim(),
+      zipCode: zip,
+      searchRadiusMiles: radiusMiles,
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres
     };
-
-    const apiBase = import.meta.env.VITE_BACKEND_API_URL;
-    if (!apiBase) {
-      throw new Error('VITE_BACKEND_API_URL is not set');
-    }
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
@@ -217,6 +248,25 @@ return (
               required
               placeholder="e.g., 34119"
             />
+
+            <VStack spacing={1} align="stretch">
+              <HStack justify="space-between">
+                <Text fontWeight="semibold">Distance</Text>
+                <Text fontSize="sm" color="gray.600">Within {formData.searchRadiusMiles} miles</Text>
+              </HStack>
+              <Slider
+                value={formData.searchRadiusMiles}
+                min={1}
+                max={500}
+                step={1}
+                onChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              >
+                <SliderTrack>
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </VStack>
 
             <InputField
               label="Years of Experience"

@@ -11,7 +11,12 @@ import {
   VStack,
   useToast,
   Progress,
-  Text
+  Text,
+  HStack, 
+  Slider, 
+  SliderTrack, 
+  SliderFilledTrack, 
+  SliderThumb
 } from '@chakra-ui/react';
 
 import { Link as ChakraLink } from '@chakra-ui/react';
@@ -54,6 +59,7 @@ function Register() {
     bio: '',
     experienceYears: '',
     zipCode: '',
+    searchRadiusMiles: 25,
     selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
     selectedGenres: [],       // ['Rock', 'Jazz']
     location: {
@@ -102,7 +108,7 @@ function Register() {
   // toast is used to show error messages if validation fails
   // setStep(2) is called to move to the next step and update progress bar
 
-  const isZipValid = (zip) => /^\d{5}(-\d{4})?$/.test((zip || '').trim());
+  const isZipValid = (zip) => /^\d{5}$/.test((zip || '').trim());
 
   const handleStep1Submit = async (e) => {
     e.preventDefault();
@@ -161,7 +167,20 @@ const handleStep2Submit = async (e) => {
     if (!isZipValid(formData.zipCode)) {
       toast({
         title: 'Invalid ZIP Code',
-        description: 'Enter a 5-digit ZIP (or ZIP+4)',
+        description: 'Enter a 5-digit ZIP code',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      setLoading(false);
+      return;
+    }
+
+    const radiusMiles = parseInt(formData.searchRadiusMiles, 10);
+    if (isNaN(radiusMiles) || radiusMiles < 1 || radiusMiles > 500) {
+      toast({
+        title: 'Invalid Distance',
+        description: 'Distance must be between 1 and 500 miles',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -197,6 +216,7 @@ const handleStep2Submit = async (e) => {
       gender: formData.gender,
       bio: formData.bio,
       zipCode: formData.zipCode.trim(),
+      searchRadiusMiles: radiusMiles,
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
@@ -387,6 +407,25 @@ const handleStep2Submit = async (e) => {
               required
               placeholder="e.g., 34119"
             />
+
+            <VStack spacing={1} align="stretch">
+              <HStack justify="space-between">
+                <Text fontWeight="semibold">Distance</Text>
+                <Text fontSize="sm" color="gray.600">Within {formData.searchRadiusMiles} miles</Text>
+              </HStack>
+              <Slider
+                value={formData.searchRadiusMiles}
+                min={1}
+                max={500}
+                step={1}
+                onChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              >
+                <SliderTrack>
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </VStack>
 
             <InputField
               label="Years of Experience"

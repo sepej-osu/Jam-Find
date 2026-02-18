@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
@@ -9,6 +9,12 @@ import {
   Heading,
   VStack,
   useToast,
+  HStack, 
+  Slider, 
+  SliderTrack, 
+  SliderFilledTrack, 
+  SliderThumb,
+  Text
 } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
@@ -25,26 +31,26 @@ const GENRES = [
 
 
 function UpdateProfile() {
-  const navigate = useNavigate(); // For navigation after profile creation
-  const toast = useToast(); // For showing success/error messages after profile creation
-  const { currentUser, refreshProfile, profile } = useAuth(); // Get current user and refreshProfile function from AuthContext
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { currentUser, refreshProfile, profile } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  const isZipValid = (zip) => /^\d{5}$/.test((zip || '').trim());
 
   const [formData, setFormData] = useState({
-    // Profile fields
-    email: profile?.email || currentUser?.email || '', // Pre-fill email from profile or currentUser
+    email: profile?.email || currentUser?.email || '',
     gender: profile?.gender || '',
     firstName: profile?.firstName || '',
     lastName: profile?.lastName || '',
     bio: profile?.bio || '',
     birthDate: profile?.birthDate || '',
+    zipCode: profile?.zipCode || '',
+    searchRadiusMiles: profile?.searchRadiusMiles || 25,
     experienceYears: profile?.experienceYears || '',
-
-    // For instruments, we convert the array of { name, experienceLevel } to an object for easier form handling
     selectedInstruments: Object.fromEntries(
-    profile?.instruments?.map(instrument => [instrument.name, instrument.experienceLevel]) || []
-    ) || {},  // This will create an object like { "Electric Guitar": "Intermediate", "Drums": "Beginner" }
+      profile?.instruments?.map(instrument => [instrument.name, instrument.experienceLevel]) || []
+    ) || {},
     selectedGenres: profile?.genres || [], 
     location: profile?.location || {
       placeId: '',
@@ -54,66 +60,126 @@ function UpdateProfile() {
     }, profilePicUrl: profile?.profilePicUrl || ''
   });
 
+  useEffect(() => {
+    if (!profile) return;
+
+    setFormData({
+      email: profile.email || currentUser?.email || '',
+      gender: profile.gender || '',
+      firstName: profile.firstName || '',
+      lastName: profile.lastName || '',
+      bio: profile.bio || '',
+      birthDate: profile.birthDate || '',
+      zipCode: profile.zipCode || '',
+      searchRadiusMiles: profile.searchRadiusMiles || 25,
+      experienceYears: profile.experienceYears || '',
+      selectedInstruments: Object.fromEntries(
+        (profile.instruments || []).map(instrument => [instrument.name, instrument.experienceLevel])
+      ),
+      selectedGenres: profile.genres || [],
+      location: profile.location || {
+        placeId: '',
+        formattedAddress: '',
+        lat: 0,
+        lng: 0
+      },
+      profilePicUrl: profile.profilePicUrl || ''
+    });
+
+  }, [profile, currentUser]);
+
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value // Update the specific field that changed
+      [e.target.name]: e.target.value
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
 
-  try {
-    // Convert selectedInstruments object back to an array for the API request
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
-      name,
-      experienceLevel
-    }));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      birthDate: formData.birthDate,
-      gender: formData.gender,
-      bio: formData.bio,
-      experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
-      location: formData.location,
-      instruments: instruments,
-      genres: formData.selectedGenres
-    };
+    try {
 
-    // Use the profileService.updateProfile method instead of direct fetch
-    await profileService.updateProfile(currentUser.uid, payload);
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
 
-    toast({
-      title: 'Profile updated successfully!',
-      description: 'Your profile has been updated.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    
-    await refreshProfile();   // Refresh the profile data in AuthContext after updating
-  
-    navigate('/'); // Redirect to home or profile page after successful update
-    
-  } catch (err) {
-    toast({
-      title: 'Error updating profile',
-      description: err.message,
-      status: 'error',
-      duration: 5000,
-      isClosable: true,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+      if (!isZipValid(formData.zipCode)) {
+        toast({
+          title: 'Invalid ZIP Code',
+          description: 'Enter a 5-digit ZIP code',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
 
-return (
+      const radiusMiles = parseInt(formData.searchRadiusMiles, 10);
+      if (isNaN(radiusMiles) || radiusMiles < 1 || radiusMiles > 500) {
+        toast({
+          title: 'Invalid Distance',
+          description: 'Distance must be between 1 and 500 miles',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+        name,
+        experienceLevel
+      }));
+
+      const payload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+        bio: formData.bio,
+        zipCode: formData.zipCode.trim(),
+        searchRadiusMiles: radiusMiles,
+        experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
+        location: formData.location,
+        instruments: instruments,
+        genres: formData.selectedGenres
+      };
+
+      await profileService.updateProfile(currentUser.uid, payload);
+
+      toast({
+        title: 'Profile updated successfully!',
+        description: 'Your profile has been updated.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await refreshProfile();
+
+      navigate('/');
+
+    } catch (err) {
+
+      toast({
+        title: 'Error updating profile',
+        description: err.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  return (
   <Center minH="100vh" bg="gray.50" px={4}>
   <Box 
     maxW="600px" 
@@ -130,7 +196,6 @@ return (
         <Heading size="md" color="gray.600">Update Your Profile</Heading>
       </VStack>
 
-      {/* Step 2: Profile Setup */}
         <form onSubmit={handleSubmit}>
           <VStack spacing={4} align="stretch">
             <InputField
@@ -169,7 +234,34 @@ return (
               maxLength={500}
             />
 
-            // TODO: add input field for location here.
+            <InputField
+              label="ZIP Code"
+              name="zipCode"
+              type="text"
+              value={formData.zipCode}
+              onChange={handleChange}
+              required
+              placeholder="e.g., 34119"
+            />
+
+            <VStack spacing={1} align="stretch">
+              <HStack justify="space-between">
+                <Text fontWeight="semibold">Distance</Text>
+                <Text fontSize="sm" color="gray.600">Within {formData.searchRadiusMiles} miles</Text>
+              </HStack>
+              <Slider
+                value={formData.searchRadiusMiles}
+                min={1}
+                max={500}
+                step={1}
+                onChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              >
+                <SliderTrack>
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb />
+              </Slider>
+            </VStack>
 
             <InputField
               label="Years of Experience"

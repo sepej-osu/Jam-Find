@@ -13,7 +13,7 @@ class Gender(str, Enum):
 
 class Location(BaseModel):
     place_id: Optional[str] = Field(None, alias="placeId")
-    formatted_address: str = Field(..., alias="formattedAddress")
+    formatted_address: Optional[str] = Field(None, alias="formattedAddress")
     lat: float
     lng: float
     
@@ -40,6 +40,7 @@ class ProfileBase(BaseModel):
     bio: Optional[str] = Field(None, max_length=500)
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     zip_code: Optional[str] = Field(None, alias="zipCode")
+    search_radius_miles: Optional[int] = Field(25, ge=1, le=500, alias="searchRadiusMiles")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
     instruments: Optional[List[Instrument]] = Field(default_factory=list)
@@ -51,17 +52,19 @@ class ProfileBase(BaseModel):
 
 
 class ProfileCreate(ProfileBase):
-    user_id: str = Field(..., description="Firebase Auth UID")
+    user_id: str = Field(..., description="Firebase Auth UID", alias="userId")
 
 
 class ProfileUpdate(BaseModel):
     email: Optional[EmailStr] = None
-    first_name: Optional[str] = Field(..., alias="firstName")
-    last_name: Optional[str] = Field(..., alias="lastName")
+    first_name: Optional[str] = Field(None, alias="firstName")
+    last_name: Optional[str] = Field(None, alias="lastName")
+    birth_date: Optional[datetime] = Field(None, alias="birthDate")
     bio: Optional[str] = Field(None, max_length=500)
     gender: Optional[Gender] = Field(None, alias="gender") 
     experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
     zip_code: Optional[str] = Field(None, alias="zipCode")
+    search_radius_miles: Optional[int] = Field(None, ge=1, le=500, alias="searchRadiusMiles")
     location: Optional[Location] = None
     profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
     instruments: Optional[List[Instrument]] = None
@@ -73,7 +76,7 @@ class ProfileUpdate(BaseModel):
 
 
 class ProfileResponse(ProfileBase):
-    user_id: str
+    user_id: str = Field(..., alias="userId")
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     
@@ -95,7 +98,7 @@ class PostBase(BaseModel):
     genres: Optional[List[str]] = Field(default_factory=list)
     media: Optional[List[HttpUrl]] = Field(default_factory=list, alias="media")  # List of media URLs (images, audio, video)
     liked_by: Optional[List[str]] = Field(default_factory=list, alias="likedBy")  # List of user IDs who liked the post
-    # We can calculate the number of likes from the length of liked_by array, so we don't need a separate likes field.
+    # We can calculate the number of likes from the length of liked_by array length, so we don't need a separate likes field.
 
     model_config = ConfigDict(
         populate_by_name = True

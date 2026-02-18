@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
@@ -8,6 +7,8 @@ import CreateProfile from './CreateProfile';
 import UpdateProfile from './UpdateProfile';
 import Profile from './Profile';
 import Post from './Post';
+import Feed from './Feed';
+import MusicianSearch from './MusicianSearch';
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { useToast } from '@chakra-ui/react';
@@ -101,6 +102,20 @@ function App() {
         element={
           (currentUser && hasProfile) ? <Post /> : <Navigate to="/login" replace />
         }
+      />
+
+      <Route
+        path="/feed"
+        element={
+          (currentUser && hasProfile) ? <Feed /> : <Navigate to="/login" replace />
+        }
+      />
+        
+      <Route 
+        path="/search" 
+        element={
+          currentUser ? <MusicianSearch /> : <Navigate to="/login" replace />
+        } 
       />
 
     </Routes>
