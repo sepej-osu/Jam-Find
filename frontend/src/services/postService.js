@@ -72,6 +72,57 @@ const postService = {
     }
   },
 
+  getFeed: async (radiusMilesOrOpts = 25, limitMaybe = 50) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+      const token = await user.getIdToken();
+
+      let radiusMiles = 25;
+      let limit = 50;
+
+      if (typeof radiusMilesOrOpts === 'object' && radiusMilesOrOpts !== null) {
+        radiusMiles = Number(radiusMilesOrOpts.radiusMiles != null ? radiusMilesOrOpts.radiusMiles : (radiusMilesOrOpts.radius_miles != null ? radiusMilesOrOpts.radius_miles : 25));
+        limit = Number(radiusMilesOrOpts.limit != null ? radiusMilesOrOpts.limit : 50);
+      } else {
+        radiusMiles = Number(radiusMilesOrOpts != null ? radiusMilesOrOpts : 25);
+        limit = Number(limitMaybe != null ? limitMaybe : 50);
+      }
+
+      const params = new URLSearchParams({
+        radius_miles: String(radiusMiles),
+        limit: String(limit)
+      });
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts/feed?${params}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to fetch feed';
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch (_) {
+        }
+        throw new Error(errorMsg);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch feed:', error);
+      throw error;
+    }
+  },
+
   createPost: async (postData) => {
     try {
       const user = auth.currentUser;
