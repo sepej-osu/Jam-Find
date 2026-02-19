@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
@@ -14,6 +14,7 @@ import {
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+import LocationRadiusMap from './components/LocationRadiusMap';
 
 
 const GENRES = [
@@ -25,26 +26,26 @@ const GENRES = [
 
 
 function UpdateProfile() {
-  const navigate = useNavigate(); // For navigation after profile creation
-  const toast = useToast(); // For showing success/error messages after profile creation
-  const { currentUser, refreshProfile, profile } = useAuth(); // Get current user and refreshProfile function from AuthContext
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { currentUser, refreshProfile, profile } = useAuth();
   const [loading, setLoading] = useState(false);
 
+  const isZipValid = (zip) => /^\d{5}$/.test((zip || '').trim());
 
   const [formData, setFormData] = useState({
-    // Profile fields
-    email: profile?.email || currentUser?.email || '', // Pre-fill email from profile or currentUser
+    email: profile?.email || currentUser?.email || '',
     gender: profile?.gender || '',
     firstName: profile?.firstName || '',
     lastName: profile?.lastName || '',
     bio: profile?.bio || '',
     birthDate: profile?.birthDate || '',
+    zipCode: profile?.zipCode || '',
+    searchRadiusMiles: profile?.searchRadiusMiles || 25,
     experienceYears: profile?.experienceYears || '',
-
-    // For instruments, we convert the array of { name, experienceLevel } to an object for easier form handling
     selectedInstruments: Object.fromEntries(
-    profile?.instruments?.map(instrument => [instrument.name, instrument.experienceLevel]) || []
-    ) || {},  // This will create an object like { "Electric Guitar": "Intermediate", "Drums": "Beginner" }
+      profile?.instruments?.map(instrument => [instrument.name, instrument.experienceLevel]) || []
+    ) || {},
     selectedGenres: profile?.genres || [], 
     location: profile?.location || {
       placeId: '',
@@ -54,66 +55,143 @@ function UpdateProfile() {
     }, profilePicUrl: profile?.profilePicUrl || ''
   });
 
+  const getToken = useCallback(async () => {
+    if (!currentUser) throw new Error('No user logged in');
+    return currentUser.getIdToken();
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (!profile) return;
+
+    setFormData({
+      email: profile.email || currentUser?.email || '',
+      gender: profile.gender || '',
+      firstName: profile.firstName || '',
+      lastName: profile.lastName || '',
+      bio: profile.bio || '',
+      birthDate: profile.birthDate || '',
+      zipCode: profile.zipCode || '',
+      searchRadiusMiles: profile.searchRadiusMiles || 25,
+      experienceYears: profile.experienceYears || '',
+      selectedInstruments: Object.fromEntries(
+        (profile.instruments || []).map(instrument => [instrument.name, instrument.experienceLevel])
+      ),
+      selectedGenres: profile.genres || [],
+      location: profile.location || {
+        placeId: '',
+        formattedAddress: '',
+        lat: 0,
+        lng: 0
+      },
+      profilePicUrl: profile.profilePicUrl || ''
+    });
+
+  }, [profile, currentUser]);
+
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value // Update the specific field that changed
+      [e.target.name]: e.target.value
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-
-  try {
-    // Convert selectedInstruments object back to an array for the API request
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
-      name,
-      experienceLevel
+  const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        placeId: '',
+        formattedAddress: formattedAddress || '',
+        lat,
+        lng,
+      },
     }));
+  }, []);
 
-    const payload = {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      birthDate: formData.birthDate,
-      gender: formData.gender,
-      bio: formData.bio,
-      experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
-      location: formData.location,
-      instruments: instruments,
-      genres: formData.selectedGenres
-    };
 
-    // Use the profileService.updateProfile method instead of direct fetch
-    await profileService.updateProfile(currentUser.uid, payload);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-    toast({
-      title: 'Profile updated successfully!',
-      description: 'Your profile has been updated.',
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    
-    await refreshProfile();   // Refresh the profile data in AuthContext after updating
-  
-    navigate('/'); // Redirect to home or profile page after successful update
-    
-  } catch (err) {
-    toast({
-      title: 'Error updating profile',
-      description: err.message,
-      status: 'error',
-      duration: 5000,
-      isClosable: true,
-    });
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
 
-return (
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
+
+      if (!isZipValid(formData.zipCode)) {
+        toast({
+          title: 'Invalid ZIP Code',
+          description: 'Enter a 5-digit ZIP code',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const radiusMiles = parseInt(formData.searchRadiusMiles, 10);
+      if (isNaN(radiusMiles) || radiusMiles < 5 || radiusMiles > 500) {
+        toast({
+          title: 'Invalid Distance',
+          description: 'Distance must be between 5 and 500 miles',
+          status: 'error',
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+
+      const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+        name,
+        experienceLevel
+      }));
+
+      const payload = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        birthDate: formData.birthDate,
+        gender: formData.gender,
+        bio: formData.bio,
+        zipCode: formData.zipCode.trim(),
+        searchRadiusMiles: radiusMiles,
+        experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
+        location: formData.location,
+        instruments: instruments,
+        genres: formData.selectedGenres
+      };
+
+      await profileService.updateProfile(currentUser.uid, payload);
+
+      toast({
+        title: 'Profile updated successfully!',
+        description: 'Your profile has been updated.',
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+
+      await refreshProfile();
+
+      navigate('/');
+
+    } catch (err) {
+
+      toast({
+        title: 'Error updating profile',
+        description: err.message,
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+  return (
   <Center minH="100vh" bg="gray.50" px={4}>
   <Box 
     maxW="600px" 
@@ -130,7 +208,6 @@ return (
         <Heading size="md" color="gray.600">Update Your Profile</Heading>
       </VStack>
 
-      {/* Step 2: Profile Setup */}
         <form onSubmit={handleSubmit}>
           <VStack spacing={4} align="stretch">
             <InputField
@@ -169,7 +246,25 @@ return (
               maxLength={500}
             />
 
-            // TODO: add input field for location here.
+            <InputField
+              label="ZIP Code"
+              name="zipCode"
+              type="text"
+              value={formData.zipCode}
+              onChange={handleChange}
+              required
+              placeholder="e.g., 34119"
+            />
+
+            <LocationRadiusMap
+              zipCode={formData.zipCode}
+              lat={formData.location?.lat}
+              lng={formData.location?.lng}
+              radiusMiles={formData.searchRadiusMiles}
+              onRadiusChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              onLocationResolved={handleLocationResolved}
+              getToken={getToken}
+            />
 
             <InputField
               label="Years of Experience"
