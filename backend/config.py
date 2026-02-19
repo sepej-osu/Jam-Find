@@ -1,7 +1,7 @@
 from pydantic_settings import BaseSettings
 from pydantic import ConfigDict
 from functools import lru_cache
-from typing import List
+from typing import List, Optional
 
 class Settings(BaseSettings):
     API_HOST: str = "0.0.0.0"
@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     
     # CORS configuration
     CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+
+    GOOGLE_MAPS_API_KEY: Optional[str] = None
+
     
     # Workload Identity Federation (recommended for production)
     USE_WORKLOAD_IDENTITY: bool = False
