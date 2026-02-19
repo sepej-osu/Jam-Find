@@ -6,10 +6,12 @@ from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
 from auth import get_current_user, verify_user_access
+from routers.geo import geocode_zip
 
 router = APIRouter()
 
 COLLECTION_NAME = "posts"
+PROFILES_COLLECTION = "profiles"
 
 def add_computed_fields(post_data: dict, current_user_id: str = None) -> dict:
     """Add computed likes field and likedByCurrentUser flag"""
@@ -24,6 +26,59 @@ def add_computed_fields(post_data: dict, current_user_id: str = None) -> dict:
     
     return post_data
 
+def _has_real_coords(loc: Optional[dict]) -> bool:
+    if not isinstance(loc, dict):
+        return False
+    lat = loc.get("lat")
+    lng = loc.get("lng")
+    if lat is None or lng is None:
+        return False
+    try:
+        lat_f = float(lat)
+        lng_f = float(lng)
+    except Exception:
+        return False
+    if abs(lat_f) < 0.000001 and abs(lng_f) < 0.000001:
+        return False
+    return True
+
+def _zip_from_profile(profile: dict) -> str:
+    z = (profile.get("zipCode") or profile.get("zip_code") or "").strip()
+    return z
+
+def _location_from_profile(profile: dict) -> Optional[dict]:
+    loc = profile.get("location")
+    if _has_real_coords(loc):
+        return {
+            "lat": float(loc.get("lat")),
+            "lng": float(loc.get("lng")),
+        }
+
+    z = _zip_from_profile(profile)
+    if not z:
+        return None
+
+    geo = geocode_zip(z)
+    return {
+        "lat": float(geo.lat),
+        "lng": float(geo.lng),
+    }
+
+def _normalize_post_location(post_data: dict, profile: dict) -> None:
+    loc = post_data.get("location")
+    if _has_real_coords(loc):
+        post_data["location"] = {
+            "lat": float(loc.get("lat")),
+            "lng": float(loc.get("lng")),
+        }
+        return
+
+    fallback = _location_from_profile(profile)
+    if fallback:
+        post_data["location"] = fallback
+    else:
+        post_data["location"] = None
+
 @router.post("/posts", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(
     post: PostCreate,
@@ -34,6 +89,15 @@ async def create_post(
         # Get database connection
         db = get_db()
         posts_ref = db.collection(COLLECTION_NAME)
+        profiles_ref = db.collection(PROFILES_COLLECTION)
+
+        profile_doc = profiles_ref.document(current_user_id).get()
+        if not profile_doc.exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Current user profile not found"
+            )
+        profile_data = profile_doc.to_dict() or {}
         
         # Create post document with timestamps and auto-generated ID
         now = datetime.now(timezone.utc)
@@ -43,16 +107,19 @@ async def create_post(
         post_data["updated_at"] = now
         post_data["edited"] = False
         post_data["likedBy"] = []
+
+        _normalize_post_location(post_data, profile_data)
         
         # Let Firestore auto-generate the document ID
         new_post_ref = posts_ref.document()
-        post_data["post_id"] = new_post_ref.id
+        post_data["postId"] = new_post_ref.id
         
         # Save to Firestore
         new_post_ref.set(post_data)
         
         # Return the created post with computed fields
         post_data["likes"] = 0
+        post_data["liked_by_current_user"] = False
         return PostResponse(**post_data)
         
     except HTTPException:
@@ -88,7 +155,9 @@ async def get_post(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Post not found with post_id: {post_id}"
             )
-        post_data = post_doc.to_dict()
+        post_data = post_doc.to_dict() or {}
+        if not post_data.get("postId"):
+            post_data["postId"] = post_doc.id
         return PostResponse(**add_computed_fields(post_data, current_user_id))
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -124,7 +193,7 @@ async def update_post(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Post not found with post_id: {post_id}"
             )
-        existing_data = post_doc.to_dict()
+        existing_data = post_doc.to_dict() or {}
         
         # Verify user can only update their own post
         verify_user_access(current_user_id, existing_data.get("userId"))
@@ -138,6 +207,8 @@ async def update_post(
         posts_ref.document(post_id).update(update_data)
         # Return the updated post
         existing_data.update(update_data)
+        if not existing_data.get("postId"):
+            existing_data["postId"] = post_id
         return PostResponse(**add_computed_fields(existing_data, current_user_id))
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -173,7 +244,7 @@ async def delete_post(
                 detail=f"Post not found with post_id: {post_id}"
             )
         
-        post_data = post_doc.to_dict()
+        post_data = post_doc.to_dict() or {}
         # Verify user can only delete their own post
         verify_user_access(current_user_id, post_data.get("userId"))
         
@@ -229,7 +300,12 @@ async def list_posts(
                 )
             query = query.start_after(start_doc)
         post_docs = query.stream()
-        posts = [PostResponse(**add_computed_fields(doc.to_dict(), current_user_id)) for doc in post_docs]
+        posts = []
+        for doc in post_docs:
+            p = doc.to_dict() or {}
+            if not p.get("postId"):
+                p["postId"] = doc.id
+            posts.append(PostResponse(**add_computed_fields(p, current_user_id)))
         return posts
     except HTTPException:
         # Re-raise HTTP exceptions

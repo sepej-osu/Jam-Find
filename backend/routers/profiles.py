@@ -6,11 +6,54 @@ from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
 from auth import get_current_user, verify_user_access
+from routers.geo import geocode_zip
 
 router = APIRouter()
 
 COLLECTION_NAME = "profiles"
 
+def _has_real_coords(loc: Optional[dict]) -> bool:
+    if not isinstance(loc, dict):
+        return False
+    lat = loc.get("lat")
+    lng = loc.get("lng")
+    if lat is None or lng is None:
+        return False
+    try:
+        lat_f = float(lat)
+        lng_f = float(lng)
+    except Exception:
+        return False
+    if abs(lat_f) < 0.000001 and abs(lng_f) < 0.000001:
+        return False
+    return True
+
+def _normalize_profile_location(profile_data: dict) -> None:
+    loc = profile_data.get("location")
+    if _has_real_coords(loc):
+        profile_data["location"] = {
+            "placeId": loc.get("placeId") or loc.get("place_id") or "",
+            "formattedAddress": loc.get("formattedAddress") or loc.get("formatted_address") or "",
+            "lat": float(loc.get("lat")),
+            "lng": float(loc.get("lng")),
+        }
+        return
+
+    z = (profile_data.get("zipCode") or profile_data.get("zip_code") or "").strip()
+    if not z:
+        profile_data["location"] = None
+        return
+
+    try:
+        geo = geocode_zip(z)
+        profile_data["location"] = {
+            "placeId": "",
+            "formattedAddress": geo.formatted_address,
+            "lat": float(geo.lat),
+            "lng": float(geo.lng),
+        }
+    except HTTPException:
+        profile_data["location"] = None
 
 @router.post("/profiles", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(
@@ -47,6 +90,8 @@ async def create_profile(
         profile_data = profile.model_dump(by_alias=True)
         profile_data["created_at"] = now
         profile_data["updated_at"] = now
+
+        _normalize_profile_location(profile_data)
         
         # Save to Firestore
         profiles_ref.document(profile.user_id).set(profile_data)
@@ -148,6 +193,13 @@ async def update_profile(
                             status_code=status.HTTP_409_CONFLICT,
                             detail=f"Email {new_email} is already registered"
                         )
+
+        merged = dict(existing_data or {})
+        merged.update(update_data or {})
+
+        _normalize_profile_location(merged)
+
+        update_data["location"] = merged.get("location")
 
         # Add updated_at timestamp
         update_data["updated_at"] = datetime.now(timezone.utc)
