@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import {
@@ -8,18 +8,12 @@ import {
   Heading,
   VStack,
   useToast,
-  HStack, 
-  Slider, 
-  SliderTrack, 
-  SliderFilledTrack, 
-  SliderThumb,
-  Text
 } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-
+import LocationRadiusMap from './components/LocationRadiusMap';
 
 
 const GENRES = [
@@ -31,15 +25,12 @@ const GENRES = [
 
 
 function CreateProfile() {
-  const navigate = useNavigate(); // For navigation after profile creation
-  const toast = useToast(); // For showing success/error messages after profile creation
-  const { currentUser, refreshProfile } = useAuth(); // Get current user and refreshProfile function from AuthContext
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { currentUser, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
 
-
-  // All form data in one state object
   const [formData, setFormData] = useState({
-    // Profile fields
     email: '',
     gender: '',
     firstName: '',
@@ -49,16 +40,16 @@ function CreateProfile() {
     zipCode: '',
     searchRadiusMiles: 25,
     experienceYears: '',
-    selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
-    selectedGenres: [],       // ['Rock', 'Jazz']
+    selectedInstruments: {},
+    selectedGenres: [],
     location: {
       placeId: '',
       formattedAddress: '',
       lat: 0,
       lng: 0
-    }, profilePicUrl: ''
+    },
+    profilePicUrl: ''
   });
-
 
   const handleChange = (e) => {
     setFormData({
@@ -67,12 +58,29 @@ function CreateProfile() {
     });
   };
 
+  const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        placeId: '',
+        formattedAddress: formattedAddress || '',
+        lat,
+        lng,
+      },
+    }));
+  }, []);
+
+  const getToken = useCallback(async () => {
+    if (!currentUser) throw new Error('No user logged in');
+    return currentUser.getIdToken();
+  }, [currentUser]);
+
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
 
   try {
-    const user = currentUser; // Use currentUser from AuthContext
+    const user = currentUser;
     if (!user) {
       throw new Error('No user logged in');
     }
@@ -104,8 +112,6 @@ const handleSubmit = async (e) => {
       return;
     }
 
-    
-    // convert selectedInstruments object to array of { name, experienceLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
       name,
       experienceLevel
@@ -127,7 +133,6 @@ const handleSubmit = async (e) => {
       genres: formData.selectedGenres
     };
 
-    // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
       method: 'POST',
       headers: {
@@ -140,14 +145,11 @@ const handleSubmit = async (e) => {
     if (!response.ok) {
       let errorMsg = 'Failed to create profile';
       try {
-        // Try to extract error message from response body if available
         const errorData = await response.json();
         if (errorData?.detail) {
           errorMsg = errorData.detail;
         }
-      } catch (_) {
-        // Ignore JSON parsing errors
-      }
+      } catch (_) {}
       throw new Error(errorMsg);
     }
 
@@ -159,7 +161,7 @@ const handleSubmit = async (e) => {
       isClosable: true,
     });
 
-    await refreshProfile(); // Refresh profile in AuthContext after creation
+    await refreshProfile();
     navigate('/');
     
   } catch (err) {
@@ -191,7 +193,6 @@ return (
         <Heading size="md" color="gray.600">Let's set up your profile.</Heading>
       </VStack>
 
-      {/* Step 2: Profile Setup */}
         <form onSubmit={handleSubmit}>
           <VStack spacing={4} align="stretch">
             <InputField
@@ -249,24 +250,15 @@ return (
               placeholder="e.g., 34119"
             />
 
-            <VStack spacing={1} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="semibold">Distance</Text>
-                <Text fontSize="sm" color="gray.600">Within {formData.searchRadiusMiles} miles</Text>
-              </HStack>
-              <Slider
-                value={formData.searchRadiusMiles}
-                min={1}
-                max={500}
-                step={1}
-                onChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
-              >
-                <SliderTrack>
-                  <SliderFilledTrack />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </VStack>
+            <LocationRadiusMap
+              zipCode={formData.zipCode}
+              lat={formData.location?.lat}
+              lng={formData.location?.lng}
+              radiusMiles={formData.searchRadiusMiles}
+              onRadiusChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              onLocationResolved={handleLocationResolved}
+              getToken={getToken}
+            />
 
             <InputField
               label="Years of Experience"
