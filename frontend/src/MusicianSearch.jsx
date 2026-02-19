@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -7,7 +7,6 @@ import {
   Heading,
   HStack,
   Input,
-  Select,
   Spinner,
   Text,
   VStack,
@@ -18,8 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { useAuth } from './contexts/AuthContext';
 import { searchMusicians } from './services/searchService';
-
-const RADIUS_OPTIONS = [5, 10, 25, 50, 100];
+import LocationRadiusMap from './components/LocationRadiusMap';
 
 function MusicianSearch() {
   const toast = useToast();
@@ -29,21 +27,36 @@ function MusicianSearch() {
   const [radiusMiles, setRadiusMiles] = useState(25);
   const [instrument, setInstrument] = useState('');
   const [genre, setGenre] = useState('');
+  const [mapLat, setMapLat] = useState(null);
+  const [mapLng, setMapLng] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState([]);
 
   useEffect(() => {
-    // prefill ZIP from profile if available
-    if (profile && profile.zipCode) {
-      setZip(profile.zipCode);
+    if (profile) {
+      if (profile.zipCode) setZip(profile.zipCode);
+      if (profile.searchRadiusMiles) setRadiusMiles(profile.searchRadiusMiles);
+      if (profile.location?.lat && profile.location?.lng) {
+        setMapLat(profile.location.lat);
+        setMapLng(profile.location.lng);
+      }
     }
   }, [profile]);
+
+  const getToken = useCallback(async () => {
+    if (!currentUser) throw new Error('No user logged in');
+    return currentUser.getIdToken();
+  }, [currentUser]);
+
+  const handleLocationResolved = useCallback(({ lat, lng }) => {
+    setMapLat(lat);
+    setMapLng(lng);
+  }, []);
 
   const runSearch = async () => {
     if (!currentUser) return;
 
-    // We are NOT storing full address; just validating ZIP.
     const z = (zip || '').trim();
     if (!/^\d{5}$/.test(z)) {
       toast({
@@ -83,7 +96,6 @@ function MusicianSearch() {
     <Box maxW="900px" mx="auto" px={4} py={6}>
       <Heading size="lg" mb={4}>Find Musicians Near You</Heading>
 
-      {/* Marketplace-like search card */}
       <Box borderWidth="1px" borderRadius="lg" p={4} bg="white">
         <VStack align="stretch" spacing={3}>
           <HStack spacing={3} wrap="wrap">
@@ -95,19 +107,6 @@ function MusicianSearch() {
                 placeholder="e.g., 34119"
                 maxW="220px"
               />
-            </Box>
-
-            <Box>
-              <Text fontSize="sm" mb={1} color="gray.600">Radius</Text>
-              <Select
-                value={radiusMiles}
-                onChange={(e) => setRadiusMiles(parseInt(e.target.value))}
-                maxW="160px"
-              >
-                {RADIUS_OPTIONS.map((r) => (
-                  <option key={r} value={r}>{r} miles</option>
-                ))}
-              </Select>
             </Box>
 
             <Box flex="1">
@@ -127,11 +126,23 @@ function MusicianSearch() {
                 placeholder="e.g., Metal"
               />
             </Box>
-
-            <Button colorScheme="blue" onClick={runSearch} isDisabled={loading}>
-              Search
-            </Button>
           </HStack>
+
+          <LocationRadiusMap
+            zipCode={zip}
+            lat={mapLat}
+            lng={mapLng}
+            radiusMiles={radiusMiles}
+            onRadiusChange={setRadiusMiles}
+            onLocationResolved={handleLocationResolved}
+            getToken={getToken}
+            max={100}
+            mapHeight="180px"
+          />
+
+          <Button colorScheme="blue" onClick={runSearch} isDisabled={loading} size="md">
+            Search
+          </Button>
 
           <Text fontSize="sm" color="gray.600">
             Privacy note: we only use ZIP codes (no full addresses).

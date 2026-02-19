@@ -16,7 +16,6 @@ class ZipGeoResponse(BaseModel):
 
 def _is_valid_zip(zip_code: str) -> bool:
     z = (zip_code or "").strip()
-    # 5-digit only (recommended). If you want ZIP+4 support, extend this.
     return len(z) == 5 and z.isdigit()
 
 def geocode_zip(zip_code: str) -> ZipGeoResponse:
@@ -42,7 +41,6 @@ def geocode_zip(zip_code: str) -> ZipGeoResponse:
 
     status = data.get("status")
     if status != "OK" or not data.get("results"):
-        # Examples: ZERO_RESULTS, REQUEST_DENIED, OVER_QUERY_LIMIT
         raise HTTPException(status_code=400, detail=f"Geocoding failed: {status}")
 
     result = data["results"][0]

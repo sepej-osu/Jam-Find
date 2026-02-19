@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   Box,
   Heading,
@@ -15,11 +15,6 @@ import {
   Avatar,
   IconButton,
   useToast,
-  HStack,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
   Button
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';
@@ -36,12 +31,37 @@ import {
   GiSaxophone
 } from 'react-icons/gi';
 import { useNavigate } from 'react-router-dom';
+import { Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import postService from './services/postService';
 import profileService from './services/profileService';
+import { useAuth } from './contexts/AuthContext';
+import LocationRadiusMap from './components/LocationRadiusMap';
+
+// Fix default marker icon issue with bundlers (Vite/Webpack)
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+// Custom red icon for posts
+const postIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+  iconRetinaUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
 
 function Feed() {
   const navigate = useNavigate();
   const toast = useToast();
+  const { currentUser, profile: currentUserProfile } = useAuth();
 
   const [radiusMiles, setRadiusMiles] = useState(25);
   const [posts, setPosts] = useState([]);
@@ -51,6 +71,56 @@ function Feed() {
   const [error, setError] = useState(null);
   const [refreshTick, setRefreshTick] = useState(0);
 
+  // Derive user center from their profile location
+  const userCenter = useMemo(() => {
+    const loc = currentUserProfile?.location;
+    if (loc && loc.lat && loc.lng) {
+      return [loc.lat, loc.lng];
+    }
+    return null;
+  }, [currentUserProfile]);
+
+  const getToken = useCallback(async () => {
+    if (!currentUser) throw new Error('No user logged in');
+    return currentUser.getIdToken();
+  }, [currentUser]);
+
+  const getPostTypeLabel = (type) => {
+    const typeMap = {
+      'looking_to_jam': 'Looking to Jam 🎶',
+      'looking_for_band': 'Looking for a Band 🎤',
+      'looking_for_musicians': 'Looking for Musicians 🎸',
+      'sharing_music': 'Sharing Music 🎵'
+    };
+    return typeMap[type] || type;
+  };
+
+  const getInstrumentIcon = (instrumentName) => {
+    const iconMap = {
+      'Electric Guitar': GiGuitarHead,
+      'Acoustic Guitar': FaGuitar,
+      'Electric Bass': GiGuitarBassHead,
+      'Drums': GiDrumKit,
+      'Piano': GiGrandPiano,
+      'Keyboard': GiMusicalKeyboard,
+      'Vocals': GiMicrophone,
+      'DJ/Production': GiMusicSpell,
+      'Trumpet': GiTrumpet,
+      'Saxophone': GiSaxophone,
+      'Other': IoMusicalNotes
+    };
+    return iconMap[instrumentName] || IoMusicalNotes;
+  };
+
+  // Collect posts that have valid coordinates for map markers
+  const mappablePosts = useMemo(() => {
+    return posts.filter(p => {
+      const loc = p.location;
+      return loc && loc.lat && loc.lng;
+    });
+  }, [posts]);
+
+  // Fetch feed posts
   useEffect(() => {
     const fetchFeed = async () => {
       try {
@@ -70,6 +140,7 @@ function Feed() {
     fetchFeed();
   }, [radiusMiles, refreshTick]);
 
+  // Fetch missing author profiles
   useEffect(() => {
     const fetchMissingProfiles = async () => {
       try {
@@ -103,33 +174,6 @@ function Feed() {
       fetchMissingProfiles();
     }
   }, [posts]);
-
-  const getPostTypeLabel = (type) => {
-    const typeMap = {
-      'looking_to_jam': 'Looking to Jam 🎶',
-      'looking_for_band': 'Looking for a Band 🎤',
-      'looking_for_musicians': 'Looking for Musicians 🎸',
-      'sharing_music': 'Sharing Music 🎵'
-    };
-    return typeMap[type] || type;
-  };
-
-  const getInstrumentIcon = (instrumentName) => {
-    const iconMap = {
-      'Electric Guitar': GiGuitarHead,
-      'Acoustic Guitar': FaGuitar,
-      'Electric Bass': GiGuitarBassHead,
-      'Drums': GiDrumKit,
-      'Piano': GiGrandPiano,
-      'Keyboard': GiMusicalKeyboard,
-      'Vocals': GiMicrophone,
-      'DJ/Production': GiMusicSpell,
-      'Trumpet': GiTrumpet,
-      'Saxophone': GiSaxophone,
-      'Other': IoMusicalNotes
-    };
-    return iconMap[instrumentName] || IoMusicalNotes;
-  };
 
   const handleLikeToggle = async (postId) => {
     try {
@@ -195,24 +239,48 @@ function Feed() {
           </Button>
         </Flex>
 
-        <VStack spacing={1} align="stretch">
-          <HStack justify="space-between">
-            <Text fontWeight="semibold">Distance</Text>
-            <Text fontSize="sm" color="gray.600">Within {radiusMiles} miles</Text>
-          </HStack>
-          <Slider
-            value={radiusMiles}
-            min={1}
-            max={500}
-            step={1}
-            onChange={(val) => setRadiusMiles(val)}
+        {userCenter ? (
+          <LocationRadiusMap
+            zipCode={currentUserProfile?.zipCode}
+            lat={userCenter[0]}
+            lng={userCenter[1]}
+            radiusMiles={radiusMiles}
+            onRadiusChange={setRadiusMiles}
+            onLocationResolved={() => {}}
+            getToken={getToken}
+            mapHeight="320px"
+            label="Distance"
           >
-            <SliderTrack>
-              <SliderFilledTrack />
-            </SliderTrack>
-            <SliderThumb />
-          </Slider>
-        </VStack>
+            {/* Post markers rendered inside the map */}
+            {mappablePosts.map(post => {
+              const postType = post.postType || post.post_type;
+              return (
+                <Marker
+                  key={post.postId}
+                  position={[post.location.lat, post.location.lng]}
+                  icon={postIcon}
+                >
+                  <Popup>
+                    <div style={{ maxWidth: 200 }}>
+                      <strong style={{ fontSize: 13 }}>{post.title}</strong><br />
+                      <span style={{ fontSize: 11, color: '#666' }}>{getPostTypeLabel(postType)}</span>
+                      {post.location.formattedAddress && (
+                        <>
+                          <br />
+                          <span style={{ fontSize: 11, color: '#888' }}>{post.location.formattedAddress}</span>
+                        </>
+                      )}
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </LocationRadiusMap>
+        ) : (
+          <Text mt={3} fontSize="sm" color="orange.500">
+            Set your location in your profile to see the map.
+          </Text>
+        )}
 
         {loadingProfiles && (
           <Text mt={3} fontSize="sm" color="gray.600">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -12,11 +12,6 @@ import {
   useToast,
   Progress,
   Text,
-  HStack, 
-  Slider, 
-  SliderTrack, 
-  SliderFilledTrack, 
-  SliderThumb
 } from '@chakra-ui/react';
 
 import { Link as ChakraLink } from '@chakra-ui/react';
@@ -25,6 +20,7 @@ import InputField from './components/InputField';
 import PasswordField from './components/PasswordField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+import LocationRadiusMap from './components/LocationRadiusMap';
 
 
 const GENRES = [
@@ -38,13 +34,11 @@ const GENRES = [
 function Register() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { refreshProfile } = useAuth(); // called after successful profile creation to update AuthContext with new profile data
+  const { refreshProfile } = useAuth();
   
-  // Tracks which step the user is on (1 or 2)
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  // All form data in one state object
   const [formData, setFormData] = useState({
     // Step 1 fields
     email: '',
@@ -60,8 +54,8 @@ function Register() {
     experienceYears: '',
     zipCode: '',
     searchRadiusMiles: 25,
-    selectedInstruments: {},  // { 'Guitar': 3, 'Drums': 5 }
-    selectedGenres: [],       // ['Rock', 'Jazz']
+    selectedInstruments: {},
+    selectedGenres: [],
     location: {
       placeId: '',
       formattedAddress: '',
@@ -70,7 +64,6 @@ function Register() {
     }, profilePicUrl: ''
   });
 
-  // Handle input changes for text fields
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -78,7 +71,18 @@ function Register() {
     });
   };
 
-  // Calculate age from birthdate
+  const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        placeId: '',
+        formattedAddress: formattedAddress || '',
+        lat,
+        lng,
+      },
+    }));
+  }, []);
+
   const calculateAge = (birthDate) => {
     const today = new Date();
     const birth = new Date(birthDate);
@@ -92,7 +96,6 @@ function Register() {
     return age;
   };
 
-  // Validate password requirements
   const isPasswordValid = () => {
     const { password } = formData;
     const hasMinLength = password.length >= 8;
@@ -104,16 +107,11 @@ function Register() {
     return hasMinLength && hasMaxLength && hasUppercase && hasLowercase && hasNumber;
   };
 
-  // Step 1 Submit - Validate inputs, ensure user is old enough, and move to step 2
-  // toast is used to show error messages if validation fails
-  // setStep(2) is called to move to the next step and update progress bar
-
   const isZipValid = (zip) => /^\d{5}$/.test((zip || '').trim());
 
   const handleStep1Submit = async (e) => {
     e.preventDefault();
     
-    // Validate passwords match
     if (formData.password !== formData.password_confirm) {
       toast({
         title: 'Passwords do not match',
@@ -124,7 +122,6 @@ function Register() {
       return;
     }
 
-    // Validate password requirements
     if (!isPasswordValid()) {
       toast({
         title: 'Password does not meet requirements',
@@ -135,7 +132,6 @@ function Register() {
       return;
     }
 
-    // Validate age (must be 16+)
     const age = calculateAge(formData.birthDate);
     if (age < 16) {
       toast({
@@ -150,20 +146,11 @@ function Register() {
     setStep(2);
   };
 
-  // Step 2 Submit - Create Firebase account, then send profile data to backend API
-  // If any step fails, show an error toast. On success, show a success toast and navigate to home page.
-
-  // TODO: add error handling for API call failures.
-  // TODO: Figure out how to handle profile picture upload and include the URL in the payload
-  //       NOTE: chakra has a file upload component; might be helpful
-  // TODO: Add input Field for Location API and include that in the payload 
-
 const handleStep2Submit = async (e) => {
   e.preventDefault();
   setLoading(true);
 
   try {
-    // Validate ZIP before creating account/profile  
     if (!isZipValid(formData.zipCode)) {
       toast({
         title: 'Invalid ZIP Code',
@@ -189,7 +176,6 @@ const handleStep2Submit = async (e) => {
       return;
     }
 
-    // Create Firebase account
     const userCredential = await createUserWithEmailAndPassword(
       auth, 
       formData.email, 
@@ -201,7 +187,6 @@ const handleStep2Submit = async (e) => {
     const user = userCredential.user;
     const token = await user.getIdToken();
     
-    // convert selectedInstruments object to array of { name, experienceLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
       name,
       experienceLevel
@@ -223,8 +208,6 @@ const handleStep2Submit = async (e) => {
       genres: formData.selectedGenres
     };
 
-    // Send profile data to backend API
-
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
       method: 'POST',
       headers: {
@@ -233,7 +216,7 @@ const handleStep2Submit = async (e) => {
       },
       body: JSON.stringify(payload)
     });
-    // Check if response is ok, if not try to extract error message from response body and throw an error to be caught in catch block
+
     if (!response.ok) {
       let errorMsg = 'Failed to create profile';
       try {
@@ -241,13 +224,10 @@ const handleStep2Submit = async (e) => {
         if (errorData?.detail) {
           errorMsg = errorData.detail;
         }
-      } catch (_) {
-        // Ignore JSON parsing errors
-      }
+      } catch (_) {}
       throw new Error(errorMsg);
     }
 
-    // Refresh the profile in AuthContext so hasProfile becomes true
     await refreshProfile();
 
     toast({
@@ -291,7 +271,6 @@ const handleStep2Submit = async (e) => {
         Login
       </ChakraLink>
     </p>
-      {/* Progress indicator */}
 
       <VStack spacing={4} mb={6}>
         <Heading size="lg">Create Your Account</Heading>
@@ -408,24 +387,15 @@ const handleStep2Submit = async (e) => {
               placeholder="e.g., 34119"
             />
 
-            <VStack spacing={1} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="semibold">Distance</Text>
-                <Text fontSize="sm" color="gray.600">Within {formData.searchRadiusMiles} miles</Text>
-              </HStack>
-              <Slider
-                value={formData.searchRadiusMiles}
-                min={1}
-                max={500}
-                step={1}
-                onChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
-              >
-                <SliderTrack>
-                  <SliderFilledTrack />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </VStack>
+            <LocationRadiusMap
+              zipCode={formData.zipCode}
+              lat={formData.location?.lat}
+              lng={formData.location?.lng}
+              radiusMiles={formData.searchRadiusMiles}
+              onRadiusChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              onLocationResolved={handleLocationResolved}
+              getToken={null}
+            />
 
             <InputField
               label="Years of Experience"

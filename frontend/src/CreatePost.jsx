@@ -1,86 +1,62 @@
-// CreatePost.jsx
-// Form for creating a new post (looking for band/musicians, jam session, or sharing music)
-
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth} from './contexts/AuthContext';
 import {
   Box,
   Center,
   Button,
   Heading,
   VStack,
-  useToast
+  useToast,
 } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-import postService from './services/postService';
-import profileService from './services/profileService';
-import { useAuth } from './contexts/AuthContext';
+import LocationRadiusMap from './components/LocationRadiusMap';
+
+
 
 const GENRES = [
   'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
   'Hip Hop', 'Hardcore', 'Electronic', 'Classical', 'Metal',
   'Death Metal', 'Folk', 'Reggae', 'Punk', 'Indie', 'Soul',
-  'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'Other'
+  'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'other'
 ];
 
 
-function CreatePost() {
+function CreateProfile() {
   const navigate = useNavigate();
   const toast = useToast();
-  const { currentUser } = useAuth();
-  
+  const { currentUser, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // All form data in one state object
+
   const [formData, setFormData] = useState({
-    title: '',
-    body: '',
-    postType: 'looking_to_jam',
-    location: null,
+    email: '',
+    gender: '',
+    firstName: '',
+    lastName: '',
+    bio: '',
+    birthDate: '',
+    zipCode: '',
+    searchRadiusMiles: 25,
+    experienceYears: '',
     selectedInstruments: {},
     selectedGenres: [],
-    media: []
+    location: {
+      placeId: '',
+      formattedAddress: '',
+      lat: 0,
+      lng: 0
+    }, profilePicUrl: ''
   });
 
-  // Grab instruments/genres when post type is looking_to_jam or looking_for_band
-  useEffect(() => {
-    const loadProfileData = async () => {
-      if (formData.postType === 'looking_to_jam' || formData.postType === 'looking_for_band') {
-        try {
-          const profile = await profileService.getProfile(currentUser?.uid);
-          if (profile) {
-            // Convert instruments array to selectedInstruments object format
-            const instrumentsObj = {};
-            profile.instruments?.forEach(instrument => {
-              instrumentsObj[instrument.name] = instrument.experienceLevel;
-            });
-            
-            setFormData(prev => ({
-              ...prev,
-              selectedInstruments: instrumentsObj,
-              selectedGenres: profile.genres || []
-            }));
-          }
-        } catch (error) {
-          console.error('Failed to load profile data:', error);
-        }
-      }
-      else {
-        setFormData(prev => ({
-          ...prev,
-          selectedInstruments: {},
-          selectedGenres: []
-        }));
-      }
-    };
+  const getToken = useCallback(async () => {
+    if (!currentUser) throw new Error('No user logged in');
+    return currentUser.getIdToken();
+  }, [currentUser]);
 
-    loadProfileData();
-  }, [formData.postType, currentUser?.uid]);
-
-  // Handle input changes for text fields
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -88,56 +64,120 @@ function CreatePost() {
     });
   };
 
-  // Submit form data to backend API to create a new post in Firestore
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    setLoading(true);
+  const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        placeId: '',
+        formattedAddress: formattedAddress || '',
+        lat,
+        lng,
+      },
+    }));
+  }, []);
 
-    try {
-      // Convert selectedInstruments object to array of { name, experienceLevel } for the API
-      const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
-        name,
-        experienceLevel
-      }));
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setLoading(true);
 
-      const payload = {
-        title: formData.title,
-        body: formData.body,
-        postType: formData.postType,
-        location: formData.location,
-        instruments,
-        genres: formData.selectedGenres,
-        media: formData.media
-      };
+  try {
+    const user = currentUser;
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+    const token = await user.getIdToken();
 
-      await postService.createPost(payload);
-
+    const zip = (formData.zipCode || '').trim();
+    if (!/^\d{5}$/.test(zip)) {
       toast({
-        title: 'Post created successfully!',
-        description: 'Your post has been created.',
-        status: 'success',
+        title: 'Invalid ZIP Code',
+        description: 'Enter a 5-digit ZIP code',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
+      setLoading(false);
+      return;
+    }
 
-      navigate('/home');
-      
-    } catch (err) {
+    const radiusMiles = parseInt(formData.searchRadiusMiles, 10);
+    if (isNaN(radiusMiles) || radiusMiles < 1 || radiusMiles > 500) {
       toast({
-        title: 'Error creating post',
-        description: err.message,
+        title: 'Invalid Distance',
+        description: 'Distance must be between 1 and 500 miles',
         status: 'error',
-        duration: 5000,
+        duration: 3000,
         isClosable: true,
       });
-    } finally {
       setLoading(false);
+      return;
     }
-  };
 
-  return (
+    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+      name,
+      experienceLevel
+    }));
 
+    const payload = {
+      user_id: user.uid,
+      email: user.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      birthDate: formData.birthDate,
+      gender: formData.gender,
+      bio: formData.bio,
+      zipCode: zip,
+      searchRadiusMiles: radiusMiles,
+      experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
+      location: formData.location,
+      instruments: instruments,
+      genres: formData.selectedGenres
+    };
+
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      let errorMsg = 'Failed to create profile';
+      try {
+        const errorData = await response.json();
+        if (errorData?.detail) {
+          errorMsg = errorData.detail;
+        }
+      } catch (_) {}
+      throw new Error(errorMsg);
+    }
+
+    toast({
+      title: 'Profile created successfully!',
+      description: 'Welcome to Jam Find',
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
+
+    await refreshProfile();
+    navigate('/');
+    
+  } catch (err) {
+    toast({
+      title: 'Error creating a profile',
+      description: err.message,
+      status: 'error',
+      duration: 5000,
+      isClosable: true,
+    });
+  } finally {
+    setLoading(false);
+  }
+}
+return (
   <Center minH="100vh" bg="gray.50" px={4}>
   <Box 
     maxW="600px" 
@@ -148,88 +188,115 @@ function CreatePost() {
     shadow="lg"
     bg="white"
   >
+
       <VStack spacing={4} mb={6}>
-        <Heading size="lg">Create a Post</Heading>
+        <Heading size="lg">Welcome to Jam Find!</Heading>
+        <Heading size="md" color="gray.600">Let's set up your profile.</Heading>
       </VStack>
 
-      <form onSubmit={handleSubmit}>
-        <VStack spacing={4} align="stretch">
-          <InputField
-            label="Post Type"
-            name="postType"
-            type="select"
-            value={formData.postType}
-            onChange={handleChange}
-            required
-            selectOptions={[
-              { value: 'looking_to_jam', label: 'Looking to Jam 🎶' },
-              { value: 'looking_for_band', label: 'Looking for a Band 🎤' },
-              { value: 'looking_for_musicians', label: 'Looking for Musicians 🎸' },
-              { value: 'sharing_music', label: 'Sharing Music 🎵' }
-            ]}
-          />
+        <form onSubmit={handleSubmit}>
+          <VStack spacing={4} align="stretch">
+            <InputField
+              label="First Name"
+              name="firstName"
+              type="text"
+              value={formData.firstName}
+              onChange={handleChange}
+              required
+            />
 
-          <InputField
-            label="Title"
-            name="title"
-            type="text"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            maxLength={100}
-          />
+            <InputField
+              label="Last Name"
+              name="lastName"
+              type="text"
+              value={formData.lastName}
+              onChange={handleChange}
+              required
+            />
 
-          <InputField
-            label="Body"
-            name="body"
-            type="textarea"
-            value={formData.body}
-            onChange={handleChange}
-            required
-            maxLength={1000}
-          />
+            <InputField
+              label="Birthdate"
+              name="birthDate"
+              type="date"
+              value={formData.birthDate}
+              onChange={handleChange}
+              required
+            />
 
-          {/* TODO: add input field for location here. */}
+            <InputField
+              label="Gender"
+              name="gender"
+              type="select"
+              value={formData.gender}
+              onChange={handleChange}
+              required
+            />
 
-          <InstrumentSelector
-            value={formData.selectedInstruments}
-            onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
-          />
+            <InputField
+              label="Bio"
+              name="bio"
+              type="textarea"
+              value={formData.bio}
+              onChange={handleChange}
+              maxLength={500}
+            />
 
-          <GenreSelector
-            value={formData.selectedGenres}
-            onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-            options={GENRES}
-            label="Select Genres"
-          />
+            <InputField
+              label="ZIP Code"
+              name="zipCode"
+              type="text"
+              value={formData.zipCode}
+              onChange={handleChange}
+              required
+              placeholder="e.g., 34119"
+            />
 
-          {/* TODO: add input field for media here. */}
-          
-          <Button
-            type="submit"
-            colorScheme="blue"
-            size="lg"
-            width="100%"
-            isLoading={loading}
-            loadingText="Creating Post..."
-          >
-            Create Post
-          </Button>
+            <LocationRadiusMap
+              zipCode={formData.zipCode}
+              lat={formData.location?.lat}
+              lng={formData.location?.lng}
+              radiusMiles={formData.searchRadiusMiles}
+              onRadiusChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              onLocationResolved={handleLocationResolved}
+              getToken={getToken}
+            />
 
-          <Button
-              colorScheme="red"
-              size="sm"
+            <InputField
+              label="Years of Experience"
+              name="experienceYears"
+              type="number"
+              value={formData.experienceYears}
+              onChange={handleChange}
+            />
+
+            <InstrumentSelector
+              value={formData.selectedInstruments}
+              onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
+            />
+
+            <GenreSelector
+              value ={formData.selectedGenres}
+              onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
+              options={GENRES}
+              label="Select Your Preferred Genres"
+            />  
+            
+            <Button
+              type="submit"
+              colorScheme="blue"
+              size="lg"
               width="100%"
-              alignSelf="center"
-              onClick={() => navigate('/')}
-          >
-            Back
-          </Button>
-        </VStack>
-      </form>
+              isLoading={loading}
+              loadingText="Creating Profile..."
+            >
+              Complete
+            </Button>
+
+          </VStack>
+        </form>
     </Box>
     </Center>
   );
-}
+};
 
-export default CreatePost;
+export default CreateProfile;

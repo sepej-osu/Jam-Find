@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
@@ -9,17 +9,12 @@ import {
   Heading,
   VStack,
   useToast,
-  HStack, 
-  Slider, 
-  SliderTrack, 
-  SliderFilledTrack, 
-  SliderThumb,
-  Text
 } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+import LocationRadiusMap from './components/LocationRadiusMap';
 
 
 const GENRES = [
@@ -60,6 +55,11 @@ function UpdateProfile() {
     }, profilePicUrl: profile?.profilePicUrl || ''
   });
 
+  const getToken = useCallback(async () => {
+    if (!currentUser) throw new Error('No user logged in');
+    return currentUser.getIdToken();
+  }, [currentUser]);
+
   useEffect(() => {
     if (!profile) return;
 
@@ -95,6 +95,18 @@ function UpdateProfile() {
       [e.target.name]: e.target.value
     });
   };
+
+  const handleLocationResolved = useCallback(({ lat, lng, formattedAddress }) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        placeId: '',
+        formattedAddress: formattedAddress || '',
+        lat,
+        lng,
+      },
+    }));
+  }, []);
 
 
   const handleSubmit = async (e) => {
@@ -244,24 +256,15 @@ function UpdateProfile() {
               placeholder="e.g., 34119"
             />
 
-            <VStack spacing={1} align="stretch">
-              <HStack justify="space-between">
-                <Text fontWeight="semibold">Distance</Text>
-                <Text fontSize="sm" color="gray.600">Within {formData.searchRadiusMiles} miles</Text>
-              </HStack>
-              <Slider
-                value={formData.searchRadiusMiles}
-                min={1}
-                max={500}
-                step={1}
-                onChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
-              >
-                <SliderTrack>
-                  <SliderFilledTrack />
-                </SliderTrack>
-                <SliderThumb />
-              </Slider>
-            </VStack>
+            <LocationRadiusMap
+              zipCode={formData.zipCode}
+              lat={formData.location?.lat}
+              lng={formData.location?.lng}
+              radiusMiles={formData.searchRadiusMiles}
+              onRadiusChange={(val) => setFormData({ ...formData, searchRadiusMiles: val })}
+              onLocationResolved={handleLocationResolved}
+              getToken={getToken}
+            />
 
             <InputField
               label="Years of Experience"
