@@ -9,10 +9,11 @@ class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
     NON_BINARY = "non-binary"
+    # TODO: Add decline to say and other options
 
 
 class Location(BaseModel):
-    place_id: Optional[str] = Field(None, alias="placeId")
+    place_id: Optional[str] = Field(default=None, alias="placeId")
     formatted_address: str = Field(..., alias="formattedAddress")
     lat: float
     lng: float
@@ -34,15 +35,15 @@ class ProfileBase(BaseModel):
     user_id: str = Field(..., description="Firebase Auth UID", alias="userId")
     first_name: str = Field(..., alias="firstName")
     last_name: str = Field(..., alias="lastName")
-    birth_date: Optional[datetime] = Field(..., alias="birthDate")
-    gender: Optional[Gender] = Field(..., alias="gender")  
+    birth_date: datetime = Field(..., alias="birthDate")
+    gender: str = Field(..., alias="gender")  
     email: EmailStr
-    bio: Optional[str] = Field(None, max_length=500)
-    experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
-    location: Optional[Location] = None
-    profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
-    instruments: Optional[List[Instrument]] = Field(default_factory=list)
-    genres: Optional[List[str]] = Field(default_factory=list)
+    bio: Optional[str] = Field(default=None, max_length=500, alias="bio")
+    experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears")
+    location: Optional[Location] = Field(default=None, alias="location")
+    profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl")
+    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments")
+    genres: Optional[List[str]] = Field(default_factory=list, alias="genres")
     
     model_config = ConfigDict(
         populate_by_name = True
@@ -54,16 +55,16 @@ class ProfileCreate(ProfileBase):
 
 
 class ProfileUpdate(BaseModel):
-    email: Optional[EmailStr] = None
-    first_name: Optional[str] = Field(..., alias="firstName")
-    last_name: Optional[str] = Field(..., alias="lastName")
-    bio: Optional[str] = Field(None, max_length=500)
-    gender: Optional[Gender] = Field(..., alias="gender") 
-    experience_years: Optional[int] = Field(None, ge=0, alias="experienceYears")
-    location: Optional[Location] = None
-    profile_pic_url: Optional[str] = Field(None, alias="profilePicUrl")
-    instruments: Optional[List[Instrument]] = None
-    genres: Optional[List[str]] = None
+    email: Optional[EmailStr] = Field(default=None, alias="email")
+    first_name: Optional[str] = Field(default=None, alias="firstName")
+    last_name: Optional[str] = Field(default=None, alias="lastName")
+    bio: Optional[str] = Field(default=None, max_length=500, alias="bio")
+    gender: Optional[Gender] = Field(default=None, alias="gender") 
+    experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears")
+    location: Optional[Location] = Field(default=None, alias="location")
+    profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl")
+    instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments")
+    genres: Optional[List[str]] = Field(default=None, alias="genres")
     
     model_config = ConfigDict(
         populate_by_name = True
@@ -115,13 +116,13 @@ class PostCreate(BaseModel):
     )
     
 class PostUpdate(BaseModel):
-    title: Optional[str] = Field(None, max_length=100)
-    body: Optional[str] = Field(None, max_length=1000)
-    post_type: Optional[str] = Field(None, alias="postType")  # "looking_for_band", "looking_for_musicians", "looking_to_jam", "sharing_music"
-    location: Optional[Location] = None
-    instruments: Optional[List[Instrument]] = None
-    genres: Optional[List[str]] = None
-    media: Optional[List[HttpUrl]] = Field(None, alias="media")  # List of media URLs (images, audio, video)
+    title: Optional[str] = Field(default=None, max_length=100)
+    body: Optional[str] = Field(default=None, max_length=1000)
+    post_type: Optional[str] = Field(default=None, alias="postType")  # "looking_for_band", "looking_for_musicians", "looking_to_jam", "sharing_music"
+    location: Optional[Location] = Field(default=None)
+    instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments")
+    genres: Optional[List[str]] = Field(default=None, alias="genres")
+    media: Optional[List[HttpUrl]] = Field(default=None, alias="media")  # List of media URLs (images, audio, video)
     # likes can only be modified through the /posts/{post_id}/like endpoint
     
     model_config = ConfigDict(
