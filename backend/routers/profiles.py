@@ -12,7 +12,6 @@ router = APIRouter()
 
 COLLECTION_NAME = "profiles"
 
-
 @router.post("/profiles", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(
     profile: ProfileCreate,
