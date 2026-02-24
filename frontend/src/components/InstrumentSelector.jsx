@@ -1,16 +1,14 @@
 
 
-import { 
-  Box, 
-  Checkbox, 
-  Slider, 
-  SliderTrack, 
-  SliderFilledTrack, 
-  SliderThumb,
+import {
+  Steps,
+  Box,
+  Checkbox,
+  Slider,
   Text,
   HStack,
   SimpleGrid,
-  Button
+  Button,
 } from '@chakra-ui/react';
 
 // List of available instruments 
@@ -55,16 +53,15 @@ function InstrumentSelector({ value, onChange }) {
         </Text>
         <Button 
           size="xs"
-          colorScheme="blue"
+          colorPalette="blue"
           onClick={() => onChange({})} 
-          isDisabled={Object.keys(value).length === 0}
+          disabled={Object.keys(value).length === 0}
           variant="outline"
         >
           Clear All
         </Button>
       </Box>
-      
-      <SimpleGrid columns={2} spacing={2}>
+      <SimpleGrid columns={2} gap={2}>
         {INSTRUMENTS.map((instrument) => {
           // Check if this instrument is currently selected
           const isSelected = value[instrument] !== undefined;
@@ -73,14 +70,13 @@ function InstrumentSelector({ value, onChange }) {
           return (
             <Box key={instrument} p={3} borderWidth="1px" borderRadius="md">
               {/* Checkbox for selecting/deselecting instrument */}
-              <Checkbox
-                isChecked={isSelected}
-                onChange={() => handleCheckboxChange(instrument)}
+              <Checkbox.Root
+                checked={isSelected}
+                onCheckedChange={() => handleCheckboxChange(instrument)}
                 mb={isSelected ? 1 : 0} // Add margin if slider will show
-              >
+              ><Checkbox.HiddenInput /><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control><Checkbox.Label>
                 {instrument}
-              </Checkbox>
-
+              </Checkbox.Label></Checkbox.Root>
               {/* Slider only shows when instrument is checked */}
               {isSelected && (
                 <Box pl={6}>
@@ -93,23 +89,23 @@ function InstrumentSelector({ value, onChange }) {
                     </Text>
                   </HStack>
                   
-                  <Slider
+                  <Slider.Root
                     min={1}
                     max={5}
                     step={1}
-                    value={skillLevel}
-                    onChange={(val) => handleSliderChange(instrument, val)}
-                    colorScheme="blue"
+                    value={String(skillLevel)}
+                    onValueChange={(val) => handleSliderChange(instrument, val)}
+                    colorPalette="blue"
                   >
-                    <SliderTrack>
-                      <SliderFilledTrack />
-                    </SliderTrack>
-                    <SliderThumb boxSize={6}>
+                    <Slider.Track>
+                      <Slider.FilledTrack />
+                    </Slider.Track>
+                    <Slider.Thumb boxSize={6}>
                       <Box color="blue.500" fontWeight="bold" fontSize="xs">
                         {skillLevel}
                       </Box>
-                    </SliderThumb>
-                  </Slider>
+                    </Slider.Thumb>
+                  </Slider.Root>
                   
                   {/* Labels under the slider */}
                   <HStack justify="space-between" mt={1}>

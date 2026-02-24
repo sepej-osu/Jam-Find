@@ -3,16 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
-import {
-  Box,
-  Center,
-  Button,
-  Heading,
-  VStack,
-  useToast,
-  Progress,
-  Text
-} from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, Progress, Text } from '@chakra-ui/react';
+import { toaster } from "./components/ui/toaster"
 
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -32,12 +24,11 @@ const GENRES = [
 
 function Register() {
   const navigate = useNavigate();
-  const toast = useToast();
   const { refreshProfile } = useAuth(); // called after successful profile creation to update AuthContext with new profile data
   
   // Tracks which step the user is on (1 or 2)
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState('false');
 
   // All form data in one state object
   const [formData, setFormData] = useState({
@@ -106,7 +97,7 @@ function Register() {
     
     // Validate passwords match
     if (formData.password !== formData.password_confirm) {
-      toast({
+      toaster.create({
         title: 'Passwords do not match',
         status: 'error',
         duration: 3000,
@@ -117,7 +108,7 @@ function Register() {
 
     // Validate password requirements
     if (!isPasswordValid()) {
-      toast({
+      toaster.create({
         title: 'Password does not meet requirements',
         status: 'error',
         duration: 3000,
@@ -129,7 +120,7 @@ function Register() {
     // Validate age (must be 16+)
     const age = calculateAge(formData.birthDate);
     if (age < 16) {
-      toast({
+      toaster.create({
         title: 'You must be at least 16 years old to register',
         status: 'error',
         duration: 3000,
@@ -151,7 +142,7 @@ function Register() {
 
 const handleStep2Submit = async (e) => {
   e.preventDefault();
-  setLoading(true);
+  setLoading('true');
 
   try {
     // Create Firebase account
@@ -196,7 +187,8 @@ const handleStep2Submit = async (e) => {
       },
       body: JSON.stringify(payload)
     });
-    // Check if response is ok, if not try to extract error message from response body and throw an error to be caught in catch block
+    // Check if response is ok, if not try to extract error message from response body and 
+    // throw an error to be caught in catch block
     if (!response.ok) {
       let errorMsg = 'Failed to create profile';
       try {
@@ -211,9 +203,12 @@ const handleStep2Submit = async (e) => {
     }
 
     // Refresh the profile in AuthContext so hasProfile becomes true
+    // Add small delay to ensure Firestore finished writing the new profile before we try to fetch it in refreshProfile
+    // this removes the premature 404 error when trying to fetch the profile immediately after creation
+    await new Promise(resolve => setTimeout(resolve, 500));
     await refreshProfile();
 
-    toast({
+    toaster.create({
       title: 'Profile created successfully!',
       description: 'Welcome to Jam Find',
       status: 'success',
@@ -224,7 +219,8 @@ const handleStep2Submit = async (e) => {
     navigate('/home');
     
   } catch (err) {
-    toast({
+    console.error('Registration error:', err);
+    toaster.create({
       title: 'Error creating account',
       description: err.message,
       status: 'error',
@@ -232,180 +228,183 @@ const handleStep2Submit = async (e) => {
       isClosable: true,
     });
   } finally {
-    setLoading(false);
+    // stop loading spinner regardless of sucess or failure
+    setLoading('false');
   }
 };
 
   return (
+    <Center minH="100vh" bg="gray.50" px={4}>
+      <Box 
+        maxW="600px" 
+        w="full"
+        p={10} 
+        borderWidth="1px" 
+        borderRadius="lg" 
+        shadow="lg"
+        bg="white"
+      >
+        <p style={{ marginTop: 2, marginBottom: 5, textAlign: 'center' }}>
+          Already have an account?{' '}
+          <ChakraLink color="blue.500" asChild><RouterLink to="/login">Login
+                  </RouterLink></ChakraLink>
+        </p>
+          {/* Progress indicator */}
 
-  <Center minH="100vh" bg="gray.50" px={4}>
-  <Box 
-    maxW="600px" 
-    w="full"
-    p={10} 
-    borderWidth="1px" 
-    borderRadius="lg" 
-    shadow="lg"
-    bg="white"
-  >
-    <p style={{ marginTop: 2, marginBottom: 5, textAlign: 'center' }}>
-      Already have an account?{' '}
-      <ChakraLink as={RouterLink} to="/login" color="blue.500">
-        Login
-      </ChakraLink>
-    </p>
-      {/* Progress indicator */}
-
-      <VStack spacing={4} mb={6}>
-        <Heading size="lg">Create Your Account</Heading>
-        <Text color="gray.600">Step {step} of 2</Text>
-        <Progress value={step === 1 ? 50 : 100} width="100%" colorScheme="blue" />
-      </VStack>
-
-
-      {/* Step 1: Account Creation */}
-      {step === 1 && (
-        <form onSubmit={handleStep1Submit}>
-          <VStack spacing={4} align="stretch">
-            <InputField
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-
-            <PasswordField
-              label="Password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-
-            <InputField
-              label="Confirm Password"
-              name="password_confirm"
-              type="password"
-              value={formData.password_confirm}
-              onChange={handleChange}
-              required
-            />
-            {formData.password_confirm && formData.password !== formData.password_confirm && (
-              <Text color="red.500" fontSize="sm" mt={-2}>
-                Passwords do not match
-              </Text>
-            )}
-
-            <InputField
-              label="Birthdate"
-              name="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={handleChange}
-              required
-            />
-
-            <Button
-              type="submit"
-              colorScheme="blue"
-              size="lg"
-              width="100%"
-              isLoading={loading}
-              loadingText="Creating Account..."
-            >
-              Next
-            </Button>
+          <VStack gap={4} mb={6}>
+            <Heading size="lg">Create Your Account</Heading>
+            <Text color="gray.600">Step {step} of 2</Text>
+            <Progress.Root value={step === 1 ? 50 : 100} width="100%" colorPalette="blue">
+              <Progress.Track>
+                <Progress.Range />
+              </Progress.Track>
+            </Progress.Root>
           </VStack>
-        </form>
-      )}
 
-      {/* Step 2: Profile Setup */}
-      {step === 2 && (
-        <form onSubmit={handleStep2Submit}>
-          <VStack spacing={4} align="stretch">
-            <InputField
-              label="First Name"
-              name="firstName"
-              type="text"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-            />
 
-            <InputField
-              label="Last Name"
-              name="lastName"
-              type="text"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-            />
+          {/* Step 1: Account Creation */}
+          {step === 1 && (
+            <form onSubmit={handleStep1Submit}>
+              <VStack gap={4} align="stretch">
+                <InputField
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
 
-            <InputField
-              label="Gender"
-              name="gender"
-              type="select"
-              value={formData.gender}
-              onChange={handleChange}
-              required
-            />
+                <PasswordField
+                  label="Password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                />
 
-            <InputField
-              label="Bio"
-              name="bio"
-              type="textarea"
-              value={formData.bio}
-              onChange={handleChange}
-              maxLength={500}
-            />
+                <InputField
+                  label="Confirm Password"
+                  name="password_confirm"
+                  type="password"
+                  value={formData.password_confirm}
+                  onChange={handleChange}
+                  required
+                />
+                {formData.password_confirm && formData.password !== formData.password_confirm && (
+                  <Text color="red.500" fontSize="sm" mt={-2}>
+                    Passwords do not match
+                  </Text>
+                )}
 
-            // TODO: add input field for location here.
+                <InputField
+                  label="Birthdate"
+                  name="birthDate"
+                  type="date"
+                  value={formData.birthDate}
+                  onChange={handleChange}
+                  required
+                />
 
-            <InputField
-              label="Years of Experience"
-              name="experienceYears"
-              type="number"
-              value={formData.experienceYears}
-              onChange={handleChange}
-            />
+                <Button
+                  type="submit"
+                  colorPalette="blue"
+                  size="lg"
+                  width="100%"
+                  isLoading={loading === 'true'? 'true' : 'false'}
+                  loadingText="Creating Account..."
+                >
+                  Next
+                </Button>
+              </VStack>
+            </form>
+          )}
 
-            <InstrumentSelector
-              value={formData.selectedInstruments}
-              onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
-            />
+          {/* Step 2: Profile Setup */}
+          {step === 2 && (
+            <form onSubmit={handleStep2Submit}>
+              <VStack gap={4} align="stretch">
+                <InputField
+                  label="First Name"
+                  name="firstName"
+                  type="text"
+                  value={formData.firstName}
+                  onChange={handleChange}
+                  required
+                />
 
-            <GenreSelector
-              value ={formData.selectedGenres}
-              onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-              options={GENRES}
-              label="Select Your Preferred Genres"
-            />  
-            
+                <InputField
+                  label="Last Name"
+                  name="lastName"
+                  type="text"
+                  value={formData.lastName}
+                  onChange={handleChange}
+                  required
+                />
 
-            <Button
-              type="submit"
-              colorScheme="blue"
-              size="lg"
-              width="100%"
-              isLoading={loading}
-              loadingText="Creating Profile..."
-            >
-              Complete
-            </Button>
+                <InputField
+                  label="Gender"
+                  name="gender"
+                  type="select"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  required
+                />
 
-            <Button
-              variant="ghost"
-              onClick={() => setStep(1)}
-              isDisabled={loading}
-            >
-              Back
-            </Button>
-          </VStack>
-        </form>
-      )}
-    </Box>
+                <InputField
+                  label="Bio"
+                  name="bio"
+                  type="textarea"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  maxLength={500}
+                />
+
+                // TODO: add input field for location here.
+
+                <InputField
+                  label="Years of Experience"
+                  name="experienceYears"
+                  type="number"
+                  value={formData.experienceYears}
+                  onChange={handleChange}
+                />
+
+                <InstrumentSelector
+                  value={formData.selectedInstruments}
+                  onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
+                />
+
+                <GenreSelector
+                  value ={formData.selectedGenres}
+                  onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
+                  options={GENRES}
+                  label="Select Your Preferred Genres"
+                />  
+                
+
+                <Button
+                  type="submit"
+                  colorPalette="blue"
+                  size="lg"
+                  width="100%"
+                  loading={loading}
+                  loadingText="Creating Profile..."
+                >
+                  Complete
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  onClick={() => setStep(1)}
+                  disabled={loading}
+                >
+                  Back
+                </Button>
+              </VStack>
+            </form>
+          )}
+        </Box>
     </Center>
   );
 }

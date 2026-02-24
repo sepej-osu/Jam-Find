@@ -3,14 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Box,
-  Center,
-  Button,
-  Heading,
-  VStack,
-  useToast
-} from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack} from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -18,6 +11,7 @@ import GenreSelector from './components/GenreSelector';
 import postService from './services/postService';
 import profileService from './services/profileService';
 import { useAuth } from './contexts/AuthContext';
+import { toaster } from "./components/ui/toaster"
 
 const GENRES = [
   'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
@@ -29,7 +23,6 @@ const GENRES = [
 
 function CreatePost() {
   const navigate = useNavigate();
-  const toast = useToast();
   const { currentUser } = useAuth();
   
   const [loading, setLoading] = useState(false);
@@ -113,7 +106,7 @@ function CreatePost() {
 
       await postService.createPost(payload);
 
-      toast({
+      toaster.create({
         title: 'Post created successfully!',
         description: 'Your post has been created.',
         status: 'success',
@@ -124,7 +117,7 @@ function CreatePost() {
       navigate('/home');
       
     } catch (err) {
-      toast({
+      toaster.create({
         title: 'Error creating post',
         description: err.message,
         status: 'error',
@@ -137,97 +130,96 @@ function CreatePost() {
   };
 
   return (
+    <Center minH="100vh" bg="gray.50" px={4}>
+      <Box 
+        maxW="600px" 
+        w="full"
+        p={10} 
+        borderWidth="1px" 
+        borderRadius="lg" 
+        shadow="lg"
+        bg="white"
+      >
+          <VStack gap={4} mb={6}>
+            <Heading size="lg">Create a Post</Heading>
+          </VStack>
 
-  <Center minH="100vh" bg="gray.50" px={4}>
-  <Box 
-    maxW="600px" 
-    w="full"
-    p={10} 
-    borderWidth="1px" 
-    borderRadius="lg" 
-    shadow="lg"
-    bg="white"
-  >
-      <VStack spacing={4} mb={6}>
-        <Heading size="lg">Create a Post</Heading>
-      </VStack>
+          <form onSubmit={handleSubmit}>
+            <VStack gap={4} align="stretch">
+              <InputField
+                label="Post Type"
+                name="postType"
+                type="select"
+                value={formData.postType}
+                onChange={handleChange}
+                required
+                selectOptions={[
+                  { value: 'looking_to_jam', label: 'Looking to Jam 🎶' },
+                  { value: 'looking_for_band', label: 'Looking for a Band 🎤' },
+                  { value: 'looking_for_musicians', label: 'Looking for Musicians 🎸' },
+                  { value: 'sharing_music', label: 'Sharing Music 🎵' }
+                ]}
+              />
 
-      <form onSubmit={handleSubmit}>
-        <VStack spacing={4} align="stretch">
-          <InputField
-            label="Post Type"
-            name="postType"
-            type="select"
-            value={formData.postType}
-            onChange={handleChange}
-            required
-            selectOptions={[
-              { value: 'looking_to_jam', label: 'Looking to Jam 🎶' },
-              { value: 'looking_for_band', label: 'Looking for a Band 🎤' },
-              { value: 'looking_for_musicians', label: 'Looking for Musicians 🎸' },
-              { value: 'sharing_music', label: 'Sharing Music 🎵' }
-            ]}
-          />
+              <InputField
+                label="Title"
+                name="title"
+                type="text"
+                value={formData.title}
+                onChange={handleChange}
+                required
+                maxLength={100}
+              />
 
-          <InputField
-            label="Title"
-            name="title"
-            type="text"
-            value={formData.title}
-            onChange={handleChange}
-            required
-            maxLength={100}
-          />
+              <InputField
+                label="Body"
+                name="body"
+                type="textarea"
+                value={formData.body}
+                onChange={handleChange}
+                required
+                maxLength={1000}
+              />
 
-          <InputField
-            label="Body"
-            name="body"
-            type="textarea"
-            value={formData.body}
-            onChange={handleChange}
-            required
-            maxLength={1000}
-          />
+              {/* TODO: add input field for location here. */}
 
-          {/* TODO: add input field for location here. */}
+              <InstrumentSelector
+                value={formData.selectedInstruments}
+                onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
+              />
 
-          <InstrumentSelector
-            value={formData.selectedInstruments}
-            onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
-          />
+              <GenreSelector
+                value={formData.selectedGenres}
+                onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
+                options={GENRES}
+                label="Select Genres"
+              />
 
-          <GenreSelector
-            value={formData.selectedGenres}
-            onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-            options={GENRES}
-            label="Select Genres"
-          />
+              {/* TODO: add input field for media here. */}
+              
+              <Button
+                type="submit"
+                colorPalette="blue"
+                size="lg"
+                width="100%"
+                loading={loading}
+                loadingText="Creating Post..."
+              >
+                Create Post
+              </Button>
 
-          {/* TODO: add input field for media here. */}
-          
-          <Button
-            type="submit"
-            colorScheme="blue"
-            size="lg"
-            width="100%"
-            isLoading={loading}
-            loadingText="Creating Post..."
-          >
-            Create Post
-          </Button>
-
-          <Button
-              colorScheme="red"
-              size="sm"
-              width="100%"
-              alignSelf="center"
-              onClick={() => navigate('/')}
-          >
-            Back
-          </Button>
-        </VStack>
-      </form>
-    </Box>
+              <Button
+                  colorPalette="red"
+                  size="sm"
+                  width="100%"
+                  alignSelf="center"
+                  onClick={() => navigate('/')}
+              >
+                Back
+              </Button>
+            </VStack>
+          </form>
+        </Box>
     </Center>
   );
 }

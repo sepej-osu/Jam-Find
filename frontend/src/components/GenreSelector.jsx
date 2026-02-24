@@ -1,10 +1,4 @@
-import {
-  Box,
-  Text,
-  Checkbox,
-  SimpleGrid,
-  Button
-} from "@chakra-ui/react"
+import { Box, Text, Checkbox, SimpleGrid, Button } from "@chakra-ui/react";
 
 function GenreSelector({ value, onChange, options, label }) {
   const toggle = (genre) => {
@@ -24,30 +18,29 @@ function GenreSelector({ value, onChange, options, label }) {
           </Text>
           <Button 
             size="xs"
-            colorScheme="blue"
+            colorPalette="blue"
             onClick={() => onChange([])} 
             //visibility={value.length > 0 ? 'visible' : 'hidden'}
-            isDisabled={value.length === 0}
+            disabled={value.length === 0}
             variant="outline"
           >
             Clear All
           </Button>
         </Box>
       )}
-
-    <SimpleGrid columns={3} spacing={2}>
-      {options.map((genre) => (
-          <Checkbox
-            key={genre}
-            isChecked={value.includes(genre)}
-            onChange={() => toggle(genre)}
-          >
-            {genre}
-          </Checkbox>
-        ))}
-      </SimpleGrid>    
+      <SimpleGrid columns={3} gap={2}>
+        {options.map((genre) => (
+            <Checkbox.Root
+              key={genre}
+              checked={value.includes(genre)}
+              onCheckedChange={() => toggle(genre)}
+            ><Checkbox.HiddenInput /><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control><Checkbox.Label>
+              {genre}
+            </Checkbox.Label></Checkbox.Root>
+          ))}
+        </SimpleGrid>
     </Box>
-  )
+  );
 }
 
 export default GenreSelector;
