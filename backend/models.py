@@ -15,8 +15,10 @@ class Gender(str, Enum):
 class Location(BaseModel):
     place_id: Optional[str] = Field(default=None, alias="placeId")
     formatted_address: str = Field(..., alias="formattedAddress")
+    zip_code: Optional[str] = Field(default=None, alias="zipCode")
     lat: float
     lng: float
+    geohash: Optional[str] = Field(default=None)
     
     model_config = ConfigDict(
         populate_by_name = True
