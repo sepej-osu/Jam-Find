@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     
     # Service account key (fallback for local development)
     FIREBASE_CREDENTIALS_PATH: str = "serviceAccountKey.json"
+
+    # Google Maps API Key (for geocoding and location services)
+    GOOGLE_MAPS_API_KEY: str = ""
+    GOOGLE_MAPS_API_TIMEOUT = 5  # seconds
     
     model_config = ConfigDict(
         env_file=".env",
