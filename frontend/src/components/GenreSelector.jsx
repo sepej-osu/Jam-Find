@@ -34,7 +34,7 @@ function GenreSelector({ value, onChange, options, label }) {
               key={genre}
               checked={value.includes(genre)}
               onCheckedChange={() => toggle(genre)}
-            ><Checkbox.HiddenInput /><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control><Checkbox.Label>
+            ><Checkbox.HiddenInput /><Checkbox.Control/><Checkbox.Label>
               {genre}
             </Checkbox.Label></Checkbox.Root>
           ))}
