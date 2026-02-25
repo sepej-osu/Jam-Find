@@ -48,7 +48,8 @@ async def create_post(
         loc = post_data.get("location")
         if loc and loc.get("zipCode") and not loc.get("geohash"):
             resolved = resolve_location_from_zip(loc["zipCode"])
-            post_data["location"] = resolved
+            if resolved:
+                post_data["location"] = resolved.model_dump(by_alias=True)
         
         # Let Firestore auto-generate the document ID
         new_post_ref = posts_ref.document()
@@ -141,10 +142,11 @@ async def update_post(
         update_data["updated_at"] = datetime.now(timezone.utc)
         update_data["edited"] = True  # Mark post as edited
 
-        loc = post_data.get("location")
+        loc = update_data.get("location")
         if loc and loc.get("zipCode") and not loc.get("geohash"):
             resolved = resolve_location_from_zip(loc["zipCode"])
-            post_data["location"] = resolved
+            if resolved:
+                update_data["location"] = resolved.model_dump(by_alias=True)
 
         # Update the document in Firestore
         posts_ref.document(post_id).update(update_data)
