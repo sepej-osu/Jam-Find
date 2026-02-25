@@ -26,14 +26,22 @@ def resolve_location_from_zip(zip_code: str) -> Optional[Location]:
             return Location(**cached.to_dict())
 
         # Cache miss: Call Google Maps
+        if not getattr(settings, "GOOGLE_MAPS_API_KEY", None):
+            raise RuntimeError("Google Maps API key not configured")
         response = requests.get(
             "https://maps.googleapis.com/maps/api/geocode/json",
             params={"address": zip_code, "key": settings.GOOGLE_MAPS_API_KEY},
-            timeout=settings.GOOGLE_MAPS_API_TIMEOUT
+            timeout=settings.GOOGLE_MAPS_API_TIMEOUT,
         )
         response.raise_for_status()
-        
-        results = response.json().get("results")
+        data = response.json()
+        status = data.get("status")
+        if status != "OK":
+            error_message = data.get("error_message", "Unknown error from Google Geocoding API")
+            raise RuntimeError(
+                f"Google Geocoding API error for {zip_code}: {status}: {error_message}"
+            )
+        results = data.get("results")
         if not results:
             return None
 
