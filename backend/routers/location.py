@@ -16,7 +16,7 @@ async def get_location_from_zip(
     This hits the cache first, then Google Maps API if necessary.
     """
     try:
-        resolved_location = resolve_location_from_zip(zip_code)
+        resolved_location = await resolve_location_from_zip(zip_code)
         
         if resolved_location is None:
             raise HTTPException(

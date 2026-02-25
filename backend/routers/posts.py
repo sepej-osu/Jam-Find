@@ -47,7 +47,7 @@ async def create_post(
 
         loc = post_data.get("location")
         if loc and loc.get("zipCode") and not loc.get("geohash"):
-            resolved = resolve_location_from_zip(loc["zipCode"])
+            resolved = await resolve_location_from_zip(loc["zipCode"])
             if resolved:
                 post_data["location"] = resolved.model_dump(by_alias=True)
         

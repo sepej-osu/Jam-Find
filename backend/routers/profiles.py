@@ -46,7 +46,7 @@ async def create_profile(
         
         loc = profile_data.get("location")
         if loc and loc.get("zipCode") and not loc.get("geohash"):
-            resolved = resolve_location_from_zip(loc["zipCode"])
+            resolved = await resolve_location_from_zip(loc["zipCode"])
             if resolved:
                 profile_data["location"] = resolved.model_dump(by_alias=True)
 
@@ -158,7 +158,7 @@ async def update_profile(
 
         loc = update_data.get("location") # Use 'update_data'
         if loc and loc.get("zipCode") and not loc.get("geohash"):
-            resolved = resolve_location_from_zip(loc["zipCode"])
+            resolved = await resolve_location_from_zip(loc["zipCode"])
             if resolved:
                 update_data["location"] = resolved.model_dump(by_alias=True)
 
