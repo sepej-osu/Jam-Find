@@ -25,6 +25,8 @@ async def create_profile(
         # Get database connection
         db = get_db()
         profiles_ref = db.collection(COLLECTION_NAME)
+
+        profile_data = profile.model_dump(by_alias=True)
         
         # Check if profile already exists for this user_id
         existing_profile = profiles_ref.document(profile.user_id).get()
@@ -45,11 +47,11 @@ async def create_profile(
         loc = profile_data.get("location")
         if loc and loc.get("zipCode") and not loc.get("geohash"):
             resolved = resolve_location_from_zip(loc["zipCode"])
-            profile_data["location"] = resolved
+            if resolved:
+                profile_data["location"] = resolved.model_dump(by_alias=True)
 
         # Create profile document with timestamps
         now = datetime.now(timezone.utc)
-        profile_data = profile.model_dump(by_alias=True)
         profile_data["created_at"] = now
         profile_data["updated_at"] = now
 
@@ -154,10 +156,11 @@ async def update_profile(
                             detail=f"Email {new_email} is already registered"
                         )
 
-        loc = profile_data.get("location")
+        loc = update_data.get("location") # Use 'update_data'
         if loc and loc.get("zipCode") and not loc.get("geohash"):
             resolved = resolve_location_from_zip(loc["zipCode"])
-            profile_data["location"] = resolved
+            if resolved:
+                update_data["location"] = resolved.model_dump(by_alias=True)
 
         # Add updated_at timestamp
         update_data["updated_at"] = datetime.now(timezone.utc)
