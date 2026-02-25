@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import profiles, posts, likes
+from routers import profiles, posts, likes, location
 from config import settings
 from firebase_config import initialize_firebase
 from contextlib import asynccontextmanager

@@ -18,7 +18,7 @@ async def get_location_from_zip(
     try:
         resolved_location = resolve_location_from_zip(zip_code)
         
-        if not resolved_location:
+        if resolved_location is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Could not resolve location for zip code: {zip_code}"
@@ -26,6 +26,9 @@ async def get_location_from_zip(
             
         return resolved_location
 
+    except HTTPException:
+        # Re-raise HTTP exceptions to be handled by FastAPI
+        raise
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
