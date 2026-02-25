@@ -6,7 +6,7 @@ from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
 from auth import get_current_user, verify_user_access
-from utils/location import resolve_location_from_zip
+from utils.location import resolve_location_from_zip
 
 router = APIRouter()
 
