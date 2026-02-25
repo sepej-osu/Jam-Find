@@ -28,7 +28,7 @@ function Register() {
   
   // Tracks which step the user is on (1 or 2)
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState('false');
+  const [loading, setLoading] = useState(false);
 
   // All form data in one state object
   const [formData, setFormData] = useState({
@@ -128,8 +128,9 @@ function Register() {
       });
       return;
     }
-
+    setLoading(false);
     setStep(2);
+
   };
 
   // Step 2 Submit - Create Firebase account, then send profile data to backend API
@@ -142,7 +143,7 @@ function Register() {
 
 const handleStep2Submit = async (e) => {
   e.preventDefault();
-  setLoading('true');
+  setLoading(true);
 
   try {
     // Create Firebase account
@@ -229,7 +230,7 @@ const handleStep2Submit = async (e) => {
     });
   } finally {
     // stop loading spinner regardless of sucess or failure
-    setLoading('false');
+    setLoading(false);
   }
 };
 
@@ -311,7 +312,7 @@ const handleStep2Submit = async (e) => {
                   colorPalette="blue"
                   size="lg"
                   width="100%"
-                  isLoading={loading === 'true'? 'true' : 'false'}
+                  isLoading={loading}
                   loadingText="Creating Account..."
                 >
                   Next

@@ -192,7 +192,7 @@ return (
                 loading={loading}
                 loadingText="Updating Profile..."
               >
-                Complete
+                Update
               </Button>
               <Button
                 colorPalette="red"

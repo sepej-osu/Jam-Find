@@ -74,7 +74,7 @@ function InstrumentSelector({ value, onChange }) {
                 checked={isSelected}
                 onCheckedChange={() => handleCheckboxChange(instrument)}
                 mb={isSelected ? 1 : 0} // Add margin if slider will show
-              ><Checkbox.HiddenInput /><Checkbox.Control><Checkbox.Indicator /></Checkbox.Control><Checkbox.Label>
+              ><Checkbox.HiddenInput /><Checkbox.Control/><Checkbox.Label>
                 {instrument}
               </Checkbox.Label></Checkbox.Root>
               {/* Slider only shows when instrument is checked */}
@@ -93,18 +93,23 @@ function InstrumentSelector({ value, onChange }) {
                     min={1}
                     max={5}
                     step={1}
-                    value={String(skillLevel)}
-                    onValueChange={(val) => handleSliderChange(instrument, val)}
+                    value={[skillLevel]}
+                    onValueChange={({ value }) =>
+                      handleSliderChange(instrument, value[0])
+                    }
                     colorPalette="blue"
                   >
-                    <Slider.Track>
-                      <Slider.FilledTrack />
-                    </Slider.Track>
-                    <Slider.Thumb boxSize={6}>
-                      <Box color="blue.500" fontWeight="bold" fontSize="xs">
-                        {skillLevel}
-                      </Box>
-                    </Slider.Thumb>
+                    <Slider.Control>
+                      <Slider.Track>
+                        <Slider.Range />
+                      </Slider.Track>
+                      <Slider.Thumb index={0} boxSize={6}>
+                        <Slider.HiddenInput />
+                        <Box color="blue.500" fontWeight="bold" fontSize="xs">
+                          {skillLevel}
+                        </Box>
+                      </Slider.Thumb>
+                    </Slider.Control>
                   </Slider.Root>
                   
                   {/* Labels under the slider */}

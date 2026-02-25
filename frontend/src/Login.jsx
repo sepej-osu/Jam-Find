@@ -8,12 +8,14 @@ import { toaster } from "./components/ui/toaster"
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import InputField from './components/InputField';
+import PasswordInput from './components/PasswordField';
 
 const Login = () => {
   const navigate = useNavigate();
   const { hasProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState('false');
 
   const handleLogin = async (e) => {
@@ -80,14 +82,25 @@ const Login = () => {
               required
             />
 
-            <InputField
+            {/* <InputField
               label="Password"
               name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-            />
+            /> */}
+
+        <PasswordInput
+          label="Password"
+          name="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Enter password"
+          visible={visible}
+          onVisibleChange={() => setVisible(visible => !visible)}
+
+        />
 
             <Button
               type="submit"
@@ -104,8 +117,9 @@ const Login = () => {
 
         <Text textAlign="center" mt={6} color="gray.600">
           Don't have an account?{' '}
-          <ChakraLink color="blue.500" asChild><RouterLink to="/register">Sign up
-                      </RouterLink></ChakraLink>
+          <ChakraLink color="blue.500" asChild>
+          <RouterLink to="/register">Sign up</RouterLink>
+          </ChakraLink>
         </Text>
       </Box>
     </Center>

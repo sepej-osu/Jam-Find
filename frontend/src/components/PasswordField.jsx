@@ -1,19 +1,19 @@
 
 import {
-  Input,
-  Button,
   VStack,
   HStack,
   Text,
   Icon,
-  Field,
+  Field
 } from '@chakra-ui/react';
 import { useState } from 'react';
-import { LuCheck, LuEye, LuEyeOff } from 'react-icons/lu';
+import { LuCheck} from 'react-icons/lu';
+
+import { PasswordInput } from './ui/password-input';
 
 function PasswordField({ label, name, value, onChange, required }) {
   // State to toggle password visibility
-  const [showPassword, setShowPassword] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   // Validation checks - returns true if requirement is met
   const hasMinLength = value.length >= 8;
@@ -41,25 +41,16 @@ function PasswordField({ label, name, value, onChange, required }) {
       <Field.Label>
         {label} {required && <span style={{ color: 'red' }}>*</span>}
       </Field.Label>
-      {/* Password input with show/hide button */}
-      <Input.Group>
-        <Input
-          type={showPassword ? 'text' : 'password'}
+
+        <PasswordInput
           name={name}
-          value={value.toString()}
+          value={value}
           onChange={onChange}
           placeholder="Enter password"
+          visible={visible}
+          onVisibleChange={() => setVisible(visible => !visible)}
+
         />
-        <Input.RightElement width="4.5rem">
-          <Button 
-            h="1.75rem" 
-            size="sm" 
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <LuEyeOff /> : <LuEye />}
-          </Button>
-        </Input.RightElement>
-      </Input.Group>
       {/* Password requirements list - only show if user has started typing */}
       {value && (
         <VStack align="start" mt={3} gap={1} p={3} bg="gray.50" borderRadius="md">

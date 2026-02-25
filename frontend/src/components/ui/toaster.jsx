@@ -1,5 +1,3 @@
-'use client'
-
 import {
   Toaster as ChakraToaster,
   Portal,
@@ -9,8 +7,13 @@ import {
   createToaster,
 } from '@chakra-ui/react';
 
+// This page was created automatically by running: npx @chakra-ui/cli snippet add toaster 
+// It replaced the previous useToast convention with a new Toaster component.
+// Read about it here : https://docs.chakra-ui.com/components/toast/usage#using-the-toaster-component
+// We can customize the default options for all toasts here when we create the toaster instance
+
 export const toaster = createToaster({
-  placement: 'bottom-end',
+  placement: 'bottom-middle',
   pauseOnPageIdle: true,
 })
 
@@ -19,7 +22,9 @@ export const Toaster = () => {
     <Portal>
       <ChakraToaster toaster={toaster} insetInline={{ mdDown: '4' }}>
         {(toast) => (
-          <Toast.Root width={{ md: 'sm' }}>
+          <Toast.Root width={{ md: 'sm' }}
+          bg={toast.status === 'error' ? 'bg.error' : 'bg.success'}
+          >
             {toast.type === 'loading' ? (
               <Spinner size='sm' color='blue.solid' />
             ) : (
