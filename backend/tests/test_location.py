@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import pytest
 from unittest.mock import AsyncMock, patch
+from utils.location import normalize_zip_code
 
 # Set working directory to backend folder, matching the pattern in other backend tests
 backend_dir = Path(__file__).parent.parent
@@ -57,3 +58,33 @@ def test_resolve_location_unauthorized(client):
     app.dependency_overrides[get_current_user] = mock_auth_fail
     response = client.get("/api/v1/location/resolve/90210")
     assert response.status_code == 401
+
+
+def test_resolve_location_invalid_zip(client):
+    with patch("routers.location.resolve_location_from_zip", new_callable=AsyncMock) as mock_resolve:
+        mock_resolve.side_effect = ValueError("Invalid ZIP code format")
+        response = client.get("/api/v1/location/resolve/not-a-zip")
+        assert response.status_code == 400
+
+
+@pytest.mark.parametrize("zip_input,expected", [
+    ("97209", "97209"),
+    (" 97209 ", "97209"),
+    ("97209-1234", "97209-1234"),
+])
+def test_normalize_zip_code_valid(zip_input, expected):
+    assert normalize_zip_code(zip_input) == expected
+
+
+@pytest.mark.parametrize("bad_zip", [
+    "",
+    "9720",       # too short
+    "972090",     # too long
+    "abcde",      # non-numeric
+    "97209-123",  # ZIP+4 too short
+    "97209-12345",# ZIP+4 too long
+    "9720 9",     # internal space
+])
+def test_normalize_zip_code_invalid(bad_zip):
+    with pytest.raises(ValueError):
+        normalize_zip_code(bad_zip)

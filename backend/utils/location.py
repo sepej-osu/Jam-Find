@@ -1,3 +1,4 @@
+import re
 import pygeohash as pgh
 import httpx
 from typing import Optional
@@ -7,6 +8,16 @@ from models import Location
 from config import settings
 
 LOCATION_CACHE_COLLECTION = "location_cache"
+
+# Accepts 5-digit ZIP (e.g. "97209") or ZIP+4 (e.g. "97209-1234")
+_ZIP_RE = re.compile(r"^\d{5}(?:-\d{4})?$")
+
+def normalize_zip_code(zip_code: str) -> str:
+    """Strip whitespace and validate ZIP format. Raises ValueError on invalid input."""
+    normalized = zip_code.strip()
+    if not _ZIP_RE.match(normalized):
+        raise ValueError(f"Invalid ZIP code format: '{normalized}'")
+    return normalized
 
 def calculate_geohash(lat: float, lng: float, precision: int = 5) -> str:
     """Calculate geohash from latitude and longitude"""
@@ -21,6 +32,7 @@ async def resolve_location_from_zip(zip_code: str) -> Optional[Location]:
     All other failures (network errors, Firestore errors, bad API key) propagate
     as exceptions so callers can return accurate 4xx/5xx responses.
     """
+    zip_code = normalize_zip_code(zip_code)
     db = get_db()
     cache_ref = db.collection(LOCATION_CACHE_COLLECTION).document(zip_code)
 
