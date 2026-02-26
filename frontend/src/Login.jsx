@@ -3,19 +3,18 @@ import { auth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { Box, Button, Center, Heading, VStack, Text } from '@chakra-ui/react';
+import { Box, Button, Center, Heading, VStack, Text, Field } from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import InputField from './components/InputField';
-import PasswordInput from './components/PasswordField';
+import { PasswordInput } from './components/ui/password-input';
 
 const Login = () => {
   const navigate = useNavigate();
   const { hasProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState('false');
 
   const handleLogin = async (e) => {
@@ -73,34 +72,25 @@ const Login = () => {
 
         <form onSubmit={handleLogin}>
           <VStack gap={4} align="stretch">
+            <Field.Root required>
+              <Field.Label>Email</Field.Label>
             <InputField
-              label="Email"
               name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
+          </Field.Root>
 
-            {/* <InputField
-              label="Password"
+          <Field.Root required>
+            <Field.Label>Password</Field.Label>
+            <PasswordInput
               name="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
-            /> */}
-
-        <PasswordInput
-          label="Password"
-          name="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Enter password"
-          visible={visible}
-          onVisibleChange={() => setVisible(visible => !visible)}
-
-        />
+              placeholder="Enter password"
+            />
+          </Field.Root>
 
             <Button
               type="submit"
