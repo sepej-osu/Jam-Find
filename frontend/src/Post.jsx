@@ -245,7 +245,7 @@ function Post() {
                       </Text>
                     </Flex>
                     <Progress.Root
-                      value={String(instrument.experienceLevel * 20)}
+                      value={parseInt(instrument.experienceLevel * 20)}
                       size="sm"
                       colorPalette={getExperienceColor(instrument.experienceLevel)}
                       borderRadius="full">

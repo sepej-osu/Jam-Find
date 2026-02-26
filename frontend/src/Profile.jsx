@@ -195,7 +195,7 @@ function Profile() {
                         <Text fontSize="sm" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>{instrument.experienceLevel}/5</Text>
                       </Flex>
                       <Progress.Root
-                        value={String(instrument.experienceLevel * 20)}
+                        value={parseInt(instrument.experienceLevel * 20)}
                         size="sm"
                         colorPalette={getExperienceColor(instrument.experienceLevel)}
                         borderRadius="full">
