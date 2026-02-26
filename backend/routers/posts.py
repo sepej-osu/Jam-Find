@@ -105,7 +105,7 @@ async def get_post(
         )
 
 
-@router.put("/posts/{post_id}", response_model=PostResponse)
+@router.patch("/posts/{post_id}", response_model=PostResponse)
 async def update_post(
     post_id: str,
     post_update: PostUpdate,

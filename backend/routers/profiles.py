@@ -104,7 +104,7 @@ async def get_profile(
         )
 
 
-@router.put("/profiles/{user_id}", response_model=ProfileResponse)
+@router.patch("/profiles/{user_id}", response_model=ProfileResponse)
 async def update_profile(
     user_id: str,
     profile_update: ProfileUpdate,

@@ -58,7 +58,7 @@ def test_get_profile():
 
 def test_update_profile():
     """Update the profile"""
-    response = client.put(
+    response = client.patch(
         f"/api/v1/profiles/{settings.DEV_USER_ID}",
         json={
             "bio": "Updated Bio",

@@ -113,7 +113,7 @@ def test_like_post_again():
 def test_edit_post_with_likes():
     """Verify likes persist through edits and edited flag is independent"""
     assert test_post_id is not None
-    response = client.put(
+    response = client.patch(
         f"/api/v1/posts/{test_post_id}",
         json={"title": "Updated title for like test"}
     )

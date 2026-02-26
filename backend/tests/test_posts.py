@@ -49,7 +49,8 @@ def test_create_post():
             "location": {
                 "formattedAddress": "Los Angeles, CA",
                 "lat": 34.0522,
-                "lng": -118.2437
+                "lng": -118.2437,
+                "geohash": "9q5cs"
             }
         }
     )
@@ -134,7 +135,7 @@ def test_list_posts_with_pagination():
 def test_update_post():
     """Update the post"""
     assert created_post_id is not None, "Must run test_create_post first"
-    response = client.put(
+    response = client.patch(
         f"/api/v1/posts/{created_post_id}",
         json={
             "title": "Updated: Looking for a drummer",
