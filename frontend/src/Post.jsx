@@ -1,21 +1,21 @@
-import { 
-  Box, 
-  Heading, 
-  Text, 
-  Flex, 
-  Tag, 
-  Icon, 
-  Progress, 
-  VStack, 
-  Spinner, 
-  Alert, 
-  AlertIcon,
+import {
+  Steps,
+  Box,
+  Heading,
+  Text,
+  Flex,
+  Tag,
+  Icon,
+  Progress,
+  VStack,
+  Spinner,
+  Alert,
   Badge,
-  Divider,
   Avatar,
   IconButton,
-  useToast
+  Separator,
 } from '@chakra-ui/react';
+import { toaster } from "./components/ui/toaster"
 import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';
 import { IoMusicalNotes, IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { 
@@ -36,7 +36,6 @@ import profileService from './services/profileService';
 
 function Post() {
   const { postId } = useParams();
-  const toast = useToast();
   const [post, setPost] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +88,7 @@ function Post() {
       setIsLiked(response.liked);
     } catch (err) {
       console.error('Failed to toggle like:', err);
-      toast({
+      toaster.create({
         title: 'Failed to update like',
         description: err.message || 'Please try again later',
         status: 'error',
@@ -150,10 +149,10 @@ function Post() {
   if (error) {
     return (
       <Box maxW="600px" mx="auto" mt="80px" p="40px">
-        <Alert status="error" borderRadius="md">
-          <AlertIcon />
+        <Alert.Root status="error" borderRadius="md">
+          <Alert.Indicator />
           {error}
-        </Alert>
+        </Alert.Root>
       </Box>
     );
   }
@@ -161,10 +160,10 @@ function Post() {
   if (!post) {
     return (
       <Box maxW="600px" mx="auto" mt="80px" p="40px">
-        <Alert status="info" borderRadius="md">
-          <AlertIcon />
+        <Alert.Root status="info" borderRadius="md">
+          <Alert.Indicator />
           Post not found
-        </Alert>
+        </Alert.Root>
       </Box>
     );
   }
@@ -178,19 +177,14 @@ function Post() {
         bg="white"
         boxShadow="md"
       >
-        <Badge colorScheme="blue" fontSize="md" mb={3}>
+        <Badge colorPalette="blue" fontSize="md" mb={3}>
           {getPostTypeLabel(post.postType)}
         </Badge>
 
 
         {profile && (
           <Flex align="center" mb={4}>
-            <Avatar 
-              size="md" 
-              src={profile.profilePicUrl} 
-              name={`${profile.firstName} ${profile.lastName}`}
-              mr={3}
-            />
+            <Avatar.Root size="md" mr={3}><Avatar.Fallback name={`${profile.firstName} ${profile.lastName}`} /><Avatar.Image src={profile.profilePicUrl} /></Avatar.Root>
             <Box>
               <Text fontWeight="semibold" fontSize="md">
                 {profile.firstName} {profile.lastName}
@@ -218,7 +212,7 @@ function Post() {
           </Flex>
         )}
 
-        <Divider mb={4} />
+        <Separator mb={4} />
 
         <Box mb={6}>
           <Text fontSize="lg" color="gray.800" whiteSpace="pre-wrap">
@@ -243,19 +237,22 @@ function Post() {
                     <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
                     <Text fontSize="md" fontWeight="semibold">{instrument.name}</Text>
                   </Flex>
-                  <VStack align="stretch" spacing={1}>
+                  <VStack align="stretch" gap={1}>
                     <Flex justify="space-between" align="center">
                       <Text fontSize="sm" color="gray.600">Experience Level</Text>
                       <Text fontSize="sm" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>
                         {instrument.experienceLevel}/5
                       </Text>
                     </Flex>
-                    <Progress 
-                      value={instrument.experienceLevel * 20} 
-                      size="sm" 
-                      colorScheme={getExperienceColor(instrument.experienceLevel)}
-                      borderRadius="full"
-                    />
+                    <Progress.Root
+                      value={parseInt(instrument.experienceLevel * 20)}
+                      size="sm"
+                      colorPalette={getExperienceColor(instrument.experienceLevel)}
+                      borderRadius="full">
+                      <Progress.Track>
+                        <Progress.Range />
+                      </Progress.Track>
+                    </Progress.Root>
                   </VStack>
                 </Box>
               ))}
@@ -267,35 +264,33 @@ function Post() {
           <Box mb={6}>
             <Flex gap={2} flexWrap="wrap">
               {post.genres.map((genre, index) => (
-                <Tag key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
+                <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
                   {genre}
-                </Tag>
+                </Tag.Root>
               ))}
             </Flex>
           </Box>
         )}
 
-        <Divider my={4} />
+        <Separator my={4} />
         
         {/* Likes Section */}
         <Flex justify="space-between" align="center" mb={4}>
           <Flex align="center" gap={2}>
             <IconButton
               aria-label={isLiked ? "Unlike post" : "Like post"}
-              icon={<Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} />}
-              colorScheme={isLiked ? "red" : "gray"}
+              colorPalette={isLiked ? "red" : "gray"}
               variant="ghost"
               onClick={handleLikeToggle}
-              isLoading={likingInProgress}
-              size="lg"
-            />
+              loading={likingInProgress}
+              size="lg"><Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} /></IconButton>
             <Text fontWeight="semibold" fontSize="md">
               {likesCount} {likesCount === 1 ? 'like' : 'likes'}
             </Text>
           </Flex>
         </Flex>
 
-        <Divider mb={4} />
+        <Separator mb={4} />
         
         <Flex justify="space-between" fontSize="sm" color="gray.500">
           <Text>{new Date(post.created_at).toLocaleDateString()}</Text>

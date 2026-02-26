@@ -1,5 +1,21 @@
 
-import { Box, Heading, Text, Image, Grid, GridItem, IconButton, Flex, Tag, Icon, Progress, VStack, Spinner, Alert, AlertIcon } from '@chakra-ui/react';
+import {
+  Steps,
+  Box,
+  Heading,
+  Text,
+  Image,
+  Grid,
+  GridItem,
+  IconButton,
+  Flex,
+  Tag,
+  Icon,
+  Progress,
+  VStack,
+  Spinner,
+  Alert,
+} from '@chakra-ui/react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { FaGuitar, FaMapMarkerAlt } from 'react-icons/fa';
@@ -98,10 +114,10 @@ function Profile() {
   if (error) {
     return (
       <Box maxW="600px" mx="auto" mt="80px" p="40px">
-        <Alert status="error" borderRadius="md">
-          <AlertIcon />
+        <Alert.Root status="error" borderRadius="md">
+          <Alert.Indicator />
           {error}
-        </Alert>
+        </Alert.Root>
       </Box>
     );
   }
@@ -109,10 +125,10 @@ function Profile() {
   if (!profile) {
     return (
       <Box maxW="600px" mx="auto" mt="80px" p="40px">
-        <Alert status="info" borderRadius="md">
-          <AlertIcon />
+        <Alert.Root status="info" borderRadius="md">
+          <Alert.Indicator />
           Profile not found
-        </Alert>
+        </Alert.Root>
       </Box>
     );
   }
@@ -173,17 +189,20 @@ function Profile() {
                       <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
                       <Text fontSize="md" fontWeight="semibold">{instrument.name}</Text>
                     </Flex>
-                    <VStack align="stretch" spacing={1}>
+                    <VStack align="stretch" gap={1}>
                       <Flex justify="space-between" align="center">
                         <Text fontSize="sm" color="gray.600">Experience Level</Text>
                         <Text fontSize="sm" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>{instrument.experienceLevel}/5</Text>
                       </Flex>
-                      <Progress 
-                        value={instrument.experienceLevel * 20} 
-                        size="sm" 
-                        colorScheme={getExperienceColor(instrument.experienceLevel)}
-                        borderRadius="full"
-                      />
+                      <Progress.Root
+                        value={parseInt(instrument.experienceLevel * 20)}
+                        size="sm"
+                        colorPalette={getExperienceColor(instrument.experienceLevel)}
+                        borderRadius="full">
+                        <Progress.Track>
+                          <Progress.Range />
+                        </Progress.Track>
+                      </Progress.Root>
                     </VStack>
                   </Box>
                 ))
@@ -197,9 +216,9 @@ function Profile() {
             <Flex gap={2} flexWrap="wrap">
               {profile?.genres?.length > 0 ? (
                 profile.genres.map((genre, index) => (
-                  <Tag key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
+                  <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
                     {genre}
-                  </Tag>
+                  </Tag.Root>
                 ))
               ) : (
                 <Text fontSize="md" color="gray.600">No genres listed</Text>
@@ -255,13 +274,7 @@ function Profile() {
 
           {/* Navigation Controls */}
           <Flex justifyContent="center" alignItems="center" gap={4} mt={4}>
-            <IconButton
-              size="xs"
-              variant="ghost"
-              onClick={prevSlide}
-              icon={<LuChevronLeft />}
-              aria-label="Previous Slide"
-            />
+            <IconButton size="xs" variant="ghost" onClick={prevSlide} aria-label="Previous Slide"><LuChevronLeft /></IconButton>
 
             {/* Indicators */}
             <Flex gap={2}>
@@ -281,13 +294,7 @@ function Profile() {
               ))}
             </Flex>
 
-            <IconButton
-              size="xs"
-              variant="ghost"
-              onClick={nextSlide}
-              icon={<LuChevronRight />}
-              aria-label="Next Slide"
-            />
+            <IconButton size="xs" variant="ghost" onClick={nextSlide} aria-label="Next Slide"><LuChevronRight /></IconButton>
           </Flex>
         </Box>
       </GridItem>
