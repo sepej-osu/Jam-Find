@@ -46,7 +46,7 @@ async def create_post(
         post_data["likedBy"] = []
 
         loc = post_data.get("location")
-        if loc and loc.get("zipCode") and not loc.get("geohash"):
+        if loc and loc.get("zipCode"):
             resolved = await resolve_location_from_zip(loc["zipCode"])
             if resolved:
                 post_data["location"] = resolved.model_dump(by_alias=True)
@@ -143,7 +143,7 @@ async def update_post(
         update_data["edited"] = True  # Mark post as edited
 
         loc = update_data.get("location")
-        if loc and loc.get("zipCode") and not loc.get("geohash"):
+        if loc and loc.get("zipCode"):
             resolved = resolve_location_from_zip(loc["zipCode"])
             if resolved:
                 update_data["location"] = resolved.model_dump(by_alias=True)
