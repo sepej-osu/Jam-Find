@@ -1,18 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
-import {
-  Box,
-  Center,
-  Button,
-  Heading,
-  VStack,
-  useToast,
-} from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack} from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+import { toaster } from "./components/ui/toaster"
 
 
 const GENRES = [
@@ -25,7 +19,6 @@ const GENRES = [
 
 function CreateProfile() {
   const navigate = useNavigate(); // For navigation after profile creation
-  const toast = useToast(); // For showing success/error messages after profile creation
   const { currentUser, refreshProfile } = useAuth(); // Get current user and refreshProfile function from AuthContext
   const [loading, setLoading] = useState(false);
 
@@ -113,7 +106,7 @@ const handleSubmit = async (e) => {
       throw new Error(errorMsg);
     }
 
-    toast({
+    toaster.create({
       title: 'Profile created successfully!',
       description: 'Welcome to Jam Find',
       status: 'success',
@@ -125,7 +118,7 @@ const handleSubmit = async (e) => {
     navigate('/');
     
   } catch (err) {
-    toast({
+    toaster.create({
       title: 'Error creating a profile',
       description: err.message,
       status: 'error',
@@ -138,107 +131,107 @@ const handleSubmit = async (e) => {
 }
 return (
   <Center minH="100vh" bg="gray.50" px={4}>
-  <Box 
-    maxW="600px" 
-    w="full"
-    p={10} 
-    borderWidth="1px" 
-    borderRadius="lg" 
-    shadow="lg"
-    bg="white"
-  >
+    <Box 
+      maxW="600px" 
+      w="full"
+      p={10} 
+      borderWidth="1px" 
+      borderRadius="lg" 
+      shadow="lg"
+      bg="white"
+    >
 
-      <VStack spacing={4} mb={6}>
-        <Heading size="lg">Welcome to Jam Find!</Heading>
-        <Heading size="md" color="gray.600">Let's set up your profile.</Heading>
-      </VStack>
+        <VStack gap={4} mb={6}>
+          <Heading size="lg">Welcome to Jam Find!</Heading>
+          <Heading size="md" color="gray.600">Let's set up your profile.</Heading>
+        </VStack>
 
-      {/* Step 2: Profile Setup */}
-        <form onSubmit={handleSubmit}>
-          <VStack spacing={4} align="stretch">
-            <InputField
-              label="First Name"
-              name="firstName"
-              type="text"
-              value={formData.firstName}
-              onChange={handleChange}
-              required
-            />
+        {/* Step 2: Profile Setup */}
+          <form onSubmit={handleSubmit}>
+            <VStack gap={4} align="stretch">
+              <InputField
+                label="First Name"
+                name="firstName"
+                type="text"
+                value={formData.firstName}
+                onChange={handleChange}
+                required
+              />
 
-            <InputField
-              label="Last Name"
-              name="lastName"
-              type="text"
-              value={formData.lastName}
-              onChange={handleChange}
-              required
-            />
+              <InputField
+                label="Last Name"
+                name="lastName"
+                type="text"
+                value={formData.lastName}
+                onChange={handleChange}
+                required
+              />
 
-            <InputField
-              label="Birthdate"
-              name="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={handleChange}
-              required
-            />
+              <InputField
+                label="Birthdate"
+                name="birthDate"
+                type="date"
+                value={formData.birthDate}
+                onChange={handleChange}
+                required
+              />
 
-            <InputField
-              label="Gender"
-              name="gender"
-              type="select"
-              value={formData.gender}
-              onChange={handleChange}
-              required
-            />
+              <InputField
+                label="Gender"
+                name="gender"
+                type="select"
+                value={formData.gender}
+                onChange={handleChange}
+                required
+              />
 
-            <InputField
-              label="Bio"
-              name="bio"
-              type="textarea"
-              value={formData.bio}
-              onChange={handleChange}
-              maxLength={500}
-            />
+              <InputField
+                label="Bio"
+                name="bio"
+                type="textarea"
+                value={formData.bio}
+                onChange={handleChange}
+                maxLength={500}
+              />
 
-            // TODO: add input field for location here.
+              {/* TODO: add input field for location here. */}
 
-            <InputField
-              label="Years of Experience"
-              name="experienceYears"
-              type="number"
-              value={formData.experienceYears}
-              onChange={handleChange}
-            />
+              <InputField
+                label="Years of Experience"
+                name="experienceYears"
+                type="number"
+                value={formData.experienceYears}
+                onChange={handleChange}
+              />
 
-            <InstrumentSelector
-              value={formData.selectedInstruments}
-              onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
-            />
+              <InstrumentSelector
+                value={formData.selectedInstruments}
+                onChange={(instruments) => setFormData({ ...formData, selectedInstruments: instruments })}
+              />
 
-            <GenreSelector
-              value ={formData.selectedGenres}
-              onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-              options={GENRES}
-              label="Select Your Preferred Genres"
-            />  
-            
-            <Button
-              type="submit"
-              colorScheme="blue"
-              size="lg"
-              width="100%"
-              isLoading={loading}
-              loadingText="Creating Profile..."
-            >
-              Complete
-            </Button>
+              <GenreSelector
+                value ={formData.selectedGenres}
+                onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
+                options={GENRES}
+                label="Select Your Preferred Genres"
+              />  
+              
+              <Button
+                type="submit"
+                colorPalette="blue"
+                size="lg"
+                width="100%"
+                loading={loading}
+                loadingText="Creating Profile..."
+              >
+                Complete
+              </Button>
 
-          </VStack>
-        </form>
-    </Box>
-    </Center>
-  );
+            </VStack>
+          </form>
+      </Box>
+  </Center>
+);
 };
 
 export default CreateProfile;

@@ -10,12 +10,11 @@ import Profile from './Profile';
 import Post from './Post';
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
-import { useToast } from '@chakra-ui/react';
+import { toaster } from "./components/ui/toaster"
 
 function App() {
 
     const { currentUser, hasProfile, loading, profileError } = useAuth();
-    const toast = useToast();
   
     // Show error toast if profile fetch failed
     // TODO: we need to figure out a more professional way to handle this, but for now this will
@@ -23,7 +22,7 @@ function App() {
 
   useEffect(() => {
     if (profileError) {
-      toast({
+      toaster.create({
         title: 'Server Error',
         description: 'Unable to load your profile. Please try again later.',
         status: 'error',
@@ -31,7 +30,7 @@ function App() {
         isClosable: true,
       });
     }
-  }, [profileError, toast]);
+  }, [profileError]);
     // Show loading state while auth context is initializing
     if (loading) return <div>Loading...</div>;
 

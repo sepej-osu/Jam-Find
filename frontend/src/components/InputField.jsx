@@ -1,13 +1,5 @@
 
-import {
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Select,
-  FormErrorMessage,
-  Text
-} from '@chakra-ui/react';
+import { Input, Textarea, NativeSelect, Text, Field } from '@chakra-ui/react';
 
 function InputField({ label, name, type, value, onChange, placeholder, error, required, maxLength, selectOptions }) {
   
@@ -20,7 +12,7 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
           <>
             <Textarea
               name={name}
-              value={value}
+              value={String(value)}
               onChange={onChange}
               placeholder={placeholder}
               maxLength={maxLength}
@@ -38,22 +30,29 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
       // Dropdown select - uses custom options if provided, otherwise defaults to gender options
       case 'select':
         return (
-          <Select name={name} value={value} onChange={onChange} placeholder="Select...">
-            {selectOptions ? (
-              selectOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))
-            ) : (
-              <>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="non-binary">Non-Binary</option>
-                <option value="prefer-not-to-say">Prefer not to say</option>
-              </>
-            )}
-          </Select>
+          <NativeSelect.Root>
+            <NativeSelect.Field
+              name={name}
+              value={String(value)}
+              onChange={onChange}
+              placeholder="Select...">
+              {selectOptions ? (
+                selectOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="non-binary">Non-Binary</option>
+                  <option value="prefer-not-to-say">Prefer not to say</option>
+                </>
+              )}
+            </NativeSelect.Field>
+            <NativeSelect.Indicator />
+          </NativeSelect.Root>
         );
 
       // handles email, password, text, number, date, etc.
@@ -62,7 +61,7 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
           <Input
             type={type}
             name={name}
-            value={value}
+            value={String(value)}
             onChange={onChange}
             placeholder={placeholder}
           />
@@ -72,17 +71,15 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
 
   return (
     //Label with required asterisk if field is required
-    <FormControl isRequired={required} isInvalid={error} mb={4}>
-      <FormLabel>
+    <Field.Root required={required} invalid={error} mb={4}>
+      <Field.Label>
         {label}
-      </FormLabel>
-
+      </Field.Label>
       {/* Render the appropriate input type */}
       {renderInput()}
-
       {/* Error message - only shows if there's an error */}
-      {error && <FormErrorMessage>{error}</FormErrorMessage>}
-    </FormControl>
+      {error && <Field.ErrorText>{error}</Field.ErrorText>}
+    </Field.Root>
   );
 }
 
