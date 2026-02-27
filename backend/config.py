@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
     # Google Maps API Key (for geocoding and location services)
     GOOGLE_MAPS_API_KEY: str = ""
-    GOOGLE_MAPS_API_TIMEOUT = 5  # seconds
+    GOOGLE_MAPS_API_TIMEOUT: int = 5  # seconds
     
     model_config = ConfigDict(
         env_file=".env",

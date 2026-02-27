@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 from typing import Optional
 from config import settings
+from firebase_config import get_db
 
 # Security scheme for Swagger UI
 security = HTTPBearer(auto_error=False)
@@ -83,3 +84,28 @@ def verify_user_access(authenticated_user_id: str, resource_user_id: str):
             detail="You don't have permission to access this resource"
         )
 
+async def verify_profile_exists(
+    current_user_id: str = Depends(get_current_user)
+) -> str:
+    """
+    Dependency that ensures the authenticated user has a document 
+    in the 'profiles' collection.
+    
+    Use this for routes that require a completed profile (like viewing the feed).
+    """
+    # Bypass for Dev Mode if you want to skip profile checks in local testing
+    if settings.DEV_MODE:
+        return current_user_id
+
+    db = get_db()
+    # .get() is necessary to check existence. 
+    # This counts as 1 read in Firestore.
+    profile_ref = db.collection("profiles").document(current_user_id)
+    
+    if not profile_ref.get().exists:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Profile setup required. Please create a profile to access this resource."
+        )
+    
+    return current_user_id

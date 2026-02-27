@@ -6,11 +6,11 @@ from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
 from auth import get_current_user, verify_user_access
+from utils.location import resolve_location_from_zip
 
 router = APIRouter()
 
 COLLECTION_NAME = "profiles"
-
 
 @router.post("/profiles", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(
@@ -20,11 +20,13 @@ async def create_profile(
     """Create a new user profile (user can only create their own profile)"""
     # Verify user can only create their own profile
     verify_user_access(current_user_id, profile.user_id)
-    
+        
     try:
         # Get database connection
         db = get_db()
         profiles_ref = db.collection(COLLECTION_NAME)
+
+        profile_data = profile.model_dump(by_alias=True)
         
         # Check if profile already exists for this user_id
         existing_profile = profiles_ref.document(profile.user_id).get()
@@ -42,12 +44,17 @@ async def create_profile(
                 detail=f"Email {profile.email} is already registered"
             )
         
+        loc = profile_data.get("location")
+        if loc and loc.get("zipCode"):
+            resolved = await resolve_location_from_zip(loc["zipCode"])
+            if resolved:
+                profile_data["location"] = resolved.model_dump(by_alias=True)
+
         # Create profile document with timestamps
         now = datetime.now(timezone.utc)
-        profile_data = profile.model_dump(by_alias=True)
         profile_data["created_at"] = now
         profile_data["updated_at"] = now
-        
+
         # Save to Firestore
         profiles_ref.document(profile.user_id).set(profile_data)
         
@@ -148,6 +155,12 @@ async def update_profile(
                             status_code=status.HTTP_409_CONFLICT,
                             detail=f"Email {new_email} is already registered"
                         )
+
+        loc = update_data.get("location") # Use 'update_data'
+        if loc and loc.get("zipCode"):
+            resolved = await resolve_location_from_zip(loc["zipCode"])
+            if resolved:
+                update_data["location"] = resolved.model_dump(by_alias=True)
 
         # Add updated_at timestamp
         update_data["updated_at"] = datetime.now(timezone.utc)
