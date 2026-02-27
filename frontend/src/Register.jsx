@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
-import { Box, Center, Button, Heading, VStack, Progress, Text } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, Progress, Text, Input, Field} from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
 
 import { Link as ChakraLink } from '@chakra-ui/react';
@@ -359,6 +359,17 @@ const handleStep2Submit = async (e) => {
                   ]}
                 />
 
+                <Field.Root>
+                  <Field.Label>Zipcode</Field.Label>
+                  <Input 
+                    placeholder="Enter Zipcode"
+                    required 
+                    name="zipCode"
+                    value={formData.location?.zipCode || ''}
+                    onChange={(e) => setFormData({ ...formData, location: { ...formData.location, zipCode: e.target.value } })}
+                  />
+                </Field.Root>
+
                 <InputField
                   label="Bio"
                   name="bio"
@@ -367,8 +378,6 @@ const handleStep2Submit = async (e) => {
                   onChange={handleChange}
                   maxLength={500}
                 />
-
-                // TODO: add input field for location here.
 
                 <InputField
                   label="Years of Experience"
