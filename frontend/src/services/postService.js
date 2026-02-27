@@ -109,7 +109,7 @@ const postService = {
     }
   },
 
-updatePost: async (postId, updateData) => {
+  updatePost: async (postId, updateData) => {
     try {
       const user = auth.currentUser;
       if (!user)
