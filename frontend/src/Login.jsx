@@ -3,38 +3,32 @@ import { auth } from './firebase';
 import { useAuth } from './contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import {
-  Box,
-  Button,
-  Center,
-  Heading,
-  VStack,
-  useToast,
-  Text
-} from '@chakra-ui/react';
+import { Box, Button, Center, Heading, VStack, Text, Field } from '@chakra-ui/react';
+import { toaster } from "./components/ui/toaster"
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import InputField from './components/InputField';
+import { PasswordInput } from './components/ui/password-input';
 
 const Login = () => {
   const navigate = useNavigate();
-  const toast = useToast();
   const { hasProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState('false');
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading('true');
     
     try {
       await signInWithEmailAndPassword(auth, email, password); // Firebase authentication service
       
-      toast({
-        title: 'Login successful!',
+      toaster.create({
+        title: 'Login successful',
+        description: 'You have successfully logged in.',
         status: 'success',
-        duration: 2000,
+        duration: 4000,
         isClosable: true,
       });
 
@@ -48,7 +42,7 @@ const Login = () => {
       }, 800); // set to 800ms to give the context enough time to update after login
       
     } catch (err) {
-      toast({
+      toaster.create({
         title: 'Login failed',
         description: err.message,
         status: 'error',
@@ -56,7 +50,7 @@ const Login = () => {
         isClosable: true,
       });
     } finally {
-      setLoading(false);
+      setLoading('false');
     }
   };
 
@@ -71,37 +65,39 @@ const Login = () => {
         shadow="lg"
         bg="white"
       >
-        <VStack spacing={6} mb={6}>
+        <VStack gap={6} mb={6}>
           <Heading size="lg">Welcome Back</Heading>
           <Text color="gray.600">Login to your account</Text>
         </VStack>
 
         <form onSubmit={handleLogin}>
-          <VStack spacing={4} align="stretch">
+          <VStack gap={4} align="stretch">
+            <Field.Root required>
+              <Field.Label>Email</Field.Label>
             <InputField
-              label="Email"
               name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
+          </Field.Root>
 
-            <InputField
-              label="Password"
+          <Field.Root required>
+            <Field.Label>Password</Field.Label>
+            <PasswordInput
               name="password"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
+              placeholder="Enter password"
             />
+          </Field.Root>
 
             <Button
               type="submit"
-              colorScheme="blue"
+              colorPalette="blue"
               size="lg"
               width="100%"
-              isLoading={loading}
+              isLoading={loading === 'true'? 'true' : 'false'}
               loadingText="Logging in..."
             >
               Login
@@ -111,8 +107,8 @@ const Login = () => {
 
         <Text textAlign="center" mt={6} color="gray.600">
           Don't have an account?{' '}
-          <ChakraLink as={RouterLink} to="/register" color="blue.500">
-            Sign up
+          <ChakraLink color="blue.500" asChild>
+          <RouterLink to="/register">Sign up</RouterLink>
           </ChakraLink>
         </Text>
       </Box>

@@ -51,14 +51,18 @@ export const AuthProvider = ({ children }) => {
 
   // Function to refresh profile (call after creating/updating profile)
   const refreshProfile = async () => {
-    if (currentUser) {
-      try {
-        const userProfile = await profileService.getProfile(currentUser.uid);
-        setProfile(userProfile);
-      } catch (error) {
-        console.error('Error refreshing profile:', error);
-        setProfileError('Error refreshing profile. Please try again later.');
-      }
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('No user logged in');
+    }
+    
+    try {
+      const userProfile = await profileService.getProfile(user.uid);
+      setProfile(userProfile);
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+      setProfileError('Error refreshing profile. Please try again later.');
+      throw error;
     }
   };
 

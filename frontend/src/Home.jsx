@@ -20,7 +20,7 @@ function Home() {
       boxShadow="md"
       bg="white"
     >
-      <VStack spacing={4} textAlign="center">
+      <VStack gap={4} textAlign="center">
         <Heading size="lg">Hi, {profile?.firstName}!</Heading>
 
         <Text fontSize="md" color="gray.600">
@@ -28,24 +28,11 @@ function Home() {
           You can build your dashboard or profile here later.
         </Text>
 
-        <Button colorScheme="teal"
-          as={RouterLink}
-          to="/update-profile"
-          size="lg"
-          width="100%"
-        >
-          Update Profile
-        </Button>
+        <Button colorPalette="teal" size="lg" width="100%" asChild><RouterLink to="/update-profile">Update Profile
+                  </RouterLink></Button>
 
-        <Button 
-          as={RouterLink} 
-          to="/create-post" 
-          colorScheme="blue"
-          size="lg"
-          width="100%"
-        >
-          Create a Post
-        </Button>
+        <Button colorPalette="blue" size="lg" width="100%" asChild><RouterLink to="/create-post">Create a Post
+                  </RouterLink></Button>
         <LogoutButton />
       </VStack>
     </Box>

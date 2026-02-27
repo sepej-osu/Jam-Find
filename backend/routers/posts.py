@@ -6,6 +6,7 @@ from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
 from auth import get_current_user, verify_user_access
+from utils.location import resolve_location_from_zip
 
 router = APIRouter()
 
@@ -43,6 +44,12 @@ async def create_post(
         post_data["updated_at"] = now
         post_data["edited"] = False
         post_data["likedBy"] = []
+
+        loc = post_data.get("location")
+        if loc and loc.get("zipCode"):
+            resolved = await resolve_location_from_zip(loc["zipCode"])
+            if resolved:
+                post_data["location"] = resolved.model_dump(by_alias=True)
         
         # Let Firestore auto-generate the document ID
         new_post_ref = posts_ref.document()
@@ -134,6 +141,13 @@ async def update_post(
         # Add updated_at timestamp and mark as edited
         update_data["updated_at"] = datetime.now(timezone.utc)
         update_data["edited"] = True  # Mark post as edited
+
+        loc = update_data.get("location")
+        if loc and loc.get("zipCode"):
+            resolved = resolve_location_from_zip(loc["zipCode"])
+            if resolved:
+                update_data["location"] = resolved.model_dump(by_alias=True)
+
         # Update the document in Firestore
         posts_ref.document(post_id).update(update_data)
         # Return the updated post
