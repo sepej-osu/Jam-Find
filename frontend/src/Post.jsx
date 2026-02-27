@@ -1,5 +1,4 @@
 import {
-  Steps,
   Box,
   Heading,
   Text,
@@ -10,7 +9,6 @@ import {
   VStack,
   Spinner,
   Alert,
-  Badge,
   Avatar,
   IconButton,
   Separator,
@@ -32,36 +30,28 @@ import {
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import postService from './services/postService';
-import profileService from './services/profileService';
 
 function Post() {
   const { postId } = useParams();
   const [post, setPost] = useState(null);
-  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [likesCount, setLikesCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [likingInProgress, setLikingInProgress] = useState(false);
 
-  useEffect(() => {
+useEffect(() => {
     const fetchPost = async () => {
       try {
         setLoading(true);
         setError(null);
         const data = await postService.getPost(postId);
+        
         if (data) {
           setPost(data);
-          // Set initial like state from backend response
           setLikesCount(data.likes || 0);
           setIsLiked(data.likedByCurrentUser || false);
-          // Fetch the profile of the user who created the post
-          if (data.userId) {
-            const profileData = await profileService.getProfile(data.userId);
-            setProfile(profileData);
-          }
         } else {
-          setPost(null);
           setError('Post not found');
         }
       } catch (err) {
@@ -71,9 +61,7 @@ function Post() {
       }
     };
 
-    if (postId) {
-      fetchPost();
-    }
+    if (postId) fetchPost();
   }, [postId]);
 
   const handleLikeToggle = async () => {
@@ -168,40 +156,33 @@ function Post() {
     );
   }
   
-  return (
+return (
     <Box maxW="1000px" mx="auto" p={6}>
-      <Box 
-        p={6}
-        borderWidth="1px" 
-        borderRadius="lg" 
-        bg="white"
-        boxShadow="md"
-      >
-        <Badge colorPalette="blue" fontSize="md" mb={3}>
-          {getPostTypeLabel(post.postType)}
-        </Badge>
-
-
-        {profile && (
-          <Flex align="center" mb={4}>
-            <Avatar.Root size="md" mr={3}><Avatar.Fallback name={`${profile.firstName} ${profile.lastName}`} /><Avatar.Image src={profile.profilePicUrl} /></Avatar.Root>
-            <Box>
-              <Text fontWeight="semibold" fontSize="md">
-                {profile.firstName} {profile.lastName}
+      <Box p={6} borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md">
+        
+        {/* Render Author Info directly from the post object */}
+        <Flex align="center" mb={4}>
+          <Avatar.Root size="md" mr={3}>
+            <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
+            <Avatar.Image src={post.profilePicUrl} />
+          </Avatar.Root>
+          <Box>
+            <Text fontWeight="semibold" fontSize="md">
+              {post.firstName} {post.lastName}
+            </Text>
+            {/* If you also embedded the location in the snapshot, 
+               you'd access it here via post.location 
+            */}
+            {post.location?.formattedAddress && (
+              <Text fontSize="sm" color="gray.600">
+                <Icon as={FaMapMarkerAlt} color="red.600" mr="1" />
+                {post.location.formattedAddress}
               </Text>
-              {profile.location?.formattedAddress && (
-                <Text fontSize="sm" color="gray.600">
-                  <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />
-                  {profile.location.formattedAddress}
-                </Text>
-              )}
-            </Box>
-          </Flex>
-        )}
+            )}
+          </Box>
+        </Flex>
 
-        <Heading size="lg" mb={4}>
-          {post.title}
-        </Heading>
+        <Heading size="lg" mb={4}>{post.title}</Heading>
 
         
 

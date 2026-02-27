@@ -32,35 +32,39 @@ async def create_post(
 ):
     """Create a new post"""
     try:
-        # Get database connection
         db = get_db()
-        posts_ref = db.collection(COLLECTION_NAME)
         
-        # Create post document with timestamps and auto-generated ID
-        now = datetime.now(timezone.utc)
         post_data = post.model_dump(by_alias=True)
-        post_data["userId"] = current_user_id
-        post_data["createdAt"] = now
-        post_data["updatedAt"] = now
-        post_data["edited"] = False
-        post_data["likedBy"] = []
+        now = datetime.now(timezone.utc)
 
-        loc = post_data.get("location")
-        if loc and loc.get("zipCode"):
-            resolved = await resolve_location_from_zip(loc["zipCode"])
+        user_doc = db.collection("profiles").document(current_user_id).get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        user_data = user_doc.to_dict()
+
+        loc_data = post_data.get("location")
+        if loc_data and loc_data.get("zipCode"):
+            resolved = await resolve_location_from_zip(loc_data["zipCode"])
             if resolved:
                 post_data["location"] = resolved.model_dump(by_alias=True)
-        
-        # Let Firestore auto-generate the document ID
-        new_post_ref = posts_ref.document()
+
+        post_data.update({
+            "userId": current_user_id,
+            "firstName": user_data.get("firstName", "Unknown"),
+            "lastName": user_data.get("lastName", "User"),
+            "profilePicUrl": user_data.get("profilePicUrl"),
+            "createdAt": now,
+            "updatedAt": now,
+            "edited": False,
+            "likedBy": []
+        })
+
+        new_post_ref = db.collection(COLLECTION_NAME).document()
         post_data["postId"] = new_post_ref.id
-        
-        # Save to Firestore
         new_post_ref.set(post_data)
         
-        # Return the created post with computed fields
-        post_data["likes"] = 0
-        return PostResponse(**post_data)
+        return PostResponse(**add_computed_fields(post_data, current_user_id))
         
     except HTTPException:
         # Re-raise HTTP exceptions

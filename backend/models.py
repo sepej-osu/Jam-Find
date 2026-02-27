@@ -21,10 +21,11 @@ class PostType(str, Enum):
 class Location(BaseModel):
     """Model for location data, used in both profiles and posts. Includes geocoding fields."""
     place_id: Optional[str] = Field(default=None, alias="placeId", description="Google Place ID for the location, used for geocoding and reverse geocoding")
-    formatted_address: str = Field(..., alias="formattedAddress", description="Formatted address of the location")
-    lat: float = Field(..., alias="lat", description="Latitude of the location")
-    lng: float = Field(..., alias="lng", description="Longitude of the location")
-    geohash: str = Field(..., alias="geohash", description="Geohash of the location for efficient querying")
+    formatted_address: Optional[str] = Field(default=None, alias="formattedAddress", description="Formatted address of the location")
+    lat: Optional[float] = Field(default=None, alias="lat", description="Latitude of the location")
+    lng: Optional[float] = Field(default=None, alias="lng", description="Longitude of the location")
+    geohash: Optional[str] = Field(default=None, alias="geohash", description="Geohash of the location for efficient querying")
+    zip_code: Optional[str] = Field(default=None, alias="zipCode", description="Zip code for the location, used for resolving location from zip code")
     model_config = ConfigDict(populate_by_name = True)
 
 class Instrument(BaseModel):
@@ -117,6 +118,9 @@ class PostResponse(PostBase):
     """Response model for posts, includes additional fields like post_id, user_id, likes count, and timestamps."""
     post_id: str = Field(..., alias="postId", description="Unique identifier for the post")
     user_id: str = Field(..., alias="userId", description="Firebase Auth UID of the post creator")
+    first_name: str = Field(..., alias="firstName", description="First name of the post creator")
+    last_name: str = Field(..., alias="lastName", description="Last name of the post creator")
+    profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the post creator's profile picture")
     liked_by: Optional[List[str]] = Field(default_factory=list, exclude=True, alias="likedBy", description="List of user IDs who liked the post")  # Exclude from API response for privacy
     likes: int = Field(..., alias="likes", description="Computed from liked_by array length")
     liked_by_current_user: bool = Field(default=False, alias="likedByCurrentUser", description="Whether the current user has liked this post")

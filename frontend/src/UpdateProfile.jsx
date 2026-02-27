@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { Box, Center, Button, Heading, VStack } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, Field, Input } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -153,6 +153,17 @@ return (
                 required
               />
 
+              <Field.Root>
+                <Field.Label>Zipcode</Field.Label>
+                <Input 
+                  placeholder="Enter Zipcode"
+                  required 
+                  name="zipCode"
+                  value={formData.location?.zipCode || ''}
+                  onChange={(e) => setFormData({ ...formData, location: { ...formData.location, zipCode: e.target.value } })}
+                />
+              </Field.Root>
+
               <InputField
                 label="Bio"
                 name="bio"
@@ -161,8 +172,6 @@ return (
                 onChange={handleChange}
                 maxLength={500}
               />
-
-              {/* TODO: add input field for location here. */}
 
               <InputField
                 label="Years of Experience"
