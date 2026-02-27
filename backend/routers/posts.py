@@ -19,9 +19,9 @@ def add_computed_fields(post_data: dict, current_user_id: str = None) -> dict:
     
     # Check if current user has liked this post
     if current_user_id:
-        post_data["liked_by_current_user"] = current_user_id in post_data.get("likedBy", [])
+        post_data["likedByCurrentUser"] = current_user_id in post_data.get("likedBy", [])
     else:
-        post_data["liked_by_current_user"] = False
+        post_data["likedByCurrentUser"] = False
     
     return post_data
 
@@ -40,8 +40,8 @@ async def create_post(
         now = datetime.now(timezone.utc)
         post_data = post.model_dump(by_alias=True)
         post_data["userId"] = current_user_id
-        post_data["created_at"] = now
-        post_data["updated_at"] = now
+        post_data["createdAt"] = now
+        post_data["updatedAt"] = now
         post_data["edited"] = False
         post_data["likedBy"] = []
 
@@ -53,7 +53,7 @@ async def create_post(
         
         # Let Firestore auto-generate the document ID
         new_post_ref = posts_ref.document()
-        post_data["post_id"] = new_post_ref.id
+        post_data["postId"] = new_post_ref.id
         
         # Save to Firestore
         new_post_ref.set(post_data)
@@ -129,7 +129,7 @@ async def update_post(
         if not post_doc.exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Post not found with post_id: {post_id}"
+                detail=f"Post not found with postId: {post_id}"
             )
         existing_data = post_doc.to_dict()
         
@@ -138,8 +138,8 @@ async def update_post(
         
         update_data = post_update.model_dump(exclude_unset=True, by_alias=True)
 
-        # Add updated_at timestamp and mark as edited
-        update_data["updated_at"] = datetime.now(timezone.utc)
+        # Add updatedAt timestamp and mark as edited
+        update_data["updatedAt"] = datetime.now(timezone.utc)
         update_data["edited"] = True  # Mark post as edited
 
         loc = update_data.get("location")
@@ -184,7 +184,7 @@ async def delete_post(
         if not post_doc.exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Post not found with post_id: {post_id}"
+                detail=f"Post not found with postId: {post_id}"
             )
         
         post_data = post_doc.to_dict()
@@ -230,16 +230,16 @@ async def list_posts(
         
         # Filter by user_id if provided
         if user_id:
-            query = posts_ref.where(filter=FieldFilter("userId", "==", user_id)).order_by("created_at").limit(limit)
+            query = posts_ref.where(filter=FieldFilter("userId", "==", user_id)).order_by("createdAt").limit(limit)
         else:
-            query = posts_ref.order_by("created_at").limit(limit)
+            query = posts_ref.order_by("createdAt").limit(limit)
         
         if start_after:
             start_doc = posts_ref.document(start_after).get()
             if not start_doc.exists:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"start_after post_id {start_after} does not exist"
+                    detail=f"startAfter postId {start_after} does not exist"
                 )
             query = query.start_after(start_doc)
         post_docs = query.stream()

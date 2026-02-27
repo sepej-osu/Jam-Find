@@ -293,7 +293,7 @@ function Post() {
         <Separator mb={4} />
         
         <Flex justify="space-between" fontSize="sm" color="gray.500">
-          <Text>{new Date(post.created_at).toLocaleDateString()}</Text>
+          <Text>{new Date(post.createdAt).toLocaleDateString()}</Text>
           {post.edited && <Text>(edited)</Text>}
         </Flex>
       </Box>

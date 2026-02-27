@@ -108,9 +108,9 @@ def test_list_all_posts():
     assert isinstance(data, list)
     assert len(data) >= 2  # Should have at least our 2 test posts
 
-@pytest.mark.skip(reason="Requires Firebase composite index (userId + created_at). Create it by clicking the link in the error or remove this skip.")
+@pytest.mark.skip(reason="Requires Firebase composite index (userId + createdAt). Create it by clicking the link in the error or remove this skip.")
 def test_list_posts_by_user():
-    """List posts filtered by user_id"""
+    """List posts filtered by userId"""
     response = client.get(
         f"/api/v1/posts?user_id={settings.DEV_USER_ID}"
     )

@@ -34,13 +34,19 @@ def test_create_profile():
     response = client.post(
         "/api/v1/profiles",
         json={
-            "user_id": settings.DEV_USER_ID,
+            "userId": settings.DEV_USER_ID,
             "firstName": "Test",
             "lastName": "User",
             "birthDate": "1990-01-01T00:00:00Z",
             "email": "test@example.com",
             "bio": "Guitarist",
-            "gender": "male"
+            "gender": "male",
+            "location": {
+                "formattedAddress": "New York, NY",
+                "lat": 40.7128,
+                "lng": -74.0060,
+                "geohash": "dr5ru"
+            }
         }
     )
     print(f"Status: {response.status_code}")

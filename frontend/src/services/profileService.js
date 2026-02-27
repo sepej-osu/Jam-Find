@@ -50,7 +50,7 @@ const profileService = {
       const token = await user.getIdToken();
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles/${userId}`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

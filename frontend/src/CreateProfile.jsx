@@ -69,7 +69,7 @@ const handleSubmit = async (e) => {
     }));
 
     const payload = {
-      user_id: user.uid,
+      userId: user.uid,
       email: user.email,
       firstName: formData.firstName,
       lastName: formData.lastName,

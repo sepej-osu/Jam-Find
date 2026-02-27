@@ -37,20 +37,24 @@ class ProfileBase(BaseModel):
     """Base model for user profiles, used for both creation and response. Includes common fields and validation."""
     first_name: str = Field(..., alias="firstName", description="User's first name")
     last_name: str = Field(..., alias="lastName", description="User's last name")
-    birth_date: datetime = Field(..., alias="birthDate", description="User's birth date")
-    gender: Gender = Field(..., alias="gender", description="Gender of the user")
-    email: EmailStr = Field(..., alias="email", description="User's email address")
+    birth_date: Optional[datetime] = Field(default=None, alias="birthDate", description="User's birth date")
+    gender: Optional[Gender] = Field(default=None, alias="gender", description="Gender of the user")
     bio: Optional[str] = Field(default=None, max_length=500, alias="bio", description="Short biography or description for the user's profile")
     experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears", description="Number of years of musical experience")
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, lng, and geohash")
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
     instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with experience level")
     genres: Optional[List[str]] = Field(default_factory=list, alias="genres", description="List of music genres associated with the profile")
-    model_config = ConfigDict(populate_by_name = True)
+    model_config = ConfigDict(
+        populate_by_name = True,
+        from_attributes = True,
+        extra = "ignore"
+    )
 
 class ProfileCreate(ProfileBase):
     """Model for creating a new profile. Inherits from ProfileBase and adds user_id field."""
     user_id: str = Field(..., alias="userId", description="Firebase Auth UID")
+    email: EmailStr = Field(..., alias="email", description="User's email address")
 
 
 class ProfileUpdate(BaseModel):
@@ -71,11 +75,12 @@ class ProfileUpdate(BaseModel):
 class ProfileResponse(ProfileBase):
     """Response model for user profiles, includes additional fields like user_id and timestamps. Inherits from ProfileBase."""
     user_id: str = Field(..., alias="userId", description="Firebase Auth UID")
-    created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the profile was created")
-    updated_at: datetime = Field(..., alias="updatedAt", description="Timestamp of when the profile was last updated")
+    created_at: Optional[datetime] = Field(default=None, alias="createdAt")
+    updated_at: Optional[datetime] = Field(default=None, alias="updatedAt")
     model_config = ConfigDict(
         from_attributes = True,
-        populate_by_name = True
+        populate_by_name = True,
+        extra = "ignore"
     )
 
 class PostBase(BaseModel):

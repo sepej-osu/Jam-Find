@@ -50,7 +50,8 @@ function Register() {
       placeId: '',
       formattedAddress: '',
       lat: 0,
-      lng: 0
+      lng: 0,
+      geohash: ''
     }, profilePicUrl: ''
   });
 
@@ -165,11 +166,11 @@ const handleStep2Submit = async (e) => {
     }));
 
     const payload = {
-      user_id: user.uid,
+      userId: user.uid,
       email: user.email,
       firstName: formData.firstName,
       lastName: formData.lastName,
-      birthDate: formData.birthDate,
+      birthDate:new Date(formData.birthDate).toISOString(),
       gender: formData.gender,
       bio: formData.bio,
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
@@ -350,7 +351,12 @@ const handleStep2Submit = async (e) => {
                   value={formData.gender}
                   onChange={handleChange}
                   required
-                />
+                >
+                  <option value="">Select Gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="non-binary">Non-binary</option>
+                </InputField>
 
                 <InputField
                   label="Bio"
