@@ -147,7 +147,18 @@ const postService = {
         }
       });
 
-      if (!response.ok) throw new Error('Failed to toggle like');
+      if (!response.ok) {
+        let errorMessage = 'Failed to toggle like';
+        try {
+          const errorData = await response.json();
+          if (errorData && typeof errorData === 'object' && errorData.detail) {
+            errorMessage = errorData.detail;
+          }
+        } catch (e) {
+          // If parsing the error response fails, fall back to the default message.
+        }
+        throw new Error(errorMessage);
+      }
       return await response.json(); // Returns LikeResponse object
     } catch (error) {
       console.error('Toggle like error:', error);
