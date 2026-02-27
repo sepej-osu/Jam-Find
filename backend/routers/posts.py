@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from datetime import datetime, timezone
 from models import PostCreate, PostUpdate, PostResponse
@@ -215,8 +215,8 @@ async def delete_post(
 @router.get("/posts", response_model=List[PostResponse])
 async def list_posts(
     limit: int = 10,
-    start_after: Optional[str] = None,
-    user_id: Optional[str] = None,
+    start_after: Optional[str] = Query(None, alias="startAfter"),
+    user_id: Optional[str] = Query(None, alias="userId"),
     current_user_id: str = Depends(get_current_user)
 ):
     """List all posts (paginated) sorted by creation date.
