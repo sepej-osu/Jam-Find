@@ -351,12 +351,13 @@ const handleStep2Submit = async (e) => {
                   value={formData.gender}
                   onChange={handleChange}
                   required
-                >
-                  <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="non-binary">Non-binary</option>
-                </InputField>
+                  selectOptions={[
+                    { value: '', label: 'Select Gender' },
+                    { value: 'male', label: 'Male' },
+                    { value: 'female', label: 'Female' },
+                    { value: 'non-binary', label: 'Non-binary' },
+                  ]}
+                />
 
                 <InputField
                   label="Bio"
