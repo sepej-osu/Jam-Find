@@ -50,8 +50,8 @@ const postService = {
       const token = await user.getIdToken();
 
       const params = new URLSearchParams({ limit: limit.toString() });
-      if (startAfter) params.append('startAfter', startAfter);
-      if (userId) params.append('userId', userId);
+      if (startAfter) params.append('start_after', startAfter);
+      if (userId) params.append('user_id', userId);
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts?${params}`, {
         method: 'GET',
