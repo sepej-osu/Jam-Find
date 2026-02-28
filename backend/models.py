@@ -26,7 +26,7 @@ class InstrumentType(str, Enum):
     PIANO = "piano"
     KEYBOARD = "keyboard"
     VOCALS = "vocals"
-    DJ_PRODUCTION = "dj_Production"
+    DJ_PRODUCTION = "dj_production"
     TRUMPET = "trumpet"
     SAXOPHONE = "saxophone"
     OTHER = "other"
