@@ -219,7 +219,15 @@ async def list_posts(
     last_doc_id: Optional[str] = Query(None),
     # Filters
     post_type: Optional[List[PostType]] = Query(None),
-    instruments: Optional[List[str]] = Query(None, description="Format: 'InstrumentName:SkillLevel' (e.g. 'drums:3')"),
+    instruments: Optional[List[str]] = Query(
+        None,
+        description=(
+            "Format per entry: 'instrument-slug:min[:max]' "
+            "(e.g. 'drums:3' or 'guitar:2:5'). The part before the colon is "
+            "an instrument slug, not a display name. If max is omitted, it "
+            "defaults to 5."
+        ),
+    ),
     instrument_mode: str = Query("any", pattern="^(any|all)$"),
     genres: Optional[List[GenreType]] = Query(None),
     genre_mode: str = Query("any", pattern="^(any|all)$"),
