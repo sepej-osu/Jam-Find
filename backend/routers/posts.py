@@ -228,21 +228,32 @@ async def list_posts(
     # Sorting
     sort_by: str = Query("createdAt", regex="^(createdAt|likes)$"),
     sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    # User
+    user_id: str = Query(None, description="Filter posts by a specific user ID"),
     current_user_id: str = Depends(get_current_user)
 ):
 
-    # Get the instrument requirements
+    # Parse instrument requirements: {"electric_guitar": (2, 4)}
+    # This allows for min/max skill level filter per instrument.
+    # If max is not provided, we assume 5. If skill level is not provided, we assume 1.
     instrument_requirements = {}
     if instruments:
         for item in instruments:
-            if ":" in item:
-                slug, level_str = item.split(":", 1)
+            parts = item.split(":")
+            slug = parts[0].lower()
+            
+            if len(parts) == 3: # Format 'slug:min:max'
                 try:
-                    instrument_requirements[slug.lower()] = int(level_str)
+                    instrument_requirements[slug] = (int(parts[1]), int(parts[2]))
                 except ValueError:
-                    instrument_requirements[slug.lower()] = 1
+                    instrument_requirements[slug] = (1, 5)
+            elif len(parts) == 2: # Format 'slug:min' (default max to 5)
+                try:
+                    instrument_requirements[slug] = (int(parts[1]), 5)
+                except ValueError:
+                    instrument_requirements[slug] = (1, 5)
             else:
-                instrument_requirements[item.lower()] = 1
+                instrument_requirements[slug] = (1, 5)
 
     # Post Type requirments (only 1)
     if post_type and len(post_type) > 1:
@@ -265,6 +276,8 @@ async def list_posts(
             posts_ref = db.collection(COLLECTION_NAME)
             query = posts_ref
 
+            if user_id:
+                query = query.where(filter=FieldFilter("userId", "==", user_id))
             if post_type:
                 query = query.where(filter=FieldFilter("postType", "==", post_type[0]))
             if genres:
@@ -312,16 +325,19 @@ async def list_posts(
 
                 # Instruments & Skill Check
                 if instrument_requirements:
-                    post_instr_data = data.get("instruments", [])
+                    post_instrument_data = data.get("instruments", [])
                     matches = []
                     
-                    for req_slug, req_level in instrument_requirements.items():
-                        for p_inst in post_instr_data:
-                            # We compare slugs to slugs and ints to ints
-                            # Matches 'electric_guitar' == 'electric_guitar'
-                            if p_inst.get("name") == req_slug and p_inst.get("skillLevel", 1) >= req_level:
-                                matches.append(req_slug)
-                                break 
+                    for instrument, (min_lvl, max_lvl) in instrument_requirements.items():
+                        for post_instrument in post_instrument_data: # Iterate through post's instruments to find a match
+                            # Get DB values
+                            post_instrument_name = post_instrument.get("name") # Make sure it's in slug format in DB
+                            post_instrument_skill = int(post_instrument.get("skillLevel", 1))
+                            
+                            # Check if name matches AND skill is within [min, max]
+                            if post_instrument_name == instrument and min_lvl <= post_instrument_skill <= max_lvl:
+                                matches.append(instrument)
+                                break
 
                     if instrument_mode == "any":
                         if not matches:
@@ -339,9 +355,16 @@ async def list_posts(
                 data["postId"] = doc.id
                 results.append(add_computed_fields(data, current_user_id))
 
+        # Calculate the token
+        # We only provide a token if we successfully filled a whole page.
+        # If results < limit, it means we hit the end of the collection.
+        pagination_token = None
+        if len(results) == limit:
+            pagination_token = current_last_id
+
         return {
             "posts": results,
-            "nextPageToken": current_last_id if len(results) >= limit else None
+            "nextPageToken": pagination_token
         }
 
     except gcp_exceptions.GoogleCloudError as e:
