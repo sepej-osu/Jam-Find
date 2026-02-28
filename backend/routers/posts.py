@@ -229,7 +229,7 @@ async def list_posts(
     sort_by: str = Query("createdAt", pattern="^(createdAt|likes)$"),
     sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # User
-    user_id: str = Query(None, description="Filter posts by a specific user ID"),
+    user_id: Optional[str] = Query(None, description="Filter posts by a specific user ID"),
     current_user_id: str = Depends(get_current_user)
 ):
 
