@@ -20,49 +20,49 @@ class PostType(str, Enum):
 
 class InstrumentType(str, Enum):
     """To validate instrument field."""
-    ELECTRIC_GUITAR = "Electric Guitar"
-    ACOUSTIC_GUITAR = "Acoustic Guitar"
-    ELECTRIC_BASS = "Electric Bass"
-    DRUMS = "Drums"
-    PIANO = "Piano"
-    KEYBOARD = "Keyboard"
-    VOCALS = "Vocals"
-    DJ_PRODUCTION = "DJ/Production"
-    TRUMPET = "Trumpet"
-    SAXOPHONE = "Saxophone"
-    OTHER = "Other"
+    ELECTRIC_GUITAR = "electric_guitar"
+    ACOUSTIC_GUITAR = "acoustic_guitar"
+    ELECTRIC_BASS = "electric_bass"
+    DRUMS = "drums"
+    PIANO = "piano"
+    KEYBOARD = "keyboard"
+    VOCALS = "vocals"
+    DJ_PRODUCTION = "dj_Production"
+    TRUMPET = "trumpet"
+    SAXOPHONE = "saxophone"
+    OTHER = "other"
 
 class Instrument(BaseModel):
-    """Model for musical instruments with experience level, used in profiles and posts."""
+    """Model for musical instruments with skill level, used in profiles and posts."""
     name: str = Field(..., alias="name", description="Name of the musical instrument")
-    experience_level: int = Field(..., ge=1, le=5, alias="experienceLevel", description="Experience level of the instrument from 1 to 5")
+    skill_level: int = Field(..., ge=1, le=5, alias="skillLevel", description="Skill level of the instrument from 1 to 5")
     model_config = ConfigDict(populate_by_name = True)
 
 class GenreType(str, Enum):
     """To validate genre field."""
-    ROCK = "Rock"
-    POP = "Pop"
-    JAZZ = "Jazz"
-    BLUES = "Blues"
-    COUNTRY = "Country"
-    RNB = "R&B"
-    HIP_HOP = "Hip Hop"
-    HARDCORE = "Hardcore"
-    ELECTRONIC = "Electronic"
-    CLASSICAL = "Classical"
-    METAL = "Metal"
-    DEATH_METAL = "Death Metal"
-    FOLK = "Folk"
-    REGGAE = "Reggae"
-    PUNK = "Punk"
-    INDIE = "Indie"
-    SOUL = "Soul"
-    FUNK = "Funk"
-    LATIN = "Latin"
-    ALTERNATIVE = "Alternative"
-    GOSPEL = "Gospel"
-    EXPERIMENTAL = "Experimental"
-    OTHER = "Other"
+    ROCK = "rock"
+    POP = "pop"
+    JAZZ = "jazz"
+    BLUES = "blues"
+    COUNTRY = "country"
+    RNB = "r_b"
+    HIP_HOP = "hip_hop"
+    HARDCORE = "hardcore"
+    ELECTRONIC = "electronic"
+    CLASSICAL = "classical"
+    METAL = "metal"
+    DEATH_METAL = "death_metal"
+    FOLK = "folk"
+    REGGAE = "reggae"
+    PUNK = "punk"
+    INDIE = "indie"
+    SOUL = "soul"
+    FUNK = "funk"
+    LATIN = "latin"
+    ALTERNATIVE = "alternative"
+    GOSPEL = "gospel"
+    EXPERIMENTAL = "experimental"
+    OTHER = "other"
 
 class Location(BaseModel):
     """Model for location data, used in both profiles and posts. Includes geocoding fields."""
@@ -108,7 +108,7 @@ class ProfileUpdate(BaseModel):
     experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears", description="Number of years of musical experience")
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, lng, and geohash")
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
-    instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments", description="List of instruments with experience level")
+    instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default=None, alias="genres", description="List of music genres associated with the profile")
     model_config = ConfigDict(populate_by_name = True)
 
