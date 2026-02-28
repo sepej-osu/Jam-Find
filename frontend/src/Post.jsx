@@ -11,7 +11,7 @@ import {
   Alert,
   Avatar,
   IconButton,
-  Separator,
+  Separator
 } from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
 import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';

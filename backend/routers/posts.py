@@ -1,10 +1,11 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from datetime import datetime, timezone
-from models import PostCreate, PostUpdate, PostResponse
+from models import PostCreate, PostUpdate, PostResponse, PaginatedPostsResponse
 from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
+from google.cloud import firestore
 from auth import get_current_user, verify_user_access
 from utils.location import resolve_location_from_zip
 
@@ -212,46 +213,43 @@ async def delete_post(
             detail=f"An error occurred while deleting post: {str(e)}"
         )
 
-@router.get("/posts", response_model=List[PostResponse])
+@router.get("/posts", response_model=PaginatedPostsResponse)
 async def list_posts(
     limit: int = 10,
-    start_after: Optional[str] = Query(None, alias="startAfter"),
-    user_id: Optional[str] = Query(None, alias="userId"),
+    last_doc_id: Optional[str] = Query(None),
     current_user_id: str = Depends(get_current_user)
 ):
-    """List all posts (paginated) sorted by creation date.
-    
-    Args:
-        limit: Maximum number of posts to return (default: 10)
-        start_after: Post ID to start after for pagination
-        user_id: Optional filter to get posts only from a specific user
-    """
-    # TODO: Add more filtering options in the future (post_type, location, instruments, genres)
-
+    """List all posts (paginated) sorted by creation date."""
     try:
         db = get_db()
         posts_ref = db.collection(COLLECTION_NAME)
         
-        # Filter by user_id if provided
-        if user_id:
-            query = posts_ref.where(filter=FieldFilter("userId", "==", user_id)).order_by("createdAt").limit(limit)
-        else:
-            query = posts_ref.order_by("createdAt").limit(limit)
+        query = posts_ref.order_by("createdAt", direction=firestore.Query.DESCENDING).limit(limit)
+
+        if last_doc_id:
+            last_doc_snapshot = posts_ref.document(last_doc_id).get()
+            if last_doc_snapshot.exists:
+                query = query.start_after(last_doc_snapshot)
+
+        docs = query.stream()
         
-        if start_after:
-            start_doc = posts_ref.document(start_after).get()
-            if not start_doc.exists:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"startAfter postId {start_after} does not exist"
-                )
-            query = query.start_after(start_doc)
-        post_docs = query.stream()
-        posts = [PostResponse(**add_computed_fields(doc.to_dict(), current_user_id)) for doc in post_docs]
-        return posts
-    except HTTPException:
-        # Re-raise HTTP exceptions
-        raise
+        results = []
+        new_last_doc_id = None
+        
+        for doc in docs:
+            post_data = doc.to_dict()
+            post_data["postId"] = doc.id
+            
+            processed_post = add_computed_fields(post_data, current_user_id)
+            results.append(processed_post)
+            
+            new_last_doc_id = doc.id
+
+        return {
+            "posts": results,
+            "nextPageToken": new_last_doc_id
+        }
+
     except gcp_exceptions.GoogleCloudError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

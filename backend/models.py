@@ -143,3 +143,12 @@ class LikeResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name = True
     )
+
+class PaginatedPostsResponse(BaseModel):
+    """Response model for paginated list of posts"""
+    posts: List[PostResponse] = Field(..., alias="posts", description="List of posts for the current page")
+    next_page_token: Optional[str] = Field(default=None, alias="nextPageToken", description="Token to retrieve the next page of results, if any")
+    
+    model_config = ConfigDict(
+        populate_by_name = True
+    )
