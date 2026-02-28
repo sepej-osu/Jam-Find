@@ -37,7 +37,7 @@ function UpdateProfile() {
     // For instruments, we convert the array of { name, skillLevel } to an object for easier form handling
     selectedInstruments: Object.fromEntries(
     profile?.instruments?.map(instrument => [instrument.name, instrument.skillLevel]) || []
-    ) || {},  // This will create an object like { "Electric Guitar": "Intermediate", "Drums": "Beginner" }
+    ) || {},  // This will create an object like { electric_guitar: 3, drums: 1 }
     selectedGenres: profile?.genres || [], 
     location: profile?.location || {
       placeId: '',
