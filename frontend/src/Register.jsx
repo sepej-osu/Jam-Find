@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
-import { Box, Center, Button, Heading, VStack, Progress, Text } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, Progress, Text, Input, Field} from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
 
 import { Link as ChakraLink } from '@chakra-ui/react';
@@ -50,7 +50,8 @@ function Register() {
       placeId: '',
       formattedAddress: '',
       lat: 0,
-      lng: 0
+      lng: 0,
+      geohash: ''
     }, profilePicUrl: ''
   });
 
@@ -165,11 +166,11 @@ const handleStep2Submit = async (e) => {
     }));
 
     const payload = {
-      user_id: user.uid,
+      userId: user.uid,
       email: user.email,
       firstName: formData.firstName,
       lastName: formData.lastName,
-      birthDate: formData.birthDate,
+      birthDate:new Date(formData.birthDate).toISOString(),
       gender: formData.gender,
       bio: formData.bio,
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
@@ -350,7 +351,24 @@ const handleStep2Submit = async (e) => {
                   value={formData.gender}
                   onChange={handleChange}
                   required
+                  selectOptions={[
+                    { value: '', label: 'Select Gender' },
+                    { value: 'male', label: 'Male' },
+                    { value: 'female', label: 'Female' },
+                    { value: 'non-binary', label: 'Non-binary' },
+                  ]}
                 />
+
+                <Field.Root>
+                  <Field.Label>Zipcode</Field.Label>
+                  <Input 
+                    placeholder="Enter Zipcode"
+                    required 
+                    name="zipCode"
+                    value={formData.location?.zipCode || ''}
+                    onChange={(e) => setFormData({ ...formData, location: { ...formData.location, zipCode: e.target.value } })}
+                  />
+                </Field.Root>
 
                 <InputField
                   label="Bio"
@@ -360,8 +378,6 @@ const handleStep2Submit = async (e) => {
                   onChange={handleChange}
                   maxLength={500}
                 />
-
-                // TODO: add input field for location here.
 
                 <InputField
                   label="Years of Experience"

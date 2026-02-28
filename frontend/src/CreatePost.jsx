@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Center, Button, Heading, VStack} from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, Input, Field} from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -98,7 +98,7 @@ function CreatePost() {
         title: formData.title,
         body: formData.body,
         postType: formData.postType,
-        location: formData.location,
+        location: formData.location?.zipCode ? { zipCode: formData.location.zipCode } : null,
         instruments,
         genres: formData.selectedGenres,
         media: formData.media
@@ -181,7 +181,16 @@ function CreatePost() {
                 maxLength={1000}
               />
 
-              {/* TODO: add input field for location here. */}
+              <Field.Root>
+                <Field.Label>Zipcode</Field.Label>
+                <Input 
+                  placeholder="Enter Zipcode"
+                  required 
+                  name="zipCode"
+                  value={formData.location?.zipCode || ''}
+                  onChange={(e) => setFormData({ ...formData, location: { ...formData.location, zipCode: e.target.value } })}
+                />
+              </Field.Root>
 
               <InstrumentSelector
                 value={formData.selectedInstruments}

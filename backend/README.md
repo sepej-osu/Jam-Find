@@ -60,8 +60,8 @@ The API will be available at `http://localhost:8000`
 
 ### Profiles
 - `POST /api/v1/profiles` - Create a new profile
-- `GET /api/v1/profiles/{user_id}` - Get a profile by user_id
-- `PUT /api/v1/profiles/{user_id}` - Update a profile
+- `GET /api/v1/profiles/{user_id}` - Get a profile by userId
+- `PATCH /api/v1/profiles/{user_id}` - Update a profile
 - `DELETE /api/v1/profiles/{user_id}` - Delete a profile
 - `GET /api/v1/profiles` - List all profiles (paginated)
 

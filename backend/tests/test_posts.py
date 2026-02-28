@@ -49,7 +49,8 @@ def test_create_post():
             "location": {
                 "formattedAddress": "Los Angeles, CA",
                 "lat": 34.0522,
-                "lng": -118.2437
+                "lng": -118.2437,
+                "geohash": "9q5cs"
             }
         }
     )
@@ -107,9 +108,9 @@ def test_list_all_posts():
     assert isinstance(data, list)
     assert len(data) >= 2  # Should have at least our 2 test posts
 
-@pytest.mark.skip(reason="Requires Firebase composite index (userId + created_at). Create it by clicking the link in the error or remove this skip.")
+@pytest.mark.skip(reason="Requires Firebase composite index (userId + createdAt). Create it by clicking the link in the error or remove this skip.")
 def test_list_posts_by_user():
-    """List posts filtered by user_id"""
+    """List posts filtered by userId"""
     response = client.get(
         f"/api/v1/posts?user_id={settings.DEV_USER_ID}"
     )
@@ -134,7 +135,7 @@ def test_list_posts_with_pagination():
 def test_update_post():
     """Update the post"""
     assert created_post_id is not None, "Must run test_create_post first"
-    response = client.put(
+    response = client.patch(
         f"/api/v1/posts/{created_post_id}",
         json={
             "title": "Updated: Looking for a drummer",

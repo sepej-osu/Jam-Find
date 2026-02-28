@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from datetime import datetime, timezone
 from models import PostCreate, PostUpdate, PostResponse
@@ -19,9 +19,9 @@ def add_computed_fields(post_data: dict, current_user_id: str = None) -> dict:
     
     # Check if current user has liked this post
     if current_user_id:
-        post_data["liked_by_current_user"] = current_user_id in post_data.get("likedBy", [])
+        post_data["likedByCurrentUser"] = current_user_id in post_data.get("likedBy", [])
     else:
-        post_data["liked_by_current_user"] = False
+        post_data["likedByCurrentUser"] = False
     
     return post_data
 
@@ -32,35 +32,39 @@ async def create_post(
 ):
     """Create a new post"""
     try:
-        # Get database connection
         db = get_db()
-        posts_ref = db.collection(COLLECTION_NAME)
         
-        # Create post document with timestamps and auto-generated ID
-        now = datetime.now(timezone.utc)
         post_data = post.model_dump(by_alias=True)
-        post_data["userId"] = current_user_id
-        post_data["created_at"] = now
-        post_data["updated_at"] = now
-        post_data["edited"] = False
-        post_data["likedBy"] = []
+        now = datetime.now(timezone.utc)
 
-        loc = post_data.get("location")
-        if loc and loc.get("zipCode"):
-            resolved = await resolve_location_from_zip(loc["zipCode"])
+        user_doc = db.collection("profiles").document(current_user_id).get()
+        if not user_doc.exists:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        user_data = user_doc.to_dict()
+
+        loc_data = post_data.get("location")
+        if loc_data and loc_data.get("zipCode"):
+            resolved = await resolve_location_from_zip(loc_data["zipCode"])
             if resolved:
                 post_data["location"] = resolved.model_dump(by_alias=True)
-        
-        # Let Firestore auto-generate the document ID
-        new_post_ref = posts_ref.document()
-        post_data["post_id"] = new_post_ref.id
-        
-        # Save to Firestore
+
+        post_data.update({
+            "userId": current_user_id,
+            "firstName": user_data.get("firstName", "Unknown"),
+            "lastName": user_data.get("lastName", "User"),
+            "profilePicUrl": user_data.get("profilePicUrl"),
+            "createdAt": now,
+            "updatedAt": now,
+            "edited": False,
+            "likedBy": []
+        })
+
+        new_post_ref = db.collection(COLLECTION_NAME).document()
+        post_data["postId"] = new_post_ref.id
         new_post_ref.set(post_data)
         
-        # Return the created post with computed fields
-        post_data["likes"] = 0
-        return PostResponse(**post_data)
+        return PostResponse(**add_computed_fields(post_data, current_user_id))
         
     except HTTPException:
         # Re-raise HTTP exceptions
@@ -112,7 +116,7 @@ async def get_post(
         )
 
 
-@router.put("/posts/{post_id}", response_model=PostResponse)
+@router.patch("/posts/{post_id}", response_model=PostResponse)
 async def update_post(
     post_id: str,
     post_update: PostUpdate,
@@ -129,7 +133,7 @@ async def update_post(
         if not post_doc.exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Post not found with post_id: {post_id}"
+                detail=f"Post not found with postId: {post_id}"
             )
         existing_data = post_doc.to_dict()
         
@@ -138,8 +142,8 @@ async def update_post(
         
         update_data = post_update.model_dump(exclude_unset=True, by_alias=True)
 
-        # Add updated_at timestamp and mark as edited
-        update_data["updated_at"] = datetime.now(timezone.utc)
+        # Add updatedAt timestamp and mark as edited
+        update_data["updatedAt"] = datetime.now(timezone.utc)
         update_data["edited"] = True  # Mark post as edited
 
         loc = update_data.get("location")
@@ -184,7 +188,7 @@ async def delete_post(
         if not post_doc.exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Post not found with post_id: {post_id}"
+                detail=f"Post not found with postId: {post_id}"
             )
         
         post_data = post_doc.to_dict()
@@ -211,8 +215,8 @@ async def delete_post(
 @router.get("/posts", response_model=List[PostResponse])
 async def list_posts(
     limit: int = 10,
-    start_after: Optional[str] = None,
-    user_id: Optional[str] = None,
+    start_after: Optional[str] = Query(None, alias="startAfter"),
+    user_id: Optional[str] = Query(None, alias="userId"),
     current_user_id: str = Depends(get_current_user)
 ):
     """List all posts (paginated) sorted by creation date.
@@ -230,16 +234,16 @@ async def list_posts(
         
         # Filter by user_id if provided
         if user_id:
-            query = posts_ref.where(filter=FieldFilter("userId", "==", user_id)).order_by("created_at").limit(limit)
+            query = posts_ref.where(filter=FieldFilter("userId", "==", user_id)).order_by("createdAt").limit(limit)
         else:
-            query = posts_ref.order_by("created_at").limit(limit)
+            query = posts_ref.order_by("createdAt").limit(limit)
         
         if start_after:
             start_doc = posts_ref.document(start_after).get()
             if not start_doc.exists:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"start_after post_id {start_after} does not exist"
+                    detail=f"startAfter postId {start_after} does not exist"
                 )
             query = query.start_after(start_doc)
         post_docs = query.stream()

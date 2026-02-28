@@ -109,20 +109,34 @@ const postService = {
     }
   },
 
-  updatePost: async (postId, data) => {
-    // TODO: Implement the update post logic using the API endpoint for updating posts.
-  },
+  updatePost: async (postId, updateData) => {
+    try {
+      const user = auth.currentUser;
+      if (!user)
+        throw new Error('No user logged in');
+      const token = await user.getIdToken();
 
-  deletePost: async (postId) => {
-    // TODO: Implement the delete post logic using the API endpoint for deleting posts.
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts/${postId}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (!response.ok) throw new Error('Failed to update post');
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to update post:', error);
+      throw error;
+    }
   },
 
   toggleLike: async (postId) => {
     try {
       const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No user logged in');
-      }
+      if (!user) throw new Error('No user logged in');
       const token = await user.getIdToken();
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts/${postId}/like`, {
@@ -134,21 +148,41 @@ const postService = {
       });
 
       if (!response.ok) {
-        let errorMsg = 'Failed to toggle like';
+        let errorMessage = 'Failed to toggle like';
         try {
           const errorData = await response.json();
-          if (errorData?.detail) {
-            errorMsg = errorData.detail;
+          if (errorData && typeof errorData === 'object' && errorData.detail) {
+            errorMessage = errorData.detail;
           }
-        } catch (_) {
-          // Ignore JSON parsing errors
+        } catch (e) {
+          // If parsing the error response fails, fall back to the default message.
         }
-        throw new Error(errorMsg);
+        throw new Error(errorMessage);
       }
-
-      return await response.json();
+      return await response.json(); // Returns LikeResponse object
     } catch (error) {
-      console.error('Failed to toggle like:', error);
+      console.error('Toggle like error:', error);
+      throw error;
+    }
+  },
+
+  deletePost: async (postId) => {
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('No user logged in');
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts/${postId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error('Failed to delete post');
+      return true;
+    } catch (error) {
+      console.error('Failed to delete post:', error);
       throw error;
     }
   }

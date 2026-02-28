@@ -96,7 +96,7 @@ function App() {
       />
 
       <Route
-        path="/post/:postId"
+        path="/posts/:postId"
         element={
           (currentUser && hasProfile) ? <Post /> : <Navigate to="/login" replace />
         }

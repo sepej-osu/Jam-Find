@@ -14,7 +14,7 @@ import {
   Progress,
   VStack,
   Spinner,
-  Alert,
+  Alert
 } from '@chakra-ui/react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { IoMusicalNotes } from 'react-icons/io5';
