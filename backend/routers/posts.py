@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional, Tuple
 from datetime import datetime, timezone
-from models import PostCreate, PostUpdate, PostResponse, PaginatedPostsResponse
+from models import PostCreate, PostUpdate, PostResponse, PostType, PaginatedPostsResponse, GenreType, InstrumentType, Instrument
 from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
@@ -217,37 +217,131 @@ async def delete_post(
 async def list_posts(
     limit: int = 10,
     last_doc_id: Optional[str] = Query(None),
+    # Filters
+    post_type: Optional[List[PostType]] = Query(None),
+    instruments: Optional[List[str]] = Query(None, description="Format: 'InstrumentName:SkillLevel' (e.g. 'drums:3')"),
+    instrument_mode: str = Query("any", regex="^(any|all)$"),
+    genres: Optional[List[GenreType]] = Query(None),
+    genre_mode: str = Query("any", regex="^(any|all)$"),
+    # Location
+    nearby_geohash: Optional[str] = Query(None),
+    # Sorting
+    sort_by: str = Query("createdAt", regex="^(createdAt|likes)$"),
+    sort_order: str = Query("desc", regex="^(asc|desc)$"),
     current_user_id: str = Depends(get_current_user)
 ):
-    """List all posts (paginated) sorted by creation date."""
+
+    # Get the instrument requirements
+    instrument_requirements = {}
+    if instruments:
+        for item in instruments:
+            if ":" in item:
+                slug, level_str = item.split(":", 1)
+                try:
+                    instrument_requirements[slug.lower()] = int(level_str)
+                except ValueError:
+                    instrument_requirements[slug.lower()] = 1
+            else:
+                instrument_requirements[item.lower()] = 1
+
+    # Post Type requirments (only 1)
+    if post_type and len(post_type) > 1:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only one post_type can be filtered at a time."
+        )
+
     try:
         db = get_db()
-        posts_ref = db.collection(COLLECTION_NAME)
-        
-        query = posts_ref.order_by("createdAt", direction=firestore.Query.DESCENDING).limit(limit)
-
-        if last_doc_id:
-            last_doc_snapshot = posts_ref.document(last_doc_id).get()
-            if last_doc_snapshot.exists:
-                query = query.start_after(last_doc_snapshot)
-
-        docs = query.stream()
-        
         results = []
-        new_last_doc_id = None
+        current_last_id = last_doc_id
         
-        for doc in docs:
-            post_data = doc.to_dict()
-            post_data["postId"] = doc.id
+        # We fetch in slightly larger batches to minimize round-trips
+        # If too many posts are filtered out by the Python logic,
+        # we might return very few results and have to make many DB calls to fill a page
+        internal_fetch_limit = limit * 2
+
+        while len(results) < limit:
+            posts_ref = db.collection(COLLECTION_NAME)
+            query = posts_ref
+
+            if post_type:
+                query = query.where(filter=FieldFilter("postType", "==", post_type[0]))
+            if genres:
+                query = query.where(filter=FieldFilter("genres", "array_contains_any", genres))
+
+            # Sorting
+            direction = firestore.Query.ASCENDING if sort_order == "asc" else firestore.Query.DESCENDING
             
-            processed_post = add_computed_fields(post_data, current_user_id)
-            results.append(processed_post)
+            # Range
+            if nearby_geohash:
+                prefix = nearby_geohash[:4] # Using a shorter prefix for broader matches
+                end_prefix = prefix[:-1] + chr(ord(prefix[-1]) + 1) # Increment last char to get upper bound
+                query = query.where(filter=FieldFilter("location.geohash", ">=", prefix)) # Start of geohash range
+                query = query.where(filter=FieldFilter("location.geohash", "<", end_prefix)) # End of geohash range
+                query = query.order_by("location.geohash") # Order by geohash prefix
             
-            new_last_doc_id = doc.id
+            query = query.order_by(sort_by, direction=direction).limit(internal_fetch_limit)
+
+            # Pagination cursor for the current loop iteration
+            if current_last_id:
+                last_doc_snapshot = posts_ref.document(current_last_id).get()
+                if last_doc_snapshot.exists:
+                    query = query.start_after(last_doc_snapshot)
+                else:
+                    break # Cursor invalid or end of data
+
+            docs = list(query.stream())
+            if not docs:
+                break # No more documents in DB
+
+            for doc in docs:
+                if len(results) >= limit:
+                    break
+                
+                data = doc.to_dict()
+                current_last_id = doc.id # Update cursor to the very last doc inspected
+                
+                # FILTERS
+                
+                # Genre "All" Mode check
+                if genres and genre_mode == "all":
+                    post_genres = data.get("genres", [])
+                    if not all(g in post_genres for g in genres):
+                        continue
+
+                # Instruments & Skill Check
+                if instrument_requirements:
+                    post_instr_data = data.get("instruments", [])
+                    matches = []
+                    
+                    for req_slug, req_level in instrument_requirements.items():
+                        for p_inst in post_instr_data:
+                            # We compare slugs to slugs and ints to ints
+                            # Matches 'electric_guitar' == 'electric_guitar'
+                            if p_inst.get("name") == req_slug and p_inst.get("skillLevel", 1) >= req_level:
+                                matches.append(req_slug)
+                                break 
+
+                    if instrument_mode == "any":
+                        if not matches:
+                            continue
+                    else: # "all" mode
+                        if len(matches) < len(instrument_requirements):
+                            continue
+
+                # Data formatting
+                # Need to convert Firestore timestamps to ISO format for the API response
+                for field in ["createdAt", "updatedAt"]:
+                    if field in data and hasattr(data[field], "to_datetime"):
+                        data[field] = data[field].to_datetime()
+
+                data["postId"] = doc.id
+                results.append(add_computed_fields(data, current_user_id))
 
         return {
             "posts": results,
-            "nextPageToken": new_last_doc_id
+            "nextPageToken": current_last_id if len(results) >= limit else None
         }
 
     except gcp_exceptions.GoogleCloudError as e:
