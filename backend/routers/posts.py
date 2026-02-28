@@ -220,14 +220,14 @@ async def list_posts(
     # Filters
     post_type: Optional[List[PostType]] = Query(None),
     instruments: Optional[List[str]] = Query(None, description="Format: 'InstrumentName:SkillLevel' (e.g. 'drums:3')"),
-    instrument_mode: str = Query("any", regex="^(any|all)$"),
+    instrument_mode: str = Query("any", pattern="^(any|all)$"),
     genres: Optional[List[GenreType]] = Query(None),
-    genre_mode: str = Query("any", regex="^(any|all)$"),
+    genre_mode: str = Query("any", pattern="^(any|all)$"),
     # Location
     nearby_geohash: Optional[str] = Query(None),
     # Sorting
-    sort_by: str = Query("createdAt", regex="^(createdAt|likes)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("createdAt", pattern="^(createdAt|likes)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     # User
     user_id: str = Query(None, description="Filter posts by a specific user ID"),
     current_user_id: str = Depends(get_current_user)

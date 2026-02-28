@@ -44,7 +44,7 @@ def test_create_post():
             "postType": "looking_for_musicians",
             "genres": ["rock", "alternative"],
             "instruments": [
-                {"name": "drums", "experienceLevel": 3}
+                {"name": "drums", "skillLevel": 3}
             ],
             "location": {
                 "formattedAddress": "Los Angeles, CA",
@@ -105,32 +105,51 @@ def test_list_all_posts():
     print(f"Response: {response.text}")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) >= 2  # Should have at least our 2 test posts
+    assert isinstance(data, dict)
+    assert "posts" in data
+    assert len(data["posts"]) >= 2  # Should have at least our 2 test posts
 
-@pytest.mark.skip(reason="Requires Firebase composite index (userId + createdAt). Create it by clicking the link in the error or remove this skip.")
 def test_list_posts_by_user():
     """List posts filtered by userId"""
     response = client.get(
         f"/api/v1/posts?user_id={settings.DEV_USER_ID}"
     )
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text}")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    # All posts should belong to the test user
-    for post in data:
+    
+    assert isinstance(data, dict)
+    assert "posts" in data
+    
+    posts = data["posts"]
+    assert isinstance(posts, list)
+    
+    for post in posts:
         assert post["userId"] == settings.DEV_USER_ID
 
 def test_list_posts_with_pagination():
-    """Test pagination with limit"""
+    """Test pagination: Fetch page 1, get token, fetch page 2"""
+    
     response = client.get("/api/v1/posts?limit=1")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text}")
     assert response.status_code == 200
+    
     data = response.json()
-    assert len(data) == 1
+    
+    assert "posts" in data
+    assert len(data["posts"]) == 1
+    assert "nextPageToken" in data
+    
+    first_post_id = data["posts"][0]["postId"]
+    token = data["nextPageToken"]
+
+    assert token is not None, "Test requires at least 2 posts in the DB to verify tokens."
+    response_page_2 = client.get(f"/api/v1/posts?limit=1&last_doc_id={token}")
+    assert response_page_2.status_code == 200
+    
+    data_2 = response_page_2.json()
+    
+    assert len(data_2["posts"]) == 1
+    second_post_id = data_2["posts"][0]["postId"]
+    assert first_post_id != second_post_id
 
 def test_update_post():
     """Update the post"""
