@@ -18,6 +18,52 @@ class PostType(str, Enum):
     LOOKING_TO_JAM = "looking_to_jam"
     SHARING_MUSIC = "sharing_music"
 
+class InstrumentType(str, Enum):
+    """To validate instrument field."""
+    ELECTRIC_GUITAR = "Electric Guitar"
+    ACOUSTIC_GUITAR = "Acoustic Guitar"
+    ELECTRIC_BASS = "Electric Bass"
+    DRUMS = "Drums"
+    PIANO = "Piano"
+    KEYBOARD = "Keyboard"
+    VOCALS = "Vocals"
+    DJ_PRODUCTION = "DJ/Production"
+    TRUMPET = "Trumpet"
+    SAXOPHONE = "Saxophone"
+    OTHER = "Other"
+
+class Instrument(BaseModel):
+    """Model for musical instruments with experience level, used in profiles and posts."""
+    name: str = Field(..., alias="name", description="Name of the musical instrument")
+    experience_level: int = Field(..., ge=1, le=5, alias="experienceLevel", description="Experience level of the instrument from 1 to 5")
+    model_config = ConfigDict(populate_by_name = True)
+
+class GenreType(str, Enum):
+    """To validate genre field."""
+    ROCK = "Rock"
+    POP = "Pop"
+    JAZZ = "Jazz"
+    BLUES = "Blues"
+    COUNTRY = "Country"
+    RNB = "R&B"
+    HIP_HOP = "Hip Hop"
+    HARDCORE = "Hardcore"
+    ELECTRONIC = "Electronic"
+    CLASSICAL = "Classical"
+    METAL = "Metal"
+    DEATH_METAL = "Death Metal"
+    FOLK = "Folk"
+    REGGAE = "Reggae"
+    PUNK = "Punk"
+    INDIE = "Indie"
+    SOUL = "Soul"
+    FUNK = "Funk"
+    LATIN = "Latin"
+    ALTERNATIVE = "Alternative"
+    GOSPEL = "Gospel"
+    EXPERIMENTAL = "Experimental"
+    OTHER = "Other"
+
 class Location(BaseModel):
     """Model for location data, used in both profiles and posts. Includes geocoding fields."""
     place_id: Optional[str] = Field(default=None, alias="placeId", description="Google Place ID for the location, used for geocoding and reverse geocoding")
@@ -26,12 +72,6 @@ class Location(BaseModel):
     lng: Optional[float] = Field(default=None, alias="lng", description="Longitude of the location")
     geohash: Optional[str] = Field(default=None, alias="geohash", description="Geohash of the location for efficient querying")
     zip_code: Optional[str] = Field(default=None, alias="zipCode", description="Zip code for the location, used for resolving location from zip code")
-    model_config = ConfigDict(populate_by_name = True)
-
-class Instrument(BaseModel):
-    """Model for musical instruments with experience level, used in profiles and posts."""
-    name: str = Field(..., alias="name", description="Name of the musical instrument")
-    experience_level: int = Field(..., ge=1, le=5, alias="experienceLevel", description="Experience level of the instrument from 1 to 5")
     model_config = ConfigDict(populate_by_name = True)
 
 class ProfileBase(BaseModel):
