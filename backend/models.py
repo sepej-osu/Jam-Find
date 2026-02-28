@@ -3,7 +3,6 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 
-# Profile models
 class Gender(str, Enum):
     """To validate gender field."""
     MALE = "male"
@@ -45,7 +44,7 @@ class GenreType(str, Enum):
     JAZZ = "jazz"
     BLUES = "blues"
     COUNTRY = "country"
-    RNB = "r_b"
+    RNB = "r_n_b"
     HIP_HOP = "hip_hop"
     HARDCORE = "hardcore"
     ELECTRONIC = "electronic"
@@ -84,7 +83,7 @@ class ProfileBase(BaseModel):
     experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears", description="Number of years of musical experience")
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, lng, and geohash")
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
-    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with experience level")
+    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default_factory=list, alias="genres", description="List of music genres associated with the profile")
     model_config = ConfigDict(
         populate_by_name = True,

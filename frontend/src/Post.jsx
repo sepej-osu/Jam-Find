@@ -115,7 +115,7 @@ useEffect(() => {
     return iconMap[instrumentName] || IoMusicalNotes;
   };
 
-  const getExperienceColor = (level) => {
+  const getSkillColor = (level) => {
     const colorMap = {
       1: 'red',
       2: 'orange',
@@ -220,15 +220,15 @@ return (
                   </Flex>
                   <VStack align="stretch" gap={1}>
                     <Flex justify="space-between" align="center">
-                      <Text fontSize="sm" color="gray.600">Experience Level</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>
-                        {instrument.experienceLevel}/5
+                      <Text fontSize="sm" color="gray.600">Skill Level</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={`${getSkillColor(instrument.skillLevel)}.600`}>
+                        {instrument.skillLevel}/5
                       </Text>
                     </Flex>
                     <Progress.Root
-                      value={parseInt(instrument.experienceLevel * 20)}
+                      value={parseInt(instrument.skillLevel * 20)}
                       size="sm"
-                      colorPalette={getExperienceColor(instrument.experienceLevel)}
+                      colorPalette={getSkillColor(instrument.skillLevel)}
                       borderRadius="full">
                       <Progress.Track>
                         <Progress.Range />

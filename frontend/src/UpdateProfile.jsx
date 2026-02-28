@@ -34,9 +34,9 @@ function UpdateProfile() {
     birthDate: profile?.birthDate || '',
     experienceYears: profile?.experienceYears || '',
 
-    // For instruments, we convert the array of { name, experienceLevel } to an object for easier form handling
+    // For instruments, we convert the array of { name, skillLevel } to an object for easier form handling
     selectedInstruments: Object.fromEntries(
-    profile?.instruments?.map(instrument => [instrument.name, instrument.experienceLevel]) || []
+    profile?.instruments?.map(instrument => [instrument.name, instrument.skillLevel]) || []
     ) || {},  // This will create an object like { "Electric Guitar": "Intermediate", "Drums": "Beginner" }
     selectedGenres: profile?.genres || [], 
     location: profile?.location || {
@@ -61,9 +61,9 @@ const handleSubmit = async (e) => {
 
   try {
     // Convert selectedInstruments object back to an array for the API request
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+    const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
       name,
-      experienceLevel
+      skillLevel
     }));
 
     const payload = {
