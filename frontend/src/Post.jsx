@@ -100,17 +100,17 @@ useEffect(() => {
 
   const getInstrumentIcon = (instrumentName) => {
     const iconMap = {
-      'Electric Guitar': GiGuitarHead,
-      'Acoustic Guitar': FaGuitar,
-      'Electric Bass': GiGuitarBassHead,
-      'Drums': GiDrumKit,
-      'Piano': GiGrandPiano,
-      'Keyboard': GiMusicalKeyboard,
-      'Vocals': GiMicrophone,
-      'DJ/Production': GiMusicSpell,
-      'Trumpet': GiTrumpet,
-      'Saxophone': GiSaxophone,
-      'Other': IoMusicalNotes
+      'electric_guitar': GiGuitarHead,
+      'acoustic_guitar': FaGuitar,
+      'electric_bass': GiGuitarBassHead,
+      'drums': GiDrumKit,
+      'piano': GiGrandPiano,
+      'keyboard': GiMusicalKeyboard,
+      'vocals': GiMicrophone,
+      'dj_production': GiMusicSpell,
+      'trumpet': GiTrumpet,
+      'saxophone': GiSaxophone,
+      'other': IoMusicalNotes
     };
     return iconMap[instrumentName] || IoMusicalNotes;
   };
