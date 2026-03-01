@@ -13,14 +13,7 @@ import PasswordField from './components/PasswordField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 
-
-const GENRES = [
-  'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
-  'Hip Hop', 'Hardcore', 'Electronic', 'Classical', 'Metal',
-  'Death Metal', 'Folk', 'Reggae', 'Punk', 'Indie', 'Soul',
-  'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'Other'
-];
-
+import { GENDER_DISPLAY_NAMES } from './utils/mappings';
 
 function Register() {
   const navigate = useNavigate();
@@ -159,10 +152,10 @@ const handleStep2Submit = async (e) => {
     const user = userCredential.user;
     const token = await user.getIdToken();
     
-    // convert selectedInstruments object to array of { name, experienceLevel } for the API
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+    // convert selectedInstruments object to array of { name, skillLevel } for the API
+    const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
       name,
-      experienceLevel
+      skillLevel
     }));
 
     const payload = {
@@ -351,12 +344,7 @@ const handleStep2Submit = async (e) => {
                   value={formData.gender}
                   onChange={handleChange}
                   required
-                  selectOptions={[
-                    { value: '', label: 'Select Gender' },
-                    { value: 'male', label: 'Male' },
-                    { value: 'female', label: 'Female' },
-                    { value: 'non-binary', label: 'Non-binary' },
-                  ]}
+                  selectOptions={Object.entries(GENDER_DISPLAY_NAMES).map(([value, label]) => ({ value, label }))}
                 />
 
                 <Field.Root>
@@ -395,7 +383,6 @@ const handleStep2Submit = async (e) => {
                 <GenreSelector
                   value ={formData.selectedGenres}
                   onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-                  options={GENRES}
                   label="Select Your Preferred Genres"
                 />  
                 

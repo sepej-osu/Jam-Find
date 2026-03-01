@@ -17,24 +17,13 @@ import {
   Alert
 } from '@chakra-ui/react';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
-import { IoMusicalNotes } from 'react-icons/io5';
-import { FaGuitar, FaMapMarkerAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt } from 'react-icons/fa';
 import { CgPlayButtonO, CgProfile } from "react-icons/cg";
-import { 
-  GiGuitarHead, 
-  GiGuitarBassHead,
-  GiDrumKit,
-  GiGrandPiano,
-  GiMusicalKeyboard,
-  GiMicrophone,
-  GiMusicSpell,
-  GiTrumpet,
-  GiSaxophone
-} from 'react-icons/gi';
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import profileService from './services/profileService';
+import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, getInstrumentIcon, getSkillColor, GENDER_DISPLAY_NAMES } from './utils/mappings';
 
 function Profile() {
   const { userId } = useParams();
@@ -67,33 +56,7 @@ function Profile() {
     }
   }, [profileUserId]);
 
-  const getInstrumentIcon = (instrumentName) => {
-    const iconMap = {
-      'electric_guitar': GiGuitarHead,
-      'acoustic_guitar': FaGuitar,
-      'electric_bass': GiGuitarBassHead,
-      'drums': GiDrumKit,
-      'piano': GiGrandPiano,
-      'keyboard': GiMusicalKeyboard,
-      'vocals': GiMicrophone,
-      'dj_production': GiMusicSpell,
-      'trumpet': GiTrumpet,
-      'saxophone': GiSaxophone,
-      'other': IoMusicalNotes
-    };
-    return iconMap[instrumentName] || IoMusicalNotes;
-  };
 
-  const getSkillColor = (level) => {
-    const colorMap = {
-      1: 'red',
-      2: 'orange',
-      3: 'yellow',
-      4: 'teal',
-      5: 'green'
-    };
-    return colorMap[level] || 'gray';
-  };
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % items.length);
@@ -165,7 +128,7 @@ function Profile() {
         <Box mb={4}>
           <Heading size="lg">{profile?.firstName} {profile?.lastName}</Heading>
           <Text fontSize="sm" fontWeight="semibold" color="gray.600" mt={1}>
-            {profile?.gender && `${profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)} - `}
+            {profile?.gender ? GENDER_DISPLAY_NAMES[profile.gender] + ' - ' : 'No gender set - '}
             <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />
             {profile?.location?.formattedAddress || 'No location set'}
           </Text>
@@ -187,7 +150,7 @@ function Profile() {
                   >
                     <Flex align="center" mb={2}>
                       <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
-                      <Text fontSize="md" fontWeight="semibold">{instrument.name}</Text>
+                      <Text fontSize="md" fontWeight="semibold">{INSTRUMENT_DISPLAY_NAMES[instrument.name] ?? instrument.name}</Text>
                     </Flex>
                     <VStack align="stretch" gap={1}>
                       <Flex justify="space-between" align="center">
@@ -217,7 +180,7 @@ function Profile() {
               {profile?.genres?.length > 0 ? (
                 profile.genres.map((genre, index) => (
                   <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
-                    {genre}
+                    {GENRE_DISPLAY_NAMES[genre] ?? genre}
                   </Tag.Root>
                 ))
               ) : (

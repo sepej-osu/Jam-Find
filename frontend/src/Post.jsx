@@ -14,22 +14,12 @@ import {
   Separator
 } from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
-import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';
-import { IoMusicalNotes, IoHeart, IoHeartOutline } from 'react-icons/io5';
-import { 
-  GiGuitarHead, 
-  GiGuitarBassHead,
-  GiDrumKit,
-  GiGrandPiano,
-  GiMusicalKeyboard,
-  GiMicrophone,
-  GiMusicSpell,
-  GiTrumpet,
-  GiSaxophone
-} from 'react-icons/gi';
+import { FaMapMarkerAlt } from 'react-icons/fa';
+import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import postService from './services/postService';
+import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES, getInstrumentIcon, getSkillColor } from './utils/mappings';
 
 function Post() {
   const { postId } = useParams();
@@ -88,44 +78,6 @@ useEffect(() => {
     }
   };
 
-  const getPostTypeLabel = (type) => {
-    const typeMap = {
-      'looking_to_jam': 'Looking to Jam 🎶',
-      'looking_for_band': 'Looking for a Band 🎤',
-      'looking_for_musicians': 'Looking for Musicians 🎸',
-      'sharing_music': 'Sharing Music 🎵'
-    };
-    return typeMap[type] || type;
-  };
-
-  const getInstrumentIcon = (instrumentName) => {
-    const iconMap = {
-      'electric_guitar': GiGuitarHead,
-      'acoustic_guitar': FaGuitar,
-      'electric_bass': GiGuitarBassHead,
-      'drums': GiDrumKit,
-      'piano': GiGrandPiano,
-      'keyboard': GiMusicalKeyboard,
-      'vocals': GiMicrophone,
-      'dj_production': GiMusicSpell,
-      'trumpet': GiTrumpet,
-      'saxophone': GiSaxophone,
-      'other': IoMusicalNotes
-    };
-    return iconMap[instrumentName] || IoMusicalNotes;
-  };
-
-  const getSkillColor = (level) => {
-    const colorMap = {
-      1: 'red',
-      2: 'orange',
-      3: 'yellow',
-      4: 'teal',
-      5: 'green'
-    };
-    return colorMap[level] || 'gray';
-  };
-
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="100vh">
@@ -182,9 +134,12 @@ return (
           </Box>
         </Flex>
 
-        <Heading size="lg" mb={4}>{post.title}</Heading>
-
-        
+        <Heading size="lg" mb={2}>{post.title}</Heading>
+        {post.postType && (
+          <Tag.Root size="md" colorPalette="blue" variant="subtle" mb={4}>
+            {POST_TYPE_DISPLAY_NAMES[post.postType] ?? post.postType}
+          </Tag.Root>
+        )}
 
         {post.location?.formattedAddress && (
           <Flex align="center" mb={4} color="gray.600">
@@ -216,7 +171,7 @@ return (
                 >
                   <Flex align="center" mb={2}>
                     <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
-                    <Text fontSize="md" fontWeight="semibold">{instrument.name}</Text>
+                    <Text fontSize="md" fontWeight="semibold">{INSTRUMENT_DISPLAY_NAMES[instrument.name] ?? instrument.name}</Text>
                   </Flex>
                   <VStack align="stretch" gap={1}>
                     <Flex justify="space-between" align="center">
@@ -246,7 +201,7 @@ return (
             <Flex gap={2} flexWrap="wrap">
               {post.genres.map((genre, index) => (
                 <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
-                  {genre}
+                  {GENRE_DISPLAY_NAMES[genre] ?? genre}
                 </Tag.Root>
               ))}
             </Flex>

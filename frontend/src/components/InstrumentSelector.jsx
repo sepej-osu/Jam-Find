@@ -10,13 +10,7 @@ import {
   SimpleGrid,
   Button,
 } from '@chakra-ui/react';
-
-// List of available instruments 
-
-const INSTRUMENTS = [
-  'Electric Guitar', 'Acoustic Guitar', 'Electric Bass', 'Drums', 'Piano',
-  'Keyboard', 'Vocals', 'DJ/Production', 'Trumpet', 'Saxophone', 'Other'
-];
+import { INSTRUMENT_DISPLAY_NAMES } from '../utils/mappings';
 
 function InstrumentSelector({ value, onChange }) {
   // value is an object like: { 'Guitar': 3, 'Drums': 5 }
@@ -26,15 +20,11 @@ function InstrumentSelector({ value, onChange }) {
   const handleCheckboxChange = (instrument) => {
     const newValue = { ...value };
     
-    if (newValue[instrument]) {
-      // If already selected, remove it
+    if (newValue[instrument] !== undefined) {
       delete newValue[instrument];
     } else {
-      // If not selected, add it with default skill level 3
       newValue[instrument] = 3;
     }
-    
-    // Call the parent's onChange with the updated instruments
     onChange(newValue);
   };
 
@@ -62,20 +52,18 @@ function InstrumentSelector({ value, onChange }) {
         </Button>
       </Box>
       <SimpleGrid columns={2} gap={2}>
-        {INSTRUMENTS.map((instrument) => {
-          // Check if this instrument is currently selected
+        {Object.entries(INSTRUMENT_DISPLAY_NAMES).map(([instrument, label]) => {
           const isSelected = value[instrument] !== undefined;
           const skillLevel = value[instrument] || 3;
 
           return (
             <Box key={instrument} p={3} borderWidth="1px" borderRadius="md">
-              {/* Checkbox for selecting/deselecting instrument */}
               <Checkbox.Root
                 checked={isSelected}
                 onCheckedChange={() => handleCheckboxChange(instrument)}
-                mb={isSelected ? 1 : 0} // Add margin if slider will show
+                mb={isSelected ? 1 : 0}
               ><Checkbox.HiddenInput /><Checkbox.Control/><Checkbox.Label>
-                {instrument}
+                {label}
               </Checkbox.Label></Checkbox.Root>
               {/* Slider only shows when instrument is checked */}
               {isSelected && (
