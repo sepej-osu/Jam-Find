@@ -44,7 +44,7 @@ def test_create_post():
             "postType": "looking_for_musicians",
             "genres": ["rock", "alternative"],
             "instruments": [
-                {"name": "drums", "experienceLevel": 3}
+                {"name": "drums", "skillLevel": 3}
             ],
             "location": {
                 "formattedAddress": "Los Angeles, CA",
@@ -105,10 +105,15 @@ def test_list_all_posts():
     print(f"Response: {response.text}")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    assert len(data) >= 2  # Should have at least our 2 test posts
+    assert isinstance(data, dict)
+    assert "posts" in data
+    assert len(data["posts"]) >= 2  # Should have at least our 2 test posts
 
-@pytest.mark.skip(reason="Requires Firebase composite index (userId + createdAt). Create it by clicking the link in the error or remove this skip.")
+@pytest.mark.skip(
+    reason=(
+        "Requires a Firestore composite index on userId and createdAt for the test to pass."
+    )
+)
 def test_list_posts_by_user():
     """List posts filtered by userId"""
     response = client.get(
@@ -118,19 +123,106 @@ def test_list_posts_by_user():
     print(f"Response: {response.text}")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)
-    # All posts should belong to the test user
-    for post in data:
+    
+    assert isinstance(data, dict)
+    assert "posts" in data
+    
+    posts = data["posts"]
+    assert isinstance(posts, list)
+    
+    for post in posts:
         assert post["userId"] == settings.DEV_USER_ID
 
+# @pytest.mark.skip(
+#     reason=(
+#         "Requires a Firestore composite index on (location.geohash ASC, createdAt DESC). "
+#         "Create it at https://console.firebase.google.com or via the link "
+#         "in the Firestore error response before running this test. "
+#         "Alternatively, run against a Firestore emulator with indexes pre-configured."
+#     )
+# )
+def test_list_posts_by_geohash():
+    """Test that nearby_geohash only returns posts within the 4-char geohash prefix radius"""
+    # Create a nearby post (Los Angeles, geohash prefix "9q5c")
+    nearby_resp = client.post(
+        "/api/v1/posts",
+        json={
+            "title": "Geohash test: nearby (LA)",
+            "body": "This post should appear in a search centred on Los Angeles",
+            "postType": "looking_to_jam",
+            "location": {
+                "formattedAddress": "Los Angeles, CA",
+                "lat": 34.0522,
+                "lng": -118.2437,
+                "geohash": "9q5cs"
+            }
+        }
+    )
+    #print(f"Status: {nearby_resp.status_code}")
+    #print(f"Response: {nearby_resp.text}")
+    assert nearby_resp.status_code == 201
+    nearby_post_id = nearby_resp.json()["postId"]
+
+    # Create a far post (New York, geohash prefix "dr5r" — no overlap with "9q5c")
+    far_resp = client.post(
+        "/api/v1/posts",
+        json={
+            "title": "Geohash test: far (NYC)",
+            "body": "This post should NOT appear in a search centred on Los Angeles",
+            "postType": "looking_to_jam",
+            "location": {
+                "formattedAddress": "New York, NY",
+                "lat": 40.7128,
+                "lng": -74.0060,
+                "geohash": "dr5ru"
+            }
+        }
+    )
+    #print(f"Status: {far_resp.status_code}")
+    #print(f"Response: {far_resp.text}")
+    assert far_resp.status_code == 201
+    far_post_id = far_resp.json()["postId"]
+
+    try:
+        # Search with an LA geohash — prefix used by the query is "9q5c"
+        response = client.get("/api/v1/posts?nearby_geohash=9q5cs")
+        #print(f"Status: {response.status_code}")
+        #print(f"Response: {response.text}")
+        assert response.status_code == 200
+        returned_ids = [p["postId"] for p in response.json()["posts"]]
+
+        assert nearby_post_id in returned_ids, "Nearby (LA) post should be in results"
+        assert far_post_id not in returned_ids, "Far (NYC) post should not be in results"
+    finally:
+        # Always clean up, even if assertions fail
+        client.delete(f"/api/v1/posts/{nearby_post_id}")
+        client.delete(f"/api/v1/posts/{far_post_id}")
+
+
 def test_list_posts_with_pagination():
-    """Test pagination with limit"""
+    """Test pagination: Fetch page 1, get token, fetch page 2"""
+    
     response = client.get("/api/v1/posts?limit=1")
-    print(f"Status: {response.status_code}")
-    print(f"Response: {response.text}")
     assert response.status_code == 200
+    
     data = response.json()
-    assert len(data) == 1
+    
+    assert "posts" in data
+    assert len(data["posts"]) == 1
+    assert "nextPageToken" in data
+    
+    first_post_id = data["posts"][0]["postId"]
+    token = data["nextPageToken"]
+
+    assert token is not None, "Test requires at least 2 posts in the DB to verify tokens."
+    response_page_2 = client.get(f"/api/v1/posts?limit=1&last_doc_id={token}")
+    assert response_page_2.status_code == 200
+    
+    data_2 = response_page_2.json()
+    
+    assert len(data_2["posts"]) == 1
+    second_post_id = data_2["posts"][0]["postId"]
+    assert first_post_id != second_post_id
 
 def test_update_post():
     """Update the post"""
