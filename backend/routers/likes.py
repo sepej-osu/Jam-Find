@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from firebase_config import get_db
 from google.cloud import exceptions as gcp_exceptions
-from google.cloud.firestore import ArrayUnion, ArrayRemove
+from google.cloud.firestore import ArrayUnion, ArrayRemove, Increment
 from auth import get_current_user
 from models import LikeResponse
 
@@ -36,7 +36,8 @@ async def toggle_like_post(
         if current_user_id in liked_by:
             # Unlike: remove user from liked_by
             post_ref.update({
-                "likedBy": ArrayRemove([current_user_id])
+                "likedBy": ArrayRemove([current_user_id]),
+                "likes": Increment(-1)
             })
 
             return LikeResponse(
@@ -48,7 +49,8 @@ async def toggle_like_post(
         else:
             # Like: add user to liked_by
             post_ref.update({
-                "likedBy": ArrayUnion([current_user_id])
+                "likedBy": ArrayUnion([current_user_id]),
+                "likes": Increment(1)
             })
             
             return LikeResponse(

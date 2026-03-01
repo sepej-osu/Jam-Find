@@ -58,7 +58,8 @@ async def create_post(
             "createdAt": now,
             "updatedAt": now,
             "edited": False,
-            "likedBy": []
+            "likedBy": [],
+            "likes": 0
         })
 
         new_post_ref = db.collection(COLLECTION_NAME).document()
