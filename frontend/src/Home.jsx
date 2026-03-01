@@ -1,15 +1,19 @@
 
-import { Box, Heading, Text, VStack, Button } from '@chakra-ui/react';
+import { Box, Heading, Text, VStack, Button, Flex } from '@chakra-ui/react';
 import { useAuth } from './contexts/AuthContext';
 import { Link as RouterLink } from 'react-router-dom';
 import LogoutButton from './components/LogoutButton';
 import { useNavigate } from 'react-router-dom';
-
+import NavBar from './components/NavBar';
 
 function Home() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   return (
+
+    <Flex>
+      <NavBar />
+      <Box flex="1" >
     <Box
       maxW="600px"
       mx="auto"
@@ -19,6 +23,7 @@ function Home() {
       borderRadius="lg"
       boxShadow="md"
       bg="white"
+      left={10}
     >
       <VStack gap={4} textAlign="center">
         <Heading size="lg">Hi, {profile?.firstName}!</Heading>
@@ -36,6 +41,8 @@ function Home() {
         <LogoutButton />
       </VStack>
     </Box>
+    </Box>
+    </Flex>
   );
         
 }

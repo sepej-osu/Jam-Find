@@ -3,11 +3,12 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Center, Button, Heading, VStack, Input, Field} from '@chakra-ui/react';
+import { Box, Flex, Button, Heading, VStack, Input, Field } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
+import NavBar from './components/NavBar';
 import postService from './services/postService';
 import profileService from './services/profileService';
 import { useAuth } from './contexts/AuthContext';
@@ -130,16 +131,20 @@ function CreatePost() {
   };
 
   return (
-    <Center minH="100vh" bg="gray.50" px={4}>
-      <Box 
-        maxW="600px" 
-        w="full"
-        p={10} 
-        borderWidth="1px" 
-        borderRadius="lg" 
-        shadow="lg"
-        bg="white"
-      >
+    <Flex minH="100vh" bg="gray.50">
+      <NavBar />
+
+      <Box flex="1" pl={{ base: '220px', md: '240px' }} px={{ base: 4, md: 10 }} pt="10vh" pb={12}>
+        <Box 
+          mx="auto"
+          maxW="800px"
+          w="100%"
+          p={10} 
+          borderWidth="1px" 
+          borderRadius="lg" 
+          shadow="lg"
+          bg="white"
+        >
           <VStack gap={4} mb={6}>
             <Heading size="lg">Create a Post</Heading>
           </VStack>
@@ -211,7 +216,7 @@ function CreatePost() {
                 colorPalette="blue"
                 size="lg"
                 width="100%"
-                loading={loading}
+                isLoading={loading}
                 loadingText="Creating Post..."
               >
                 Create Post
@@ -229,7 +234,8 @@ function CreatePost() {
             </VStack>
           </form>
         </Box>
-    </Center>
+      </Box>
+    </Flex>
   );
 }
 
