@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from datetime import datetime, timezone
-from models import PostCreate, PostUpdate, PostResponse, PostType, PaginatedPostsResponse, GenreType, InstrumentType, Instrument
+from models import PostCreate, PostUpdate, PostResponse, PostType, PaginatedPostsResponse, GenreType, InstrumentType
 from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
@@ -247,10 +247,17 @@ async def list_posts(
     # If max is not provided, we assume 5. If skill level is not provided, we assume 1.
     instrument_requirements = {}
     if instruments:
+        valid_slugs = {e.value for e in InstrumentType}
         for item in instruments:
             parts = item.split(":")
             slug = parts[0].lower()
-            
+
+            if slug not in valid_slugs:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Invalid instrument slug '{slug}'. Must be one of: {sorted(valid_slugs)}"
+                )
+
             if len(parts) == 3: # Format 'slug:min:max'
                 try:
                     instrument_requirements[slug] = (int(parts[1]), int(parts[2]))
