@@ -5,10 +5,11 @@ from enum import Enum
 
 class Gender(str, Enum):
     """To validate gender field."""
+    PREFER_NOT_TO_SAY = "prefer_not_to_say"
     MALE = "male"
     FEMALE = "female"
     NON_BINARY = "non-binary"
-    # TODO: Add decline to say and other options
+    NOT_LISTED = "not_listed"
 
 class PostType(str, Enum):
     """To validate post_type field."""
