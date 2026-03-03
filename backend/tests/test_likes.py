@@ -19,8 +19,10 @@ from auth import get_current_user
 # Override the collection name for tests
 import routers.likes as likes_module
 import routers.posts as posts_module
+import services.post_service as post_service_module
 likes_module.COLLECTION_NAME = "test_posts"
 posts_module.COLLECTION_NAME = "test_posts"
+post_service_module.COLLECTION_NAME = "test_posts"
 
 # Mock the authentication to return test user ID
 def override_get_current_user():
