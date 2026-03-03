@@ -159,10 +159,10 @@ const handleStep2Submit = async (e) => {
     const user = userCredential.user;
     const token = await user.getIdToken();
     
-    // convert selectedInstruments object to array of { name, experienceLevel } for the API
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+    // convert selectedInstruments object to array of { name, skillLevel } for the API
+    const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
       name,
-      experienceLevel
+      skillLevel
     }));
 
     const payload = {
