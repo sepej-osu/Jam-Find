@@ -1,5 +1,5 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAttr, model_validator
+from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
 
@@ -192,3 +192,55 @@ class PaginatedPostsResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name = True
     )
+    
+class PostListParams(BaseModel):
+    """Parsed and validated query parameters for the list posts endpoint."""
+    limit: int = Field(default=10, ge=1)
+    last_doc_id: Optional[str] = None
+    post_type: Optional[PostType] = None
+    instruments: Optional[List[str]] = Field(
+        default=None,
+        description="Format per entry: 'instrument:min[:max]' (e.g. 'drums:3' or 'guitar:2:5'). If max is omitted it defaults to 5.",
+    )
+    instrument_mode: Literal["any", "all"] = "any"
+    genres: Optional[List[GenreType]] = None
+    genre_mode: Literal["any", "all"] = "any"
+    nearby_geohash: Optional[str] = None
+    sort_by: Literal["createdAt", "likes"] = "createdAt"
+    sort_order: Literal["asc", "desc"] = "desc"
+    user_id: Optional[str] = None
+
+    _instrument_requirements: Dict[str, Tuple[int, int]] = PrivateAttr(default_factory=dict)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def _parse_instruments(self) -> "PostListParams":
+        reqs: Dict[str, Tuple[int, int]] = {}
+        if self.instruments:
+            valid_instruments = {e.value for e in InstrumentType}
+            for item in self.instruments:
+                parts = item.split(":")
+                instrument = parts[0].lower()
+                if instrument not in valid_instruments:
+                    raise ValueError(
+                        f"Invalid instrument value '{instrument}'. Must be one of: {sorted(valid_instruments)}"
+                    )
+                if len(parts) == 3:
+                    try:
+                        reqs[instrument] = (int(parts[1]), int(parts[2]))
+                    except ValueError:
+                        reqs[instrument] = (1, 5)
+                elif len(parts) == 2:
+                    try:
+                        reqs[instrument] = (int(parts[1]), 5)
+                    except ValueError:
+                        reqs[instrument] = (1, 5)
+                else:
+                    reqs[instrument] = (1, 5)
+        self._instrument_requirements = reqs
+        return self
+
+    @property
+    def instrument_requirements(self) -> Dict[str, Tuple[int, int]]:
+        return self._instrument_requirements
