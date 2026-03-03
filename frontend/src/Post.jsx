@@ -19,7 +19,8 @@ import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import postService from './services/postService';
-import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES, getInstrumentIcon, getSkillColor } from './utils/mappings';
+import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES } from './utils/displayNameMappings';
+import { getInstrumentIcon, getSkillColor } from './utils/iconMappings';
 
 function Post() {
   const { postId } = useParams();

@@ -23,7 +23,8 @@ import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, getInstrumentIcon, getSkillColor, GENDER_DISPLAY_NAMES } from './utils/mappings';
+import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
+import { getInstrumentIcon, getSkillColor } from './utils/iconMappings';
 
 function Profile() {
   const { userId } = useParams();
