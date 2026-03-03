@@ -11,7 +11,7 @@ import {
   Alert,
   Avatar,
   IconButton,
-  Separator,
+  Separator
 } from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
 import { FaMapMarkerAlt, FaGuitar } from 'react-icons/fa';
@@ -100,22 +100,22 @@ useEffect(() => {
 
   const getInstrumentIcon = (instrumentName) => {
     const iconMap = {
-      'Electric Guitar': GiGuitarHead,
-      'Acoustic Guitar': FaGuitar,
-      'Electric Bass': GiGuitarBassHead,
-      'Drums': GiDrumKit,
-      'Piano': GiGrandPiano,
-      'Keyboard': GiMusicalKeyboard,
-      'Vocals': GiMicrophone,
-      'DJ/Production': GiMusicSpell,
-      'Trumpet': GiTrumpet,
-      'Saxophone': GiSaxophone,
-      'Other': IoMusicalNotes
+      'electric_guitar': GiGuitarHead,
+      'acoustic_guitar': FaGuitar,
+      'electric_bass': GiGuitarBassHead,
+      'drums': GiDrumKit,
+      'piano': GiGrandPiano,
+      'keyboard': GiMusicalKeyboard,
+      'vocals': GiMicrophone,
+      'dj_production': GiMusicSpell,
+      'trumpet': GiTrumpet,
+      'saxophone': GiSaxophone,
+      'other': IoMusicalNotes
     };
     return iconMap[instrumentName] || IoMusicalNotes;
   };
 
-  const getExperienceColor = (level) => {
+  const getSkillColor = (level) => {
     const colorMap = {
       1: 'red',
       2: 'orange',
@@ -220,15 +220,15 @@ return (
                   </Flex>
                   <VStack align="stretch" gap={1}>
                     <Flex justify="space-between" align="center">
-                      <Text fontSize="sm" color="gray.600">Experience Level</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={`${getExperienceColor(instrument.experienceLevel)}.600`}>
-                        {instrument.experienceLevel}/5
+                      <Text fontSize="sm" color="gray.600">Skill Level</Text>
+                      <Text fontSize="sm" fontWeight="bold" color={`${getSkillColor(instrument.skillLevel)}.600`}>
+                        {instrument.skillLevel}/5
                       </Text>
                     </Flex>
                     <Progress.Root
-                      value={parseInt(instrument.experienceLevel * 20)}
+                      value={parseInt(instrument.skillLevel * 20)}
                       size="sm"
-                      colorPalette={getExperienceColor(instrument.experienceLevel)}
+                      colorPalette={getSkillColor(instrument.skillLevel)}
                       borderRadius="full">
                       <Progress.Track>
                         <Progress.Range />
