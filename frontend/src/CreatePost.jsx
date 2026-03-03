@@ -49,7 +49,7 @@ function CreatePost() {
             // Convert instruments array to selectedInstruments object format
             const instrumentsObj = {};
             profile.instruments?.forEach(instrument => {
-              instrumentsObj[instrument.name] = instrument.experienceLevel;
+              instrumentsObj[instrument.name] = instrument.skillLevel;
             });
             
             setFormData(prev => ({
@@ -89,10 +89,10 @@ function CreatePost() {
     setLoading(true);
 
     try {
-      // Convert selectedInstruments object to array of { name, experienceLevel } for the API
-      const instruments = Object.entries(formData.selectedInstruments).map(([name, experienceLevel]) => ({
+      // Convert selectedInstruments object to array of { name, skillLevel } for the API
+      const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
         name,
-        experienceLevel
+        skillLevel
       }));
 
       const payload = {

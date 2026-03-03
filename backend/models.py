@@ -1,15 +1,15 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict
-from typing import Optional, List
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAttr, model_validator
+from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
 
-# Profile models
 class Gender(str, Enum):
     """To validate gender field."""
+    PREFER_NOT_TO_SAY = "prefer_not_to_say"
     MALE = "male"
     FEMALE = "female"
     NON_BINARY = "non-binary"
-    # TODO: Add decline to say and other options
+    NOT_LISTED = "not_listed"
 
 class PostType(str, Enum):
     """To validate post_type field."""
@@ -17,6 +17,52 @@ class PostType(str, Enum):
     LOOKING_FOR_MUSICIANS = "looking_for_musicians"
     LOOKING_TO_JAM = "looking_to_jam"
     SHARING_MUSIC = "sharing_music"
+
+class InstrumentType(str, Enum):
+    """To validate instrument field."""
+    ELECTRIC_GUITAR = "electric_guitar"
+    ACOUSTIC_GUITAR = "acoustic_guitar"
+    ELECTRIC_BASS = "electric_bass"
+    DRUMS = "drums"
+    PIANO = "piano"
+    KEYBOARD = "keyboard"
+    VOCALS = "vocals"
+    DJ_PRODUCTION = "dj_production"
+    TRUMPET = "trumpet"
+    SAXOPHONE = "saxophone"
+    OTHER = "other"
+
+class Instrument(BaseModel):
+    """Model for musical instruments with skill level, used in profiles and posts."""
+    name: str = Field(..., alias="name", description="Name of the musical instrument")
+    skill_level: int = Field(..., ge=1, le=5, alias="skillLevel", description="Skill level of the instrument from 1 to 5")
+    model_config = ConfigDict(populate_by_name = True)
+
+class GenreType(str, Enum):
+    """To validate genre field."""
+    ROCK = "rock"
+    POP = "pop"
+    JAZZ = "jazz"
+    BLUES = "blues"
+    COUNTRY = "country"
+    RNB = "r_n_b"
+    HIP_HOP = "hip_hop"
+    HARDCORE = "hardcore"
+    ELECTRONIC = "electronic"
+    CLASSICAL = "classical"
+    METAL = "metal"
+    DEATH_METAL = "death_metal"
+    FOLK = "folk"
+    REGGAE = "reggae"
+    PUNK = "punk"
+    INDIE = "indie"
+    SOUL = "soul"
+    FUNK = "funk"
+    LATIN = "latin"
+    ALTERNATIVE = "alternative"
+    GOSPEL = "gospel"
+    EXPERIMENTAL = "experimental"
+    OTHER = "other"
 
 class Location(BaseModel):
     """Model for location data, used in both profiles and posts. Includes geocoding fields."""
@@ -26,12 +72,6 @@ class Location(BaseModel):
     lng: Optional[float] = Field(default=None, alias="lng", description="Longitude of the location")
     geohash: Optional[str] = Field(default=None, alias="geohash", description="Geohash of the location for efficient querying")
     zip_code: Optional[str] = Field(default=None, alias="zipCode", description="Zip code for the location, used for resolving location from zip code")
-    model_config = ConfigDict(populate_by_name = True)
-
-class Instrument(BaseModel):
-    """Model for musical instruments with experience level, used in profiles and posts."""
-    name: str = Field(..., alias="name", description="Name of the musical instrument")
-    experience_level: int = Field(..., ge=1, le=5, alias="experienceLevel", description="Experience level of the instrument from 1 to 5")
     model_config = ConfigDict(populate_by_name = True)
 
 class ProfileBase(BaseModel):
@@ -44,7 +84,7 @@ class ProfileBase(BaseModel):
     experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears", description="Number of years of musical experience")
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, lng, and geohash")
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
-    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with experience level")
+    instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default_factory=list, alias="genres", description="List of music genres associated with the profile")
     model_config = ConfigDict(
         populate_by_name = True,
@@ -68,7 +108,7 @@ class ProfileUpdate(BaseModel):
     experience_years: Optional[int] = Field(default=None, ge=0, alias="experienceYears", description="Number of years of musical experience")
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, lng, and geohash")
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
-    instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments", description="List of instruments with experience level")
+    instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default=None, alias="genres", description="List of music genres associated with the profile")
     model_config = ConfigDict(populate_by_name = True)
 
@@ -143,3 +183,64 @@ class LikeResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name = True
     )
+
+class PaginatedPostsResponse(BaseModel):
+    """Response model for paginated list of posts"""
+    posts: List[PostResponse] = Field(..., alias="posts", description="List of posts for the current page")
+    next_page_token: Optional[str] = Field(default=None, alias="nextPageToken", description="Token to retrieve the next page of results, if any")
+    
+    model_config = ConfigDict(
+        populate_by_name = True
+    )
+    
+class PostListParams(BaseModel):
+    """Parsed and validated query parameters for the list posts endpoint."""
+    limit: int = Field(default=10, ge=1)
+    last_doc_id: Optional[str] = None
+    post_type: Optional[PostType] = None
+    instruments: Optional[List[str]] = Field(
+        default=None,
+        description="Format per entry: 'instrument:min[:max]' (e.g. 'drums:3' or 'guitar:2:5'). If max is omitted it defaults to 5.",
+    )
+    instrument_mode: Literal["any", "all"] = "any"
+    genres: Optional[List[GenreType]] = None
+    genre_mode: Literal["any", "all"] = "any"
+    nearby_geohash: Optional[str] = None
+    sort_by: Literal["createdAt", "likes"] = "createdAt"
+    sort_order: Literal["asc", "desc"] = "desc"
+    user_id: Optional[str] = None
+
+    _instrument_requirements: Dict[str, Tuple[int, int]] = PrivateAttr(default_factory=dict)
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def _parse_instruments(self) -> "PostListParams":
+        reqs: Dict[str, Tuple[int, int]] = {}
+        if self.instruments:
+            valid_instruments = {e.value for e in InstrumentType}
+            for item in self.instruments:
+                parts = item.split(":")
+                instrument = parts[0].lower()
+                if instrument not in valid_instruments:
+                    raise ValueError(
+                        f"Invalid instrument value '{instrument}'. Must be one of: {sorted(valid_instruments)}"
+                    )
+                if len(parts) == 3:
+                    try:
+                        reqs[instrument] = (int(parts[1]), int(parts[2]))
+                    except ValueError:
+                        reqs[instrument] = (1, 5)
+                elif len(parts) == 2:
+                    try:
+                        reqs[instrument] = (int(parts[1]), 5)
+                    except ValueError:
+                        reqs[instrument] = (1, 5)
+                else:
+                    reqs[instrument] = (1, 5)
+        self._instrument_requirements = reqs
+        return self
+
+    @property
+    def instrument_requirements(self) -> Dict[str, Tuple[int, int]]:
+        return self._instrument_requirements
