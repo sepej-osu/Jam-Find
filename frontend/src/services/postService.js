@@ -41,7 +41,7 @@ const postService = {
     }
   },
 
-  getPosts: async (limit = 10, startAfter = null, userId = null) => {
+  getPosts: async (params = {}) => {
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -49,11 +49,33 @@ const postService = {
       }
       const token = await user.getIdToken();
 
-      const params = new URLSearchParams({ limit: limit.toString() });
-      if (startAfter) params.append('start_after', startAfter);
-      if (userId) params.append('user_id', userId);
+      const {
+        limit = 10,
+        lastDocId = null,
+        userId = null,
+        postType = null,
+        instruments = [],
+        instrumentMode = 'any',
+        genres = [],
+        genreMode = 'any',
+        sortBy = 'createdAt',
+        sortOrder = 'desc',
+      } = params;
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts?${params}`, {
+      const urlParams = new URLSearchParams({
+        limit: limit.toString(),
+        sort_by: sortBy,
+        sort_order: sortOrder,
+      });
+      if (lastDocId) urlParams.append('last_doc_id', lastDocId);
+      if (userId) urlParams.append('user_id', userId);
+      if (postType) urlParams.append('post_type', postType);
+      instruments.forEach(i => urlParams.append('instruments', i));
+      if (instruments.length > 0) urlParams.append('instrument_mode', instrumentMode);
+      genres.forEach(g => urlParams.append('genres', g));
+      if (genres.length > 0) urlParams.append('genre_mode', genreMode);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/posts?${urlParams}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -7,9 +7,9 @@ import {
   Avatar,
   IconButton,
   Separator,
-  Button,
-  Highlight,
-  Link
+  Link,
+  Badge,
+  Wrap
 } from '@chakra-ui/react';
 import { toaster } from "./ui/toaster"
 import { FaMapMarkerAlt } from 'react-icons/fa';
@@ -61,7 +61,7 @@ return (
           </Avatar.Root>
           <Box flex="1">
             <Flex justify="space-between" align="center" mb={1}>
-              <Link fontWeight="semibold" fontSize="md" onClick={() => navigate(`/posts/${post.postId}`)} cursor="pointer">
+              <Link fontWeight="semibold" fontSize="lg" onClick={() => navigate(`/posts/${post.postId}`)} cursor="pointer">
                 {post.title}
               </Link>
               {post.postType && (
@@ -98,32 +98,30 @@ return (
             {instrumentLabel && (
               <Text fontSize="sm" fontWeight="semibold" mb={1}>{instrumentLabel}</Text>
             )}
-            <Flex gap={1} flexWrap="wrap">
+            <Wrap gap={1}>
               {post.instruments.map((i, index) => (
                 <Tooltip key={index} openDelay={10} closeDelay={10} content={`Skill level: ${i.skillLevel}/5`} showArrow>
-                  <Text as="span" fontSize="sm" px={1} py="0.5" borderRadius="md"
+                  <Badge
                     bg={`${getSkillColor(i.skillLevel)}.subtle`}
                     color={`${getSkillColor(i.skillLevel)}.fg`}
-                    fontWeight="medium"
                     cursor="default">
                     {INSTRUMENT_DISPLAY_NAMES[i.name] ?? i.name}
-                  </Text>
+                  </Badge>
                 </Tooltip>
               ))}
-            </Flex>
+            </Wrap>
           </Box>
         )}
 
         {post.genres?.length > 0 && (
           <Box mb={3}>
-            <Text fontSize="sm">
-              <Highlight
-                query={post.genres.map(g => GENRE_DISPLAY_NAMES[g] ?? g)}
-                styles={{ px: '1', py: '0.5', borderRadius: 'md', bg: 'blue.subtle', color: 'blue.fg', fontWeight: 'medium' }}
-              >
-                {post.genres.map(g => GENRE_DISPLAY_NAMES[g] ?? g).join(' · ')}
-              </Highlight>
-            </Text>
+            <Wrap gap={1}>
+              {post.genres.map((g, index) => (
+                <Badge key={index} bg="blue.subtle" color="blue.fg">
+                  {GENRE_DISPLAY_NAMES[g] ?? g}
+                </Badge>
+              ))}
+            </Wrap>
           </Box>
         )}
 
