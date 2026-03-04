@@ -8,7 +8,7 @@ class Gender(str, Enum):
     PREFER_NOT_TO_SAY = "prefer_not_to_say"
     MALE = "male"
     FEMALE = "female"
-    NON_BINARY = "non-binary"
+    NON_BINARY = "non_binary"
     NOT_LISTED = "not_listed"
 
 class PostType(str, Enum):

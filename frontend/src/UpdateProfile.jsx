@@ -7,15 +7,8 @@ import { Box, Center, Button, Heading, VStack, Field, Input } from '@chakra-ui/r
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-import { toaster } from "./components/ui/toaster"
-
-
-const GENRES = [
-  'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
-  'Hip Hop', 'Hardcore', 'Electronic', 'Classical', 'Metal',
-  'Death Metal', 'Folk', 'Reggae', 'Punk', 'Indie', 'Soul',
-  'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'other'
-];
+import { toaster } from "./components/ui/toaster";
+import { GENDER_DISPLAY_NAMES } from './utils/mappings';
 
 
 function UpdateProfile() {
@@ -60,7 +53,7 @@ const handleSubmit = async (e) => {
   setLoading(true);
 
   try {
-    // Convert selectedInstruments object back to an array for the API request
+    // convert selectedInstruments object to array of { name, skillLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
       name,
       skillLevel
@@ -151,6 +144,7 @@ return (
                 value={formData.gender}
                 onChange={handleChange}
                 required
+                selectOptions={Object.entries(GENDER_DISPLAY_NAMES).map(([value, label]) => ({ value, label }))}
               />
 
               <Field.Root>
@@ -189,7 +183,6 @@ return (
               <GenreSelector
                 value ={formData.selectedGenres}
                 onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-                options={GENRES}
                 label="Select Your Preferred Genres"
               />  
               

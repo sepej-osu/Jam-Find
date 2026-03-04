@@ -13,12 +13,7 @@ import profileService from './services/profileService';
 import { useAuth } from './contexts/AuthContext';
 import { toaster } from "./components/ui/toaster"
 
-const GENRES = [
-  'Rock', 'Pop', 'Jazz', 'Blues', 'Country', 'R&B',
-  'Hip Hop', 'Hardcore', 'Electronic', 'Classical', 'Metal',
-  'Death Metal', 'Folk', 'Reggae', 'Punk', 'Indie', 'Soul',
-  'Funk', 'Latin', 'Alternative', 'Gospel', 'Experimental', 'Other'
-];
+import { POST_TYPE_DISPLAY_NAMES } from './utils/mappings';
 
 
 function CreatePost() {
@@ -153,12 +148,7 @@ function CreatePost() {
                 value={formData.postType}
                 onChange={handleChange}
                 required
-                selectOptions={[
-                  { value: 'looking_to_jam', label: 'Looking to Jam 🎶' },
-                  { value: 'looking_for_band', label: 'Looking for a Band 🎤' },
-                  { value: 'looking_for_musicians', label: 'Looking for Musicians 🎸' },
-                  { value: 'sharing_music', label: 'Sharing Music 🎵' }
-                ]}
+                selectOptions={Object.entries(POST_TYPE_DISPLAY_NAMES).map(([value, label]) => ({ value, label }))}
               />
 
               <InputField
@@ -200,7 +190,6 @@ function CreatePost() {
               <GenreSelector
                 value={formData.selectedGenres}
                 onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
-                options={GENRES}
                 label="Select Genres"
               />
 
