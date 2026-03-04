@@ -13,7 +13,7 @@ import PasswordField from './components/PasswordField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 
-import { GENDER_DISPLAY_NAMES } from './utils/mappings';
+import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
 
 function Register() {
   const navigate = useNavigate();

@@ -1,7 +1,6 @@
 
 
 import {
-  Steps,
   Box,
   Checkbox,
   Slider,
@@ -10,7 +9,7 @@ import {
   SimpleGrid,
   Button,
 } from '@chakra-ui/react';
-import { INSTRUMENT_DISPLAY_NAMES } from '../utils/mappings';
+import { INSTRUMENT_DISPLAY_NAMES } from '../utils/displayNameMappings';
 
 function InstrumentSelector({ value, onChange }) {
   // value is an object like: { 'Guitar': 3, 'Drums': 5 }
