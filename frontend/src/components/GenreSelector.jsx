@@ -1,5 +1,5 @@
 import { Box, Text, Checkbox, SimpleGrid, Button } from "@chakra-ui/react";
-import { GENRE_DISPLAY_NAMES } from "../utils/mappings";
+import { GENRE_DISPLAY_NAMES } from "../utils/displayNameMappings";
 
 const GENRES = Object.entries(GENRE_DISPLAY_NAMES).map(([slug, label]) => ({ slug, label }));
 

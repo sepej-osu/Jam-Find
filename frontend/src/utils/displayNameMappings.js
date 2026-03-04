@@ -5,6 +5,13 @@ export const POST_TYPE_DISPLAY_NAMES = {
   sharing_music:           'Sharing Music 🎵',
 };
 
+export const POST_TYPE_PLAY_LABELS = {
+  looking_for_band: 'I play:',
+  looking_to_jam: 'I play:',
+  looking_for_musicians: 'Need:',
+  sharing_music: 'Instruments played:',
+};
+
 export const GENDER_DISPLAY_NAMES = {
   male:              'Male',
   female:            'Female',

@@ -13,7 +13,7 @@ import profileService from './services/profileService';
 import { useAuth } from './contexts/AuthContext';
 import { toaster } from "./components/ui/toaster"
 
-import { POST_TYPE_DISPLAY_NAMES } from './utils/mappings';
+import { POST_TYPE_DISPLAY_NAMES } from './utils/displayNameMappings';
 
 
 function CreatePost() {

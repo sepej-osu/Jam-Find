@@ -8,7 +8,7 @@ import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 import { toaster } from "./components/ui/toaster";
-import { GENDER_DISPLAY_NAMES } from './utils/mappings';
+import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
 
 
 function UpdateProfile() {
