@@ -1,26 +1,20 @@
 import { Outlet } from 'react-router-dom';
-import {Flex, Text } from "@chakra-ui/react"  
+import { Flex, Box } from '@chakra-ui/react';
 import NavBar from './components/NavBar';
 
 const Layout = () => {
     return (
-        <>
         <div>
-            <header>
-                <Flex align={"center"}>
+            <Flex>
+                <NavBar />
 
-                
-                    <NavBar />
-                </Flex>
-            </header>
-            <main>
-                <Outlet />
-            </main>
-            <footer>
-            </footer>
+            <Box as="main" flex="1" pl="220px" pt={12} pb={12} >
+                    <Outlet />
+            </Box>
+            </Flex>
+            <footer></footer>
         </div>
-        </>
     );
-}
+};
 
 export default Layout;

@@ -8,7 +8,6 @@ import { Box, Flex, Button, Heading, VStack, Input, Field } from '@chakra-ui/rea
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-import NavBar from './components/NavBar';
 import postService from './services/postService';
 import profileService from './services/profileService';
 import { useAuth } from './contexts/AuthContext';
@@ -127,16 +126,17 @@ function CreatePost() {
 
   return (
 
-      <Box flex="1" pl={{ base: '220px', md: '240px' }} px={{ base: 4, md: 10 }}  pb={12}>
+
         <Box 
+          flex={1}
           mx="auto"
           maxW="800px"
-          w="100%"
-          p={10} 
+          p={10}
           borderWidth="1px" 
           borderRadius="lg" 
           shadow="lg"
           bg="white"
+          
         >
           <VStack gap={4} mb={6}>
             <Heading size="lg">Create a Post</Heading>
@@ -221,7 +221,6 @@ function CreatePost() {
             </VStack>
           </form>
         </Box>
-      </Box>
   );
 }
 

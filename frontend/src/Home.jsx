@@ -4,15 +4,15 @@ import { useAuth } from './contexts/AuthContext';
 import { Link as RouterLink } from 'react-router-dom';
 import LogoutButton from './components/LogoutButton';
 import { useNavigate } from 'react-router-dom';
-import NavBar from './components/NavBar';
+
 
 function Home() {
   const { user, profile, refreshProfile } = useAuth();
-  const navigate = useNavigate();
+
   return (
 
     <Flex>
-      <Box flex="1" >
+      <Box flex="1" pt={12} >
     <Box
       maxW="600px"
       mx="auto"
