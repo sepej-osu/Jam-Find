@@ -12,18 +12,15 @@ function Home() {
   return (
 
     <Flex>
-      <NavBar />
       <Box flex="1" >
     <Box
       maxW="600px"
       mx="auto"
-      mt="80px"
-      p="40px"
+      p={10}
       borderWidth="1px"
       borderRadius="lg"
-      boxShadow="md"
+      shadow="lg"
       bg="white"
-      left={10}
     >
       <VStack gap={4} textAlign="center">
         <Heading size="lg">Hi, {profile?.firstName}!</Heading>

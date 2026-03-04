@@ -131,10 +131,8 @@ function CreatePost() {
   };
 
   return (
-    <Flex minH="100vh" bg="gray.50">
-      <NavBar />
 
-      <Box flex="1" pl={{ base: '220px', md: '240px' }} px={{ base: 4, md: 10 }} pt="10vh" pb={12}>
+      <Box flex="1" pl={{ base: '220px', md: '240px' }} px={{ base: 4, md: 10 }}  pb={12}>
         <Box 
           mx="auto"
           maxW="800px"
@@ -235,7 +233,6 @@ function CreatePost() {
           </form>
         </Box>
       </Box>
-    </Flex>
   );
 }
 
