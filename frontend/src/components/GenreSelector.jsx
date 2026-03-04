@@ -1,6 +1,9 @@
 import { Box, Text, Checkbox, SimpleGrid, Button } from "@chakra-ui/react";
+import { GENRE_DISPLAY_NAMES } from "../utils/mappings";
 
-function GenreSelector({ value, onChange, options, label }) {
+const GENRES = Object.entries(GENRE_DISPLAY_NAMES).map(([slug, label]) => ({ slug, label }));
+
+function GenreSelector({ value, onChange, label }) {
   const toggle = (genre) => {
     if (value.includes(genre)) {
       onChange(value.filter(g => g !== genre))
@@ -29,13 +32,13 @@ function GenreSelector({ value, onChange, options, label }) {
         </Box>
       )}
       <SimpleGrid columns={3} gap={2}>
-        {options.map((genre) => (
+        {GENRES.map((genre) => (
             <Checkbox.Root
-              key={genre}
-              checked={value.includes(genre)}
-              onCheckedChange={() => toggle(genre)}
+              key={genre.slug}
+              checked={value.includes(genre.slug)}
+              onCheckedChange={() => toggle(genre.slug)}
             ><Checkbox.HiddenInput /><Checkbox.Control/><Checkbox.Label>
-              {genre}
+              {genre.label}
             </Checkbox.Label></Checkbox.Root>
           ))}
         </SimpleGrid>
