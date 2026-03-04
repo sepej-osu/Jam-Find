@@ -3,7 +3,6 @@ import { Box, Heading, Text, VStack, Button, Flex } from '@chakra-ui/react';
 import { useAuth } from './contexts/AuthContext';
 import { Link as RouterLink } from 'react-router-dom';
 import LogoutButton from './components/LogoutButton';
-import { useNavigate } from 'react-router-dom';
 
 
 function Home() {
@@ -11,9 +10,8 @@ function Home() {
 
   return (
 
-    <Flex>
-      <Box flex="1" pt={12} >
     <Box
+      flex={1}
       maxW="600px"
       mx="auto"
       p={10}
@@ -30,16 +28,21 @@ function Home() {
           You can build your dashboard or profile here later.
         </Text>
 
-        <Button colorPalette="teal" size="lg" width="100%" asChild><RouterLink to="/update-profile">Update Profile
-                  </RouterLink></Button>
+        <Button colorPalette="teal" size="lg" width="100%" asChild>
+          <RouterLink to="/update-profile">
+          Update Profile
+          </RouterLink>
+        </Button>
 
-        <Button colorPalette="blue" size="lg" width="100%" asChild><RouterLink to="/create-post">Create a Post
-                  </RouterLink></Button>
+        <Button colorPalette="blue" size="lg" width="100%" asChild>
+          <RouterLink to="/create-post">
+          Create a Post
+          </RouterLink>
+        </Button>
+
         <LogoutButton />
       </VStack>
     </Box>
-    </Box>
-    </Flex>
   );
         
 }

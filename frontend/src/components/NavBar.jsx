@@ -1,22 +1,31 @@
 import { Box, Button, VStack, Image } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import logo from '../assets/jamfind logo.svg';
+import { FaBinoculars, FaEnvelope, FaPlusCircle } from 'react-icons/fa';
 
 
 function NavBar() {
   return (
+
+    // The NavBar is a vertical sidebar on the left side of the screen. It contains 
+    // the logo at the top and navigation buttons below it. The buttons use React 
+    // Router's Link component to navigate to different pages without reloading the page. 
+    // To add more pages, just add Button components with the appropriate "to" prop and icon.
+ 
     <Box>
       <Box mb={6} position="relative" top={30} left={0} w="220px" px={2.5} py={5} bg="white">
         <Image src={logo} alt="Jam-Find" top={10} w="250px" mx="auto" />
       </Box>
       <Box
+        position="relative"
         as="nav"
-        borderTopRadius="15px"
+        borderTopRadius={45}
+        overflow="hidden"
         left={0}
-        top={125}
-        h="100vh"
+        top={10}
+        minHeight="100%"
         w="220px"
-        py={5}
+        py={10}
         bg="cyan.800"
         color="fg.muted"
         boxShadow="lg"
@@ -31,8 +40,9 @@ function NavBar() {
             textAlign="center"
             fontSize="larger"
             _hover={{ bg: 'cyan.700' }}
+          
           >
-            Discover
+            <FaBinoculars /> Discover
           </Button>
           <Button
             as={RouterLink}
@@ -44,7 +54,7 @@ function NavBar() {
             fontSize="larger"
             _hover={{ bg: 'cyan.700' }}
           >
-            Messages
+            <FaEnvelope /> Messages
           </Button>
           <Button
             as={RouterLink}
@@ -56,7 +66,7 @@ function NavBar() {
             fontSize="larger"
             _hover={{ bg: 'cyan.700' }}
           >
-            Create Post
+            <FaPlusCircle /> Create Post
           </Button>
         </VStack>
       </Box>
