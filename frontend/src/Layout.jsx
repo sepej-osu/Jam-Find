@@ -12,13 +12,12 @@ const Layout = () => {
         <div>
             <Flex>
                 <NavBar />
-
-            <Box as="main" flex="1" pl ={12} pr={12} pt={12} pb={12} minH="100vh">
+                <Box as="main" flex="1" pl ={12} pr={12} pt={12} pb={12} minH="100vh">
                     <Outlet />
-            </Box>
+                </Box>
             </Flex>
             <footer>
-                <Text textAlign="center"  color="gray.500">
+                <Text textAlign="center" color="gray.500">
                     &copy; 2026 Jam-Find.
                 </Text>
             </footer>

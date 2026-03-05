@@ -1,5 +1,3 @@
-from email.message import Message
-
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAttr, model_validator
 from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
@@ -282,12 +280,13 @@ class ConversationBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_participants(self) -> "ConversationBase":
-        ids = [uid.strip() for uid in self.participant_ids if isinstance(uid, str)]
+        ids = [uid.strip() for uid in self.participant_ids]
 
         if len(ids) != 2:
             raise ValueError("participantIds must contain exactly two Firebase UIDs")
         if len(set(ids)) != 2:
             raise ValueError("participantIds must contain two unique Firebase UIDs")
+        # checking for empty strings after stripping whitespace
         if any(not uid for uid in ids):
             raise ValueError("participantIds cannot contain empty values")
 
