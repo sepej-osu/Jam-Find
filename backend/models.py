@@ -1,3 +1,5 @@
+from email.message import Message
+
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAttr, model_validator
 from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
@@ -244,3 +246,81 @@ class PostListParams(BaseModel):
     @property
     def instrument_requirements(self) -> Dict[str, Tuple[int, int]]:
         return self._instrument_requirements
+    
+
+class MessageBase(BaseModel):
+    """ base model for messages in the messaging system"""
+    content: str = Field(..., min_length=1, max_length=2000, alias="content", description="Content of the message")
+    model_config = ConfigDict(populate_by_name=True)
+
+class MessageCreate(MessageBase):
+    """ model for creating a new message"""
+    pass
+
+class MessageResponse(MessageBase):
+    """ response model for messages, includes message_id and read status"""
+    message_id: str = Field(..., alias="messageId", description="ID for the message")
+    conversation_id: str = Field(..., alias="conversationId", description="conversation ID that this message belongs to")
+    sender_id: str = Field(..., alias="senderId", description="Firebase Auth UID of the sender")
+    created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the message was created")
+    # will add read status and read timestamp in the future when we implement read receipts
+    model_config = ConfigDict(
+        from_attributes = True,
+        populate_by_name = True
+    )
+
+
+class ConversationBase(BaseModel):
+    """Base model for 1:1 conversations."""
+    participant_ids: List[str] = Field(
+        ...,
+        alias="participantIds",
+        description="Exactly two unique Firebase UIDs participating in this conversation",
+    )
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="after")
+    def validate_participants(self) -> "ConversationBase":
+        ids = [uid.strip() for uid in self.participant_ids if isinstance(uid, str)]
+
+        if len(ids) != 2:
+            raise ValueError("participantIds must contain exactly two Firebase UIDs")
+        if len(set(ids)) != 2:
+            raise ValueError("participantIds must contain two unique Firebase UIDs")
+        if any(not uid for uid in ids):
+            raise ValueError("participantIds cannot contain empty values")
+
+        self.participant_ids = ids
+        return self
+    
+class ConversationCreate(ConversationBase):
+    """Model for creating a new conversation. Inherits from ConversationBase."""
+    recipient_id: str = Field(..., 
+                            alias="recipientId",
+                            description="The other participant's Firebase UID for the conversation")
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ConversationResponse(ConversationBase):
+    """Response model for conversations, includes conversation_id and timestamps."""
+    conversation_id: str = Field(..., alias="conversationId", description="Unique identifier for the conversation")
+    created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the conversation was created")
+    updated_at: datetime = Field(..., alias="updatedAt", description="Timestamp of the last update to the conversation")
+    last_message_preview: Optional[str] = Field(default=None, alias="lastMessagePreview",
+                                                description="Preview of the last message in the conversation")
+    
+    last_message_sent_at: Optional[datetime] = Field(
+        default=None,
+        alias="lastMessageSentAt",
+        description="Timestamp of when the last message was sent in the conversation")
+    
+    last_message_sender_id: Optional[str] = Field(
+        default=None, 
+        alias="lastMessageSenderId",
+        description="Firebase UID of the sender of the last message in the conversation")
+    
+    model_config = ConfigDict(
+        from_attributes = True,
+        populate_by_name = True
+    )
