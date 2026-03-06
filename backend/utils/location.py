@@ -34,9 +34,18 @@ def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float
 
 def bounding_box_from_miles(lat: float, lng: float, radius_miles: float) -> tuple[float, float, float, float]:
     """Return (min_lat, max_lat, min_lng, max_lng) bounding box for a given center and radius."""
-    delta_lat = radius_miles / 69.0 # Approximate miles per degree latitude
-    delta_lng = radius_miles / (69.0 * math.cos(math.radians(lat))) # Approximate miles per degree longitude, adjusted by latitude
-    return lat - delta_lat, lat + delta_lat, lng - delta_lng, lng + delta_lng # (min_lat, max_lat, min_lng, max_lng)
+    delta_lat = radius_miles / 69.0  # Approximate miles per degree latitude
+    cos_lat = math.cos(math.radians(lat))
+    # Guard against cos(lat) being ~0 near the poles, which would cause an enormous or infinite delta_lng.
+    # For if you're jamming at the north or south pole
+    if abs(cos_lat) < 1e-6:
+        # At (or extremely near) the poles, longitude lines converge; treat longitude as unconstrained.
+        min_lng, max_lng = -180.0, 180.0
+    else:
+        delta_lng = radius_miles / (69.0 * cos_lat)  # Approximate miles per degree longitude, adjusted by latitude
+        min_lng, max_lng = lng - delta_lng, lng + delta_lng
+    # Clamp lat to valid range — large radius near a pole can otherwise exceed ±90.
+    return max(lat - delta_lat, -90.0), min(lat + delta_lat, 90.0), min_lng, max_lng
 
 async def resolve_location_from_zip(zip_code: str) -> Optional[Location]:
     """
