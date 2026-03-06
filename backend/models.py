@@ -217,7 +217,22 @@ class PostListParams(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
-    @model_validator(mode="after")
+    @model_validator(mode="after") # Validate coordinates after initial model validation
+    def _validate_coordinates(self) -> "PostListParams":
+        lat_given = self.user_lat is not None
+        lng_given = self.user_lng is not None
+
+        if lat_given != lng_given: # XOR: if one is given without the other, it's an error
+            raise ValueError("user_lat and user_lng must be provided together.")
+
+        if self.sort_by == "distance" and not (lat_given and lng_given): # If sorting by distance, coordinates are required
+            raise ValueError(
+                "sort_by='distance' requires both user_lat and user_lng."
+            )
+
+        return self
+
+    @model_validator(mode="after") # Validate instruments after initial model validation
     def _parse_instruments(self) -> "PostListParams":
         reqs: Dict[str, Tuple[int, int]] = {}
         if self.instruments:
