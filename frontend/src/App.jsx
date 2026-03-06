@@ -9,6 +9,8 @@ import UpdateProfile from './UpdateProfile';
 import Profile from './Profile';
 import Post from './components/Post';
 import DiscoveryFeed from './DiscoveryFeed';
+import Layout from './Layout';
+
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { toaster } from "./components/ui/toaster"
@@ -37,71 +39,72 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/" element={<Layout />}>
+        {/* Redirect root to login until we write a landing page */}
+        <Route
+          index
+          element={
+            (currentUser && hasProfile)
+              ? <Navigate to="/home" replace />
+              : <Navigate to="/login" replace />
+          }
+        />
 
-      // Redirect root to login until we write a landing page
-      <Route path="/" element={
-        (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Navigate to="/login" replace />} />
+        <Route
+          path="login"
+          element={
+            (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Login />
+          }
+        />
 
-      <Route
-        path="/login"
-        element={
-          (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Login />
-        }
-      />
-      
-    <Route
-        path="/create-profile"
-        element={
-          (currentUser && !hasProfile && !profileError) ? <CreateProfile /> : <Navigate to="/login" replace />
-        }
-      />
+        <Route
+          path="create-profile"
+          element={
+            (currentUser && !hasProfile && !profileError) ? <CreateProfile /> : <Navigate to="/login" replace />
+          }
+        />
 
-      <Route path="/register" element={
-        (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Register />
-      } 
-      />
+        <Route
+          path="register"
+          element={
+            (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Register />
+          }
+        />
 
-      <Route
-        path="/home"
-        element={
-          (currentUser && hasProfile) ? <Home /> : <Navigate to="/login" replace />
-        }
-      />
+        <Route
+          path="home"
+          element={
+            (currentUser && hasProfile) ? <Home /> : <Navigate to="/login" replace />
+          }
+        />
 
-      <Route
-        path="/update-profile"
-        element={
-          (currentUser && hasProfile) ? <UpdateProfile /> : <Navigate to="/login" />
-        }
-      />
+        <Route
+          path="update-profile"
+          element={
+            (currentUser && hasProfile) ? <UpdateProfile /> : <Navigate to="/login" />
+          }
+        />
 
-      <Route
-        path="/profile"
-        element={
-          (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
-        }
-      />
+        <Route
+          path="profile"
+          element={
+            (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
+          }
+        />
 
-      <Route
-        path="/profile/:userId"
-        element={
-          (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
-        }
-      />
-            
-       <Route
-        path="/create-post"
-        element={
-          (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
-        }
-      />
+        <Route
+          path="profile/:userId"
+          element={
+            (currentUser && hasProfile) ? <Profile /> : <Navigate to="/login" replace />
+          }
+        />
 
-      <Route
-        path="/posts/:postId"
-        element={
-          (currentUser && hasProfile) ? <Post /> : <Navigate to="/login" replace />
-        }
-      />
+        <Route
+          path="create-post"
+          element={
+            (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
+          }
+        />
 
       <Route
         path="/feed"
@@ -110,6 +113,13 @@ function App() {
         }
       />
 
+        <Route
+          path="posts/:postId"
+          element={
+            (currentUser && hasProfile) ? <Post /> : <Navigate to="/login" replace />
+          }
+        />
+      </Route>
     </Routes>
   );
 }

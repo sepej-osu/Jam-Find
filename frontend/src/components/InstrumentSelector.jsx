@@ -1,7 +1,6 @@
 
 
 import {
-  Steps,
   Box,
   Checkbox,
   Slider,
