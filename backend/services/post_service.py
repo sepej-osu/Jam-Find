@@ -167,42 +167,60 @@ async def _list_posts_by_distance(db, params: PostListParams, current_user_id: s
         .where(filter=FieldFilter("location.lng", "<=", max_lng))
     )
 
-    docs = list(query.order_by("location.lat").order_by("location.lng").limit(1000).stream())
+    base_query = query.order_by("location.lat").order_by("location.lng")
 
-    # We have to fetch all candidates within the bounding box to sort by actual distance
+    # Fetch in batches until we have enough filtered candidates to serve the requested page.
+    # This avoids a hard cap that would silently drop results on later pages.
+    BATCH_SIZE = 500
+    needed = (params.page + 1) * params.limit
     candidates = []
-    for doc in docs:
-        data = doc.to_dict()
+    last_doc = None
 
-        post_lat = data.get("location", {}).get("lat")
-        post_lng = data.get("location", {}).get("lng")
-        if post_lat is None or post_lng is None:
-            continue
+    while len(candidates) < needed:
+        batch = base_query.limit(BATCH_SIZE)
+        if last_doc is not None:
+            batch = batch.start_after(last_doc)
 
-        # Final Haversine distance check to trim bounding box corners
-        dist = haversine_miles(params.user_lat, params.user_lng, post_lat, post_lng)
-        if dist > effective_radius:
-            continue
+        docs = list(batch.stream()) # Firestore query is executed here
+        if not docs: # No more documents in DB
+            break
 
-        # Genre "all" mode check
-        if params.genres and params.genre_mode == "all":
-            post_genres = data.get("genres", [])
-            if not all(g in post_genres for g in params.genres):
+        last_doc = docs[-1] # Update cursor for next batch
+
+        for doc in docs:
+            data = doc.to_dict()
+
+            post_lat = data.get("location", {}).get("lat")
+            post_lng = data.get("location", {}).get("lng")
+            if post_lat is None or post_lng is None:
                 continue
 
-        # Instruments & skill level check
-        if params.instrument_requirements:
-            if not _matches_instruments(data, params):
+            # Final Haversine distance check to trim bounding box corners
+            dist = haversine_miles(params.user_lat, params.user_lng, post_lat, post_lng)
+            if dist > effective_radius:
                 continue
-        
-        # Need to convert Firestore timestamps to datetime for the API response
-        for field in ["createdAt", "updatedAt"]:
-            if field in data and hasattr(data[field], "to_datetime"):
-                data[field] = data[field].to_datetime()
 
-        data["postId"] = doc.id
-        data["_dist"] = dist
-        candidates.append(add_computed_fields(data, current_user_id))
+            # Genre "all" mode check
+            if params.genres and params.genre_mode == "all":
+                post_genres = data.get("genres", [])
+                if not all(g in post_genres for g in params.genres):
+                    continue
+
+            # Instruments & skill level check
+            if params.instrument_requirements:
+                if not _matches_instruments(data, params):
+                    continue
+
+            for field in ["createdAt", "updatedAt"]:
+                if field in data and hasattr(data[field], "to_datetime"):
+                    data[field] = data[field].to_datetime()
+
+            data["postId"] = doc.id
+            data["_dist"] = dist
+            candidates.append(add_computed_fields(data, current_user_id))
+
+        if len(docs) < BATCH_SIZE:
+            break  # Exhausted the Firestore result set
 
     # Sort candidates by distance and then paginate in-memory since Firestore can't sort by computed distance.
     candidates.sort(key=lambda p: p["_dist"], reverse=(params.sort_order == "desc"))
