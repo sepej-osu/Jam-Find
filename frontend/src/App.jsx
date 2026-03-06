@@ -7,8 +7,10 @@ import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
 import UpdateProfile from './UpdateProfile';
 import Profile from './Profile';
-import Post from './Post';
+import Post from './components/Post';
+import DiscoveryFeed from './DiscoveryFeed';
 import Layout from './Layout';
+
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
 import { toaster } from "./components/ui/toaster"
@@ -103,6 +105,13 @@ function App() {
             (currentUser && hasProfile) ? <CreatePost /> : <Navigate to="/login" replace />
           }
         />
+
+      <Route
+        path="/feed"
+        element={
+          (currentUser && hasProfile) ? <DiscoveryFeed /> : <Navigate to="/login" replace />
+        }
+      />
 
         <Route
           path="posts/:postId"

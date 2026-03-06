@@ -1,4 +1,5 @@
 import re
+import math
 import pygeohash as pgh
 import httpx
 from typing import Optional
@@ -22,6 +23,29 @@ def normalize_zip_code(zip_code: str) -> str:
 def calculate_geohash(lat: float, lng: float, precision: int = 5) -> str:
     """Calculate geohash from latitude and longitude"""
     return pgh.encode(lat, lng, precision=precision)
+
+# Haversine distance in miles between two lat/lng points using pygeohash's implementation.
+# https://pygeohash.mcginniscommawill.com/examples.html#distance-calculations
+def haversine_miles(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """Distance in miles between two lat/lng points using pygeohash's Haversine implementation."""
+    h1 = pgh.encode(lat1, lng1, precision=9)
+    h2 = pgh.encode(lat2, lng2, precision=9)
+    return pgh.geohash_haversine_distance(h1, h2) / 1609.344 # convert meters to miles
+
+def bounding_box_from_miles(lat: float, lng: float, radius_miles: float) -> tuple[float, float, float, float]:
+    """Return (min_lat, max_lat, min_lng, max_lng) bounding box for a given center and radius."""
+    delta_lat = radius_miles / 69.0  # Approximate miles per degree latitude
+    cos_lat = math.cos(math.radians(lat))
+    # Guard against cos(lat) being ~0 near the poles, which would cause an enormous or infinite delta_lng.
+    # For if you're jamming at the north or south pole
+    if abs(cos_lat) < 1e-6:
+        # At (or extremely near) the poles, longitude lines converge; treat longitude as unconstrained.
+        min_lng, max_lng = -180.0, 180.0
+    else:
+        delta_lng = radius_miles / (69.0 * cos_lat)  # Approximate miles per degree longitude, adjusted by latitude
+        min_lng, max_lng = lng - delta_lng, lng + delta_lng
+    # Clamp lat to valid range — large radius near a pole can otherwise exceed ±90.
+    return max(lat - delta_lat, -90.0), min(lat + delta_lat, 90.0), min_lng, max_lng
 
 async def resolve_location_from_zip(zip_code: str) -> Optional[Location]:
     """
@@ -75,7 +99,7 @@ async def resolve_location_from_zip(zip_code: str) -> Optional[Location]:
         lat=lat,
         lng=lng,
         placeId=result["place_id"],
-        geohash=calculate_geohash(lat, lng)
+        geohash=calculate_geohash(lat, lng),
     )
 
     # Save to cache using the alias names (zipCode, placeId, etc.)
