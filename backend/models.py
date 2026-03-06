@@ -205,16 +205,34 @@ class PostListParams(BaseModel):
     instrument_mode: Literal["any", "all"] = "any"
     genres: Optional[List[GenreType]] = None
     genre_mode: Literal["any", "all"] = "any"
-    nearby_geohash: Optional[str] = None
-    sort_by: Literal["createdAt", "likes"] = "createdAt"
+    radius_miles: Optional[float] = Field(default=None, ge=0)
+    user_lat: Optional[float] = None
+    user_lng: Optional[float] = None
+    sort_by: Literal["createdAt", "likes", "distance"] = "createdAt"
     sort_order: Literal["asc", "desc"] = "desc"
     user_id: Optional[str] = None
+    page: int = Field(default=0, ge=0)
 
     _instrument_requirements: Dict[str, Tuple[int, int]] = PrivateAttr(default_factory=dict)
 
     model_config = ConfigDict(populate_by_name=True)
 
-    @model_validator(mode="after")
+    @model_validator(mode="after") # Validate coordinates after initial model validation
+    def _validate_coordinates(self) -> "PostListParams":
+        lat_given = self.user_lat is not None
+        lng_given = self.user_lng is not None
+
+        if lat_given != lng_given: # XOR: if one is given without the other, it's an error
+            raise ValueError("user_lat and user_lng must be provided together.")
+
+        if self.sort_by == "distance" and not (lat_given and lng_given): # If sorting by distance, coordinates are required
+            raise ValueError(
+                "sort_by='distance' requires both user_lat and user_lng."
+            )
+
+        return self
+
+    @model_validator(mode="after") # Validate instruments after initial model validation
     def _parse_instruments(self) -> "PostListParams":
         reqs: Dict[str, Tuple[int, int]] = {}
         if self.instruments:
