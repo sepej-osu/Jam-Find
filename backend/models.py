@@ -253,7 +253,6 @@ class MessageBase(BaseModel):
 
 class MessageCreate(MessageBase):
     """Model for creating a new message."""
-    """Model for creating a new message"""
     pass
 
 class MessageResponse(MessageBase):
@@ -268,33 +267,8 @@ class MessageResponse(MessageBase):
         populate_by_name = True
     )
 
-
-class ConversationBase(BaseModel):
-    """Base model for conversations."""
-    participant_ids: List[str] = Field(
-        ...,
-        alias="participantIds",
-        description="Exactly two unique Firebase UIDs participating in this conversation",
-    )
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    @model_validator(mode="after")
-    def validate_participants(self) -> "ConversationBase":
-        ids = [uid.strip() for uid in self.participant_ids]
-
-        if len(ids) != 2:
-            raise ValueError("participantIds must contain exactly two Firebase UIDs")
-        if len(set(ids)) != 2:
-            raise ValueError("participantIds must contain two unique Firebase UIDs")
-        # checking for empty strings after stripping whitespace
-        if any(not uid for uid in ids):
-            raise ValueError("participantIds cannot contain empty values")
-
-        self.participant_ids = ids
-        return self
     
-class ConversationCreate(ConversationBase):
+class ConversationCreate(BaseModel):
     """Model for creating a new conversation. Inherits from ConversationBase."""
     recipient_id: str = Field(..., 
                             alias="recipientId",
@@ -302,9 +276,10 @@ class ConversationCreate(ConversationBase):
     model_config = ConfigDict(populate_by_name=True)
 
 
-class ConversationResponse(ConversationBase):
+class ConversationResponse(BaseModel):
     """Response model for conversations, includes conversation_id and timestamps."""
     conversation_id: str = Field(..., alias="conversationId", description="Unique identifier for the conversation")
+    participant_ids: List[str] = Field(..., alias="participantIds", description="List of Firebase UIDs of the conversation participants")
     created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the conversation was created")
     updated_at: datetime = Field(..., alias="updatedAt", description="Timestamp of the last update to the conversation")
     last_message_preview: Optional[str] = Field(default=None, alias="lastMessagePreview",
@@ -322,5 +297,15 @@ class ConversationResponse(ConversationBase):
     
     model_config = ConfigDict(
         from_attributes = True,
+        populate_by_name = True
+    )
+
+
+class PaginatedConversationsResponse(BaseModel):
+    """Response model for paginated list of conversations"""
+    conversations: List[ConversationResponse] = Field(..., alias="conversations", description="List of conversations for the current page")
+    next_page_token: Optional[str] = Field(default=None, alias="nextPageToken", description="Token to retrieve the next page of results, if any")
+    
+    model_config = ConfigDict(
         populate_by_name = True
     )
