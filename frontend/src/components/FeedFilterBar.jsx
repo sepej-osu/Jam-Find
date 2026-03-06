@@ -123,7 +123,7 @@ function NativeFilter({ label, children }) {
   );
 }
 
-function FeedFilterBar({ filters, onChange }) {
+function FeedFilterBar({ filters, onChange, hasLocation = false }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [pendingGenres, setPendingGenres] = useState(filters.genres);
   const [pendingGenreMode, setPendingGenreMode] = useState(filters.genreMode);
@@ -200,7 +200,7 @@ function FeedFilterBar({ filters, onChange }) {
             >
               <option value="createdAt">Latest</option>
               <option value="likes">Most Liked</option>
-              <option value="distance">Distance</option>
+              <option value="distance" disabled={!hasLocation}>Distance{!hasLocation ? ' (no location set)' : ''}</option>
             </NativeSelect.Field>
             <NativeSelect.Indicator />
           </NativeSelect.Root>

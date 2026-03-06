@@ -60,7 +60,7 @@ function DiscoveryFeed() {
   return (
     <Box maxW="800px" mx="auto" mt="80px" px={4} pb={8}>
       <Text fontSize="2xl" mb={4}>Discovery Feed</Text>
-      <FeedFilterBar filters={filters} onChange={handleFilterChange} />
+      <FeedFilterBar filters={filters} onChange={handleFilterChange} hasLocation={userLat !== null && userLng !== null} />
       {loading && <Center py={8}><Spinner /></Center>}
       {error && <Text color="red.500">{error}</Text>}
       {!loading && !error && posts.length === 0 && (

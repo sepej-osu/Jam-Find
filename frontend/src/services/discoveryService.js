@@ -35,10 +35,13 @@ export function filtersToSearchParams(filters) {
 // Distance sort uses page-offset pagination (page number) since the backend sorts by
 // computed distance — cursor-based pagination can't be used with a derived sort key.
 export function buildParams(filters, userLat = null, userLng = null, pageOrCursor = null) {
-  const isDistanceSort = DISTANCE_SORTS.includes(filters.sortBy);
+  const hasLocation = userLat !== null && userLng !== null;
+  // Distance sort requires coordinates — fall back to createdAt if they're missing.
+  const sortBy = filters.sortBy === 'distance' && !hasLocation ? 'createdAt' : filters.sortBy;
+  const isDistanceSort = DISTANCE_SORTS.includes(sortBy);
   const params = {
     limit: 10,
-    sortBy: filters.sortBy,
+    sortBy: sortBy,
     sortOrder: filters.sortOrder,
   };
   if (isDistanceSort) {
