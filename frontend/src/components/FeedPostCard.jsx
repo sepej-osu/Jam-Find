@@ -30,7 +30,8 @@ function FeedPostCard({ post, userLat = null, userLng = null }) {
   const instrumentLabel = POST_TYPE_PLAY_LABELS[post.postType];
 
   const distanceMiles =
-    userLat !== null && userLng !== null
+    userLat !== null && userLng !== null &&
+    post.location?.lat != null && post.location?.lng != null
       ? getDistanceMiles(userLat, userLng, post.location.lat, post.location.lng)
       : null;
 
