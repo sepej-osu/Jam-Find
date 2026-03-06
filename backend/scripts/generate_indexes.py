@@ -6,7 +6,8 @@ composite Firestore index, then prints the Firebase console links for creating t
 
 Usage:
     cd /backend
-    venv/bin/python -m scripts.generate_indexes
+    venv/bin/python -m scripts.generate_indexes              # probes 'posts'
+    venv/bin/python -m scripts.generate_indexes test_posts   # probes 'test_posts'
 """
 import asyncio
 import re
@@ -17,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import HTTPException
 from models import PostListParams
+import services.post_service as post_service_module
 from services.post_service import list_posts
 
 # ── probe config ─────────────────────────────────────────────────────────────
@@ -100,4 +102,7 @@ async def probe():
         print(f"   {url}\n")
 
 if __name__ == "__main__":
+    collection = sys.argv[1] if len(sys.argv) > 1 else "posts"
+    post_service_module.COLLECTION_NAME = collection
+    print(f"Probing collection: '{collection}'\n")
     asyncio.run(probe())

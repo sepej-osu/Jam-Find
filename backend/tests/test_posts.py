@@ -135,21 +135,13 @@ def test_list_posts_by_user():
     for post in posts:
         assert post["userId"] == settings.DEV_USER_ID
 
-# @pytest.mark.skip(
-#     reason=(
-#         "Requires a Firestore composite index on (location.geohash ASC, createdAt DESC). "
-#         "Create it at https://console.firebase.google.com or via the link "
-#         "in the Firestore error response before running this test. "
-#         "Alternatively, run against a Firestore emulator with indexes pre-configured."
-#     )
-# )
 def test_list_posts_by_geohash():
-    """Test that nearby_geohash only returns posts within the 4-char geohash prefix radius"""
-    # Create a nearby post (Los Angeles, geohash prefix "9q5c")
+    """Test that radius filtering (user_lat/user_lng/radius_miles) returns only nearby posts"""
+    # Create a nearby post (Los Angeles)
     nearby_resp = client.post(
         "/api/v1/posts",
         json={
-            "title": "Geohash test: nearby (LA)",
+            "title": "Geo test: nearby (LA)",
             "body": "This post should appear in a search centred on Los Angeles",
             "postType": "looking_to_jam",
             "location": {
@@ -160,16 +152,14 @@ def test_list_posts_by_geohash():
             }
         }
     )
-    #print(f"Status: {nearby_resp.status_code}")
-    #print(f"Response: {nearby_resp.text}")
     assert nearby_resp.status_code == 201
     nearby_post_id = nearby_resp.json()["postId"]
 
-    # Create a far post (New York, geohash prefix "dr5r" — no overlap with "9q5c")
+    # Create a far post (New York, ~2445 mi away)
     far_resp = client.post(
         "/api/v1/posts",
         json={
-            "title": "Geohash test: far (NYC)",
+            "title": "Geo test: far (NYC)",
             "body": "This post should NOT appear in a search centred on Los Angeles",
             "postType": "looking_to_jam",
             "location": {
@@ -180,23 +170,20 @@ def test_list_posts_by_geohash():
             }
         }
     )
-    #print(f"Status: {far_resp.status_code}")
-    #print(f"Response: {far_resp.text}")
     assert far_resp.status_code == 201
     far_post_id = far_resp.json()["postId"]
 
     try:
-        # Search with an LA geohash — prefix used by the query is "9q5c"
-        response = client.get("/api/v1/posts?nearby_geohash=9q5cs")
-        #print(f"Status: {response.status_code}")
-        #print(f"Response: {response.text}")
+        # Search centred on LA within 50 miles — NYC post should be excluded
+        response = client.get(
+            "/api/v1/posts?user_lat=34.0522&user_lng=-118.2437&radius_miles=50"
+        )
         assert response.status_code == 200
         returned_ids = [p["postId"] for p in response.json()["posts"]]
 
         assert nearby_post_id in returned_ids, "Nearby (LA) post should be in results"
         assert far_post_id not in returned_ids, "Far (NYC) post should not be in results"
     finally:
-        # Always clean up, even if assertions fail
         client.delete(f"/api/v1/posts/{nearby_post_id}")
         client.delete(f"/api/v1/posts/{far_post_id}")
 
@@ -271,3 +258,129 @@ def test_get_deleted_post():
     )
     print(f"Status: {response.status_code}")
     assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Distance sort, radius filtering, and page-based pagination
+# ---------------------------------------------------------------------------
+
+class TestDistanceSort:
+    """
+    Integration tests for sort_by=distance.
+
+    Each test method creates its own posts (postType='sharing_music' to avoid
+    collisions with other test data) and cleans them up in teardown.
+
+    Reference point: downtown Los Angeles (34.0522, -118.2437).
+    Each 0.1° latitude ≈ 6.9 miles, so the three "near" coordinates land at
+    roughly 0 mi, 7 mi, and 14 mi from the reference.
+    """
+
+    USER_LAT = 34.0522
+    USER_LNG = -118.2437
+
+    NEAR_1 = (34.0522, -118.2437)   # ~0 mi
+    NEAR_2 = (34.1522, -118.2437)   # ~6.9 mi
+    NEAR_3 = (34.2522, -118.2437)   # ~13.8 mi
+    FAR    = (40.7128, -74.0060)    # ~2445 mi (New York)
+
+    def setup_method(self):
+        self._post_ids: list[str] = []
+
+    def teardown_method(self):
+        for pid in self._post_ids:
+            client.delete(f"/api/v1/posts/{pid}")
+        self._post_ids = []
+
+    def _create(self, title: str, lat: float, lng: float) -> str:
+        resp = client.post("/api/v1/posts", json={
+            "title": title,
+            "body": "Distance sort test",
+            "postType": "sharing_music",
+            "location": {"formattedAddress": "Test", "lat": lat, "lng": lng},
+        })
+        assert resp.status_code == 201
+        pid = resp.json()["postId"]
+        self._post_ids.append(pid)
+        return pid
+
+    def _query(self, **extra):
+        return client.get("/api/v1/posts", params={
+            "sort_by": "distance",
+            "post_type": "sharing_music",
+            "user_lat": self.USER_LAT,
+            "user_lng": self.USER_LNG,
+            "radius_miles": 25,
+            **extra,
+        })
+
+    def test_distance_sort_asc(self):
+        """Results are ordered nearest-first when sort_order=asc."""
+        id_0  = self._create("dist_asc_0mi",  *self.NEAR_1)
+        id_7  = self._create("dist_asc_7mi",  *self.NEAR_2)
+        id_14 = self._create("dist_asc_14mi", *self.NEAR_3)
+
+        resp = self._query(sort_order="asc")
+        assert resp.status_code == 200
+        ids = [p["postId"] for p in resp.json()["posts"]]
+
+        assert id_0  in ids
+        assert id_7  in ids
+        assert id_14 in ids
+        assert ids.index(id_0) < ids.index(id_7) < ids.index(id_14)
+
+    def test_distance_sort_desc(self):
+        """Results are ordered furthest-first when sort_order=desc."""
+        id_0  = self._create("dist_desc_0mi",  *self.NEAR_1)
+        id_7  = self._create("dist_desc_7mi",  *self.NEAR_2)
+        id_14 = self._create("dist_desc_14mi", *self.NEAR_3)
+
+        resp = self._query(sort_order="desc")
+        assert resp.status_code == 200
+        ids = [p["postId"] for p in resp.json()["posts"]]
+
+        assert id_0  in ids
+        assert id_7  in ids
+        assert id_14 in ids
+        assert ids.index(id_14) < ids.index(id_7) < ids.index(id_0)
+
+    def test_radius_filtering_excludes_far_posts(self):
+        """Posts outside the radius are excluded; posts inside are included."""
+        id_near = self._create("dist_radius_near", *self.NEAR_2)  # ~7 mi — inside 25 mi
+        id_far  = self._create("dist_radius_far",  *self.FAR)     # ~2445 mi — outside
+
+        resp = self._query(sort_order="asc")
+        assert resp.status_code == 200
+        ids = [p["postId"] for p in resp.json()["posts"]]
+
+        assert id_near in ids
+        assert id_far  not in ids
+
+    def test_distance_pagination(self):
+        """
+        page=0 and page=1 return non-overlapping slices.
+        nextPageToken is present after page 0 and absent after the last page.
+        """
+        id_0  = self._create("dist_page_0mi",  *self.NEAR_1)
+        id_7  = self._create("dist_page_7mi",  *self.NEAR_2)
+        id_14 = self._create("dist_page_14mi", *self.NEAR_3)
+
+        # Page 0: limit=2 → 2 posts, nextPageToken present
+        resp0 = self._query(sort_order="asc", limit=2, page=0)
+        assert resp0.status_code == 200
+        data0 = resp0.json()
+        assert len(data0["posts"]) == 2
+        assert data0["nextPageToken"] is not None
+
+        # Page 1: limit=2 → 1 remaining post, no nextPageToken
+        resp1 = self._query(sort_order="asc", limit=2, page=int(data0["nextPageToken"]))
+        assert resp1.status_code == 200
+        data1 = resp1.json()
+        assert len(data1["posts"]) == 1
+        assert data1["nextPageToken"] is None
+
+        # Pages must be disjoint and together cover all three posts
+        ids0 = {p["postId"] for p in data0["posts"]}
+        ids1 = {p["postId"] for p in data1["posts"]}
+        assert ids0.isdisjoint(ids1)
+        assert ids0 | ids1 == {id_0, id_7, id_14}
