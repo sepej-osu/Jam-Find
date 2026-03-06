@@ -1,54 +1,17 @@
-import { Box, Text, Button } from '@chakra-ui/react';
+import { Box, Text, Button, Spinner, Center, EmptyState, List, VStack } from '@chakra-ui/react';
+import { IoMusicalNotes } from 'react-icons/io5';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import postService from './services/postService';
 import FeedPostCard from './components/FeedPostCard';
-import FeedFilterBar, { DEFAULT_FILTERS } from './components/FeedFilterBar';
-
-function filtersFromSearchParams(searchParams) {
-  return {
-    postType: searchParams.get('postType') ?? DEFAULT_FILTERS.postType,
-    genres: searchParams.getAll('genres'),
-    genreMode: searchParams.get('genreMode') ?? DEFAULT_FILTERS.genreMode,
-    instruments: searchParams.getAll('instruments'),
-    instrumentMode: searchParams.get('instrumentMode') ?? DEFAULT_FILTERS.instrumentMode,
-    sortBy: searchParams.get('sortBy') ?? DEFAULT_FILTERS.sortBy,
-    sortOrder: searchParams.get('sortOrder') ?? DEFAULT_FILTERS.sortOrder,
-  };
-}
-
-function filtersToSearchParams(filters) {
-  const p = new URLSearchParams();
-  if (filters.postType) p.set('postType', filters.postType);
-  filters.genres.forEach(g => p.append('genres', g));
-  if (filters.genres.length > 1) p.set('genreMode', filters.genreMode);
-  filters.instruments.forEach(i => p.append('instruments', i));
-  if (filters.instruments.length > 1) p.set('instrumentMode', filters.instrumentMode);
-  if (filters.sortBy !== DEFAULT_FILTERS.sortBy) p.set('sortBy', filters.sortBy);
-  if (filters.sortOrder !== DEFAULT_FILTERS.sortOrder) p.set('sortOrder', filters.sortOrder);
-  return p;
-}
-
-function buildParams(filters, lastDocId = null) {
-  const params = {
-    limit: 10,
-    sortBy: filters.sortBy,
-    sortOrder: filters.sortOrder,
-    lastDocId,
-  };
-  if (filters.postType) params.postType = filters.postType;
-  if (filters.genres.length) {
-    params.genres = filters.genres;
-    params.genreMode = filters.genreMode;
-  }
-  if (filters.instruments.length) {
-    params.instruments = filters.instruments.map(i => `${i}:1:5`);
-    params.instrumentMode = filters.instrumentMode;
-  }
-  return params;
-}
+import FeedFilterBar from './components/FeedFilterBar';
+import { useAuth } from './contexts/AuthContext';
+import { filtersFromSearchParams, filtersToSearchParams, buildParams } from './services/discoveryService';
 
 function DiscoveryFeed() {
+  const { profile } = useAuth();
+  const userLat = profile?.location?.lat ?? null;
+  const userLng = profile?.location?.lng ?? null;
   const [searchParams, setSearchParams] = useSearchParams();
   const [posts, setPosts] = useState([]);
   const [nextPageToken, setNextPageToken] = useState(null);
@@ -62,7 +25,7 @@ function DiscoveryFeed() {
     setLoading(true);
     setError(null);
     try {
-      const { posts: fetched, nextPageToken: token } = await postService.getPosts(buildParams(currentFilters));
+      const { posts: fetched, nextPageToken: token } = await postService.getPosts(buildParams(currentFilters, userLat, userLng));
       setPosts(fetched ?? []);
       setNextPageToken(token ?? null);
     } catch (err) {
@@ -70,13 +33,13 @@ function DiscoveryFeed() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userLat, userLng]);
 
   const loadMore = async () => {
     if (!nextPageToken || loadingMore) return;
     setLoadingMore(true);
     try {
-      const { posts: more, nextPageToken: token } = await postService.getPosts(buildParams(filters, nextPageToken));
+      const { posts: more, nextPageToken: token } = await postService.getPosts(buildParams(filters, userLat, userLng, nextPageToken));
       setPosts(prev => [...prev, ...(more ?? [])]);
       setNextPageToken(token ?? null);
     } catch (err) {
@@ -92,16 +55,33 @@ function DiscoveryFeed() {
 
   useEffect(() => {
     fetchPosts(filters);
-  }, [searchParams]);
+  }, [searchParams, fetchPosts]);
 
   return (
     <Box maxW="800px" mx="auto" mt="80px" px={4} pb={8}>
       <Text fontSize="2xl" mb={4}>Discovery Feed</Text>
       <FeedFilterBar filters={filters} onChange={handleFilterChange} />
-      {loading && <Text>Loading posts...</Text>}
+      {loading && <Center py={8}><Spinner /></Center>}
       {error && <Text color="red.500">{error}</Text>}
-      {!loading && !error && posts.length === 0 && <Text>No posts found.</Text>}
-      {posts.map(post => <FeedPostCard key={post.postId} post={post} />)}
+      {!loading && !error && posts.length === 0 && (
+        <EmptyState.Root>
+          <EmptyState.Content>
+            <EmptyState.Indicator>
+              <IoMusicalNotes />
+            </EmptyState.Indicator>
+            <VStack textAlign="center">
+              <EmptyState.Title>No posts found</EmptyState.Title>
+              <EmptyState.Description>Try adjusting your filters</EmptyState.Description>
+            </VStack>
+            <List.Root variant="marker">
+              <List.Item>Try removing filters</List.Item>
+              <List.Item>Try increasing the distance radius</List.Item>
+              <List.Item>Try a different post type</List.Item>
+            </List.Root>
+          </EmptyState.Content>
+        </EmptyState.Root>
+      )}
+      {posts.map(post => <FeedPostCard key={post.postId} post={post} userLat={userLat} userLng={userLng} />)}
       {nextPageToken && (
         <Button onClick={loadMore} loading={loadingMore} mt={4} w="full" variant="outline">
           Load More

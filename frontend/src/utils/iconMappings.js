@@ -1,5 +1,5 @@
-import { IoMusicalNotes } from 'react-icons/io5';
-import { FaGuitar } from 'react-icons/fa';
+import { IoMusicalNotes, IoSearch, IoClose } from 'react-icons/io5';
+import { FaGuitar, FaMapMarkerAlt } from 'react-icons/fa';
 import {
   GiGuitarHead,
   GiGuitarBassHead,
@@ -11,6 +11,9 @@ import {
   GiTrumpet,
   GiSaxophone,
 } from 'react-icons/gi';
+
+export const SearchIcon = IoSearch;
+export const CloseIcon = IoClose;
 
 const INSTRUMENT_ICON_MAP = {
   electric_guitar: GiGuitarHead,
@@ -38,3 +41,5 @@ const SKILL_COLOR_MAP = {
 };
 
 export const getSkillColor = (level) => SKILL_COLOR_MAP[level] ?? 'gray';
+
+export const MapIcon = FaMapMarkerAlt;

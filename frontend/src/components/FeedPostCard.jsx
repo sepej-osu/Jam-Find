@@ -18,16 +18,21 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import postService from '../services/postService';
 import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES, POST_TYPE_PLAY_LABELS } from '../utils/displayNameMappings';
-import { getSkillColor } from '../utils/iconMappings';
-import { getRelativeTime } from '../utils/helpers';
+import { getSkillColor, getInstrumentIcon } from '../utils/iconMappings';
+import { getRelativeTime, getDistanceMiles } from '../utils/helpers';
 import { Tooltip } from './ui/tooltip';
 
-function FeedPostCard({ post }) {
+function FeedPostCard({ post, userLat = null, userLng = null }) {
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
   const [likingInProgress, setLikingInProgress] = useState(false);
   const navigate = useNavigate();
   const instrumentLabel = POST_TYPE_PLAY_LABELS[post.postType];
+
+  const distanceMiles =
+    userLat !== null && userLng !== null
+      ? getDistanceMiles(userLat, userLng, post.location.lat, post.location.lng)
+      : null;
 
   const handleLikeToggle = async () => {
     if (likingInProgress) return;
@@ -53,7 +58,6 @@ function FeedPostCard({ post }) {
   
 return (
     <Box maxW="1000px" mx="auto" p={3} mb={4} borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md">
-        {/* Render Author Info directly from the post object */}
         <Flex align="center" mb={4}>
           <Avatar.Root size="xl" shape="rounded" mr={3} cursor="pointer" onClick={() => navigate(`/profile/${post.userId}`)}>
             <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
@@ -70,7 +74,7 @@ return (
                 </Tag.Root>
               )}
             </Flex>
-            {post.location?.formattedAddress && (
+            {(post.location?.formattedAddress || distanceMiles !== null) && (
               <Flex align="center" color="gray.600">
                 <Link fontSize="sm" fontWeight="semibold" mr={1} onClick={() => navigate(`/profile/${post.userId}`)} cursor="pointer">{post.firstName} {post.lastName}</Link>
                 <Text fontSize="sm" mx={1}>·</Text>
@@ -79,7 +83,15 @@ return (
                 </Tooltip>
                 <Text fontSize="sm" mx={1}>·</Text>
                 <Icon as={FaMapMarkerAlt} color="red.600" mr="1" />
-                <Text fontSize="sm">{post.location.formattedAddress}</Text>
+                {post.location?.formattedAddress && (
+                  <Text fontSize="sm">{post.location.formattedAddress}</Text>
+                )}
+                {distanceMiles !== null && (
+                  <>
+                    {post.location?.formattedAddress && <Text fontSize="sm" mx={1}>·</Text>}
+                    <Text fontSize="sm" color="gray.500">{distanceMiles < 5 ? 'within 5 mi' : `~${Math.round(distanceMiles)} mi away`}</Text>
+                  </>
+                )}
               </Flex>
             )}
           </Box>
@@ -105,6 +117,7 @@ return (
                     bg={`${getSkillColor(i.skillLevel)}.subtle`}
                     color={`${getSkillColor(i.skillLevel)}.fg`}
                     cursor="default">
+                    <Icon as={getInstrumentIcon(i.name)} />
                     {INSTRUMENT_DISPLAY_NAMES[i.name] ?? i.name}
                   </Badge>
                 </Tooltip>

@@ -205,10 +205,13 @@ class PostListParams(BaseModel):
     instrument_mode: Literal["any", "all"] = "any"
     genres: Optional[List[GenreType]] = None
     genre_mode: Literal["any", "all"] = "any"
-    nearby_geohash: Optional[str] = None
-    sort_by: Literal["createdAt", "likes"] = "createdAt"
+    radius_miles: Optional[float] = Field(default=None, ge=0)
+    user_lat: Optional[float] = None
+    user_lng: Optional[float] = None
+    sort_by: Literal["createdAt", "likes", "distance"] = "createdAt"
     sort_order: Literal["asc", "desc"] = "desc"
     user_id: Optional[str] = None
+    page: int = Field(default=0, ge=0)
 
     _instrument_requirements: Dict[str, Tuple[int, int]] = PrivateAttr(default_factory=dict)
 
