@@ -253,7 +253,6 @@ class MessageBase(BaseModel):
 
 class MessageCreate(MessageBase):
     """Model for creating a new message."""
-    """Model for creating a new message"""
     pass
 
 class MessageResponse(MessageBase):
