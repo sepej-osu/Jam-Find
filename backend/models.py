@@ -247,16 +247,16 @@ class PostListParams(BaseModel):
     
 
 class MessageBase(BaseModel):
-    """ base model for messages in the messaging system"""
+    """Base model for messages in the messaging system"""
     content: str = Field(..., min_length=1, max_length=2000, alias="content", description="Content of the message")
     model_config = ConfigDict(populate_by_name=True)
 
 class MessageCreate(MessageBase):
-    """ model for creating a new message"""
+    """Model for creating a new message"""
     pass
 
 class MessageResponse(MessageBase):
-    """ response model for messages, includes message_id and read status"""
+    """Response model for messages"""
     message_id: str = Field(..., alias="messageId", description="ID for the message")
     conversation_id: str = Field(..., alias="conversationId", description="conversation ID that this message belongs to")
     sender_id: str = Field(..., alias="senderId", description="Firebase Auth UID of the sender")
@@ -269,7 +269,7 @@ class MessageResponse(MessageBase):
 
 
 class ConversationBase(BaseModel):
-    """Base model for 1:1 conversations."""
+    """Base model for conversations."""
     participant_ids: List[str] = Field(
         ...,
         alias="participantIds",
