@@ -60,7 +60,7 @@ function ListboxItemCheckmark() {
   return <Checkmark filled size="sm" checked={item.selected} disabled={item.disabled} />;
 }
 
-function ListboxFilter({ label, collection, selectedValues, onValueChange, onModeChange, mode, colorPalette = 'blue', getIcon }) {
+function ListboxFilter({ label, collection, selectedValues, onValueChange, onModeChange, mode, getIcon }) {
   return (
     <Box flex="1" minW="200px" pb={1}>
       <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1} textTransform="uppercase">{label}</Text>
@@ -101,7 +101,7 @@ function ListboxFilter({ label, collection, selectedValues, onValueChange, onMod
           {['any', 'all'].map(item => (
             <SegmentGroup.Item key={item} value={item}>
               <SegmentGroup.ItemText
-                _checked={{ color: 'colorPalette.fg', fontWeight: 'semibold' }}
+                _checked={{ fontWeight: 'semibold' }}
               >
                 {item}
               </SegmentGroup.ItemText>
