@@ -143,8 +143,18 @@ def _matches_instruments(data: dict, params) -> bool:
     return len(matches) == len(params.instrument_requirements)
 
 
-async def _list_posts_by_distance(db, params: PostListParams, current_user_id: str) -> dict:
-    """Fetch all posts in the user's area, sort by distance, and return a page slice."""
+async def _list_posts_in_bbox(db, params: PostListParams, current_user_id: str) -> dict:
+    """Fetch posts within a bounding box, apply Haversine trim, sort in-memory, and return a page slice.
+
+    When a radius filter is active, Firestore forces location.lat/lng as the primary sort
+    keys, making server-side sort_by=createdAt/likes incorrect. In-memory sorting fixes this.
+    """
+    # Default to 25 miles if radius is not provided
+    effective_radius = params.radius_miles if params.radius_miles is not None else 25.0
+    min_lat, max_lat, min_lng, max_lng = bounding_box_from_miles(
+        params.user_lat, params.user_lng, effective_radius
+    )
+
     posts_ref = db.collection(COLLECTION_NAME)
     query = posts_ref
 
@@ -158,34 +168,37 @@ async def _list_posts_by_distance(db, params: PostListParams, current_user_id: s
     # Use a lat/lng bounding box (Firestore multi-field inequality, supported since March 2024).
     # https://puf.io/posts/how-to-perform-geoqueries-on-firestore-somewhat-efficiently/
     # Haversine below trims the corners.
-    effective_radius = params.radius_miles if params.radius_miles is not None else 25.0
-    min_lat, max_lat, min_lng, max_lng = bounding_box_from_miles(params.user_lat, params.user_lng, effective_radius)
-    query = (query
+    base_query = (query
         .where(filter=FieldFilter("location.lat", ">=", min_lat))
         .where(filter=FieldFilter("location.lat", "<=", max_lat))
         .where(filter=FieldFilter("location.lng", ">=", min_lng))
         .where(filter=FieldFilter("location.lng", "<=", max_lng))
+        .order_by("location.lat")
+        .order_by("location.lng")
     )
 
-    base_query = query.order_by("location.lat").order_by("location.lng")
-
-    # Fetch in batches until we have enough filtered candidates to serve the requested page.
-    # This avoids a hard cap that would silently drop results on later pages.
+    # For distance sort we can stop once we have enough candidates (pragmatic optimisation;
+    # acceptable because bounding-box corners are already trimmed by Haversine below).
+    # For createdAt/likes we must collect ALL candidates before sorting.
     BATCH_SIZE = 500
-    needed = (params.page + 1) * params.limit
+    distance_sort = params.sort_by == "distance"
+    needed = (params.page + 1) * params.limit  # used only for distance sort early-exit
     candidates = []
     last_doc = None
 
-    while len(candidates) < needed:
+    while True:
+        if distance_sort and len(candidates) >= needed:
+            break
+
         batch = base_query.limit(BATCH_SIZE)
         if last_doc is not None:
             batch = batch.start_after(last_doc)
 
-        docs = list(batch.stream()) # Firestore query is executed here
-        if not docs: # No more documents in DB
+        docs = list(batch.stream())
+        if not docs:
             break
 
-        last_doc = docs[-1] # Update cursor for next batch
+        last_doc = docs[-1]
 
         for doc in docs:
             data = doc.to_dict()
@@ -222,13 +235,21 @@ async def _list_posts_by_distance(db, params: PostListParams, current_user_id: s
         if len(docs) < BATCH_SIZE:
             break  # Exhausted the Firestore result set
 
-    # Sort candidates by distance and then paginate in-memory since Firestore can't sort by computed distance.
-    candidates.sort(key=lambda p: p["_dist"], reverse=(params.sort_order == "desc"))
-    for p in candidates: # Remove the temporary distance field before returning results
+    # Sort in-memory, then page-slice
+    reverse = params.sort_order == "desc"
+    if distance_sort:
+        candidates.sort(key=lambda p: p["_dist"], reverse=reverse)
+    elif params.sort_by == "likes":
+        candidates.sort(key=lambda p: p.get("likes", 0), reverse=reverse)
+    else:  # createdAt
+        candidates.sort(
+            key=lambda p: p.get("createdAt") or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=reverse,
+        )
+
+    for p in candidates:
         del p["_dist"]
 
-    # Pagination is done in-memory since Firestore can't sort by distance.
-    # We provide a nextPageToken only if there's another full page of results.
     start = params.page * params.limit
     end = start + params.limit
     page_results = candidates[start:end]
@@ -242,19 +263,15 @@ async def list_posts(params: PostListParams, current_user_id: str) -> dict:
     try:
         db = get_db()
 
-        # If sorting by distance, we have to do custom in-memory sorting after fetching candidates within a bounding box.
-        if params.sort_by == "distance":
-            return await _list_posts_by_distance(db, params, current_user_id)
+        # When coordinates are provided we must collect all bounding-box candidates and
+        # sort in-memory: Firestore forces location.lat/lng as the primary sort keys,
+        # which would make sort_by=createdAt/likes/distance incorrect if done server-side.
+        if params.user_lat is not None:
+            return await _list_posts_in_bbox(db, params, current_user_id)
 
         results = []
         current_last_id = params.last_doc_id
         posts_ref = db.collection(COLLECTION_NAME)
-        effective_radius = params.radius_miles if params.radius_miles is not None else 25.0
-        bounding_box = (
-            bounding_box_from_miles(params.user_lat, params.user_lng, effective_radius)
-            if params.user_lat is not None and params.user_lng is not None
-            else None
-        )
 
         # Fetch in larger batches to minimize round-trips when many posts are filtered out.
         internal_fetch_limit = params.limit * 5
@@ -270,19 +287,6 @@ async def list_posts(params: PostListParams, current_user_id: str) -> dict:
                 query = query.where(filter=FieldFilter("genres", "array_contains_any", params.genres))
 
             direction = firestore.Query.ASCENDING if params.sort_order == "asc" else firestore.Query.DESCENDING
-
-            if bounding_box is not None:
-                min_lat, max_lat, min_lng, max_lng = bounding_box
-                query = (query
-                    .where(filter=FieldFilter("location.lat", ">=", min_lat))
-                    .where(filter=FieldFilter("location.lat", "<=", max_lat))
-                    .where(filter=FieldFilter("location.lng", ">=", min_lng))
-                    .where(filter=FieldFilter("location.lng", "<=", max_lng))
-                    # Explicitly order by inequality fields first to prevent the SDK from
-                    # auto-injecting them per FieldFilter call (which would duplicate location.lat).
-                    .order_by("location.lat")
-                    .order_by("location.lng")
-                )
 
             query = query.order_by(params.sort_by, direction=direction).limit(internal_fetch_limit)
 
@@ -304,14 +308,6 @@ async def list_posts(params: PostListParams, current_user_id: str) -> dict:
 
                 data = doc.to_dict()
                 current_last_id = doc.id  # Update cursor to the very last doc inspected
-
-                if bounding_box is not None: # Final Haversine distance check to trim bounding box corners
-                    post_lat = data.get("location", {}).get("lat")
-                    post_lng = data.get("location", {}).get("lng")
-                    if post_lat is None or post_lng is None: # Check if no location data, skip the post
-                        continue
-                    if haversine_miles(params.user_lat, params.user_lng, post_lat, post_lng) > effective_radius: # Check if post is outside the radius, skip it
-                        continue
 
                 # Genre "all" mode check
                 if params.genres and params.genre_mode == "all":
