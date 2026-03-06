@@ -247,11 +247,12 @@ class PostListParams(BaseModel):
     
 
 class MessageBase(BaseModel):
-    """Base model for messages in the messaging system"""
+    """Base model for messages in the messaging system."""
     content: str = Field(..., min_length=1, max_length=2000, alias="content", description="Content of the message")
     model_config = ConfigDict(populate_by_name=True)
 
 class MessageCreate(MessageBase):
+    """Model for creating a new message."""
     """Model for creating a new message"""
     pass
 
