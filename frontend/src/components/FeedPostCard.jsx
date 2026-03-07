@@ -58,7 +58,7 @@ function FeedPostCard({ post, userLat = null, userLng = null }) {
   };
   
 return (
-    <Box maxW="1000px" mx="auto" p={3} mb={4} borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md">
+    <Box maxW="1000px" mx="auto" p={3} mb={4} borderWidth="1px" borderColor="jam.border" borderRadius="lg" bg="jam.bg" boxShadow="md">
         <Flex align="center" mb={4}>
           <Avatar.Root size="xl" shape="rounded" mr={3} cursor="pointer" onClick={() => navigate(`/profile/${post.userId}`)}>
             <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
@@ -66,21 +66,21 @@ return (
           </Avatar.Root>
           <Box flex="1">
             <Flex justify="space-between" align="center" mb={1}>
-              <Link fontWeight="semibold" fontSize="lg" onClick={() => navigate(`/posts/${post.postId}`)} cursor="pointer">
+              <Link color="jam.text" fontWeight="semibold" fontSize="xl" onClick={() => navigate(`/posts/${post.postId}`)} cursor="pointer">
                 {post.title}
               </Link>
               {post.postType && (
-                <Tag.Root size="sm" color="white" fontWeight="medium" bg="blue.400">
+                <Tag.Root size="sm" color="jam.text" fontWeight="medium" bg="jam.50">
                   {POST_TYPE_DISPLAY_NAMES[post.postType] ?? post.postType}
                 </Tag.Root>
               )}
             </Flex>
             {(post.location?.formattedAddress || distanceMiles !== null) && (
-              <Flex align="center" color="gray.600">
-                <Link fontSize="sm" fontWeight="semibold" mr={1} onClick={() => navigate(`/profile/${post.userId}`)} cursor="pointer">{post.firstName} {post.lastName}</Link>
+              <Flex align="center" color="jam.textMuted">
+                <Link fontSize="sm" color="jam.text" fontWeight="semibold" mr={1} onClick={() => navigate(`/profile/${post.userId}`)} cursor="pointer">{post.firstName} {post.lastName}</Link>
                 <Text fontSize="sm" mx={1}>·</Text>
-                <Tooltip content={new Date(post.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })} showArrow>
-                  <Text fontSize="sm" color="gray.500" cursor="default" mr={1}>{getRelativeTime(post.createdAt)}</Text>
+                <Tooltip content={new Date(post.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })} contentProps={{ bg: "jam.800", color: "jam.50" }}>
+                  <Text fontSize="sm"cursor="default" mr={1}>{getRelativeTime(post.createdAt)}</Text>
                 </Tooltip>
                 <Text fontSize="sm" mx={1}>·</Text>
                 <Icon as={FaMapMarkerAlt} color="red.600" mr="1" />
@@ -90,7 +90,7 @@ return (
                 {distanceMiles !== null && (
                   <>
                     {post.location?.formattedAddress && <Text fontSize="sm" mx={1}>·</Text>}
-                    <Text fontSize="sm" color="gray.500">{distanceMiles < 5 ? 'within 5 mi' : `~${Math.round(distanceMiles)} mi away`}</Text>
+                    <Text fontSize="sm">{distanceMiles < 5 ? 'within 5 mi' : `~${Math.round(distanceMiles)} mi away`}</Text>
                   </>
                 )}
               </Flex>
@@ -98,10 +98,10 @@ return (
           </Box>
         </Flex>
 
-        <Separator mb={4} />
+        <Separator mb={2} />
 
-        <Box mb={6}>
-          <Text fontSize="lg" color="gray.800" whiteSpace="pre-wrap">
+        <Box mb={3}>
+          <Text fontSize="lg" color="jam.text" whiteSpace="pre-wrap">
             {post.body}
           </Text>
         </Box>
@@ -109,7 +109,7 @@ return (
         {post.instruments?.length > 0 && (
           <Box mb={2}>
             {instrumentLabel && (
-              <Text fontSize="sm" fontWeight="semibold" mb={1}>{instrumentLabel}</Text>
+              <Text fontSize="sm" color="jam.textMuted" fontWeight="normal" mb={1}>{instrumentLabel}</Text>
             )}
             <Wrap gap={1}>
               {post.instruments.map((i, index) => (
@@ -131,7 +131,7 @@ return (
           <Box mb={3}>
             <Wrap gap={1}>
               {post.genres.map((g, index) => (
-                <Badge key={index} bg="blue.subtle" color="blue.fg">
+                <Badge key={index} bg="jam.50" color="jam.700">
                   {GENRE_DISPLAY_NAMES[g] ?? g}
                 </Badge>
               ))}
@@ -146,12 +146,11 @@ return (
           <Flex align="center" gap={2}>
             <IconButton
               aria-label={isLiked ? "Unlike post" : "Like post"}
-              colorPalette={isLiked ? "red" : "gray"}
               variant="ghost"
               onClick={handleLikeToggle}
               loading={likingInProgress}
-              size="lg"><Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} /></IconButton>
-            <Text fontWeight="semibold" fontSize="md">
+              size="lg"><Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} color={isLiked ? "jam.liked" : "jam.textMuted"} /></IconButton>
+            <Text color="jam.text" fontWeight="semibold" fontSize="md">
               {likesCount} {likesCount === 1 ? 'like' : 'likes'}
             </Text>
           </Flex>

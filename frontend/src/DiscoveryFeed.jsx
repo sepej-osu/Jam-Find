@@ -1,4 +1,5 @@
-import { Box, Text, Button, Spinner, Center, EmptyState, List, VStack } from '@chakra-ui/react';
+import { Box, Text, Button, Spinner, Center, EmptyState, List, VStack, HStack, Icon } from '@chakra-ui/react';
+import { FaArrowUp } from 'react-icons/fa';
 import { IoMusicalNotes } from 'react-icons/io5';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -58,8 +59,7 @@ function DiscoveryFeed() {
   }, [searchParams, fetchPosts]);
 
   return (
-    <Box maxW="800px" mx="auto" mt="80px" px={4} pb={8}>
-      <Text fontSize="2xl" mb={4}>Discovery Feed</Text>
+    <Box>
       <FeedFilterBar filters={filters} onChange={handleFilterChange} hasLocation={userLat !== null && userLng !== null} />
       {loading && <Center py={8}><Spinner /></Center>}
       {error && <Text color="red.500">{error}</Text>}
@@ -83,9 +83,14 @@ function DiscoveryFeed() {
       )}
       {posts.map(post => <FeedPostCard key={post.postId} post={post} userLat={userLat} userLng={userLng} />)}
       {nextPageToken && (
-        <Button onClick={loadMore} loading={loadingMore} mt={4} w="full" variant="outline">
-          Load More
-        </Button>
+        <HStack mt={4}>
+          <Button onClick={loadMore} loading={loadingMore} flex={1} variant="solid" bg="jam.accent" fontWeight="semibold" _hover={{ bg: "jam.400" }}>
+            Load More
+          </Button>
+          <Button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} variant="solid" bg="jam.accent" fontWeight="semibold" _hover={{ bg: "jam.400" }}>
+            Back to Top <Icon as={FaArrowUp} ml={1} />
+          </Button>
+        </HStack>
       )}
     </Box>
   );

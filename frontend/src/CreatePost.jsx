@@ -127,17 +127,7 @@ function CreatePost() {
   return (
 
 
-        <Box 
-          flex={1}
-          mx="auto"
-          maxW="800px"
-          p={10}
-          borderWidth="1px" 
-          borderRadius="lg" 
-          shadow="lg"
-          bg="white"
-          
-        >
+        <Box>
           <VStack gap={4} mb={6}>
             <Heading size="lg">Create a Post</Heading>
           </VStack>
