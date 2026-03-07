@@ -294,6 +294,15 @@ class ConversationCreate(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
+class ParticipantSnapshot(BaseModel):
+    """Denormalized participant fields stored on conversations for fast list rendering."""
+    first_name: Optional[str] = Field(default=None, alias="firstName", description="Participant first name")
+    last_name: Optional[str] = Field(default=None, alias="lastName", description="Participant last name")
+    profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="Participant profile picture URL")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
 class ConversationResponse(BaseModel):
     """Response model for conversations, includes conversation_id and timestamps."""
     conversation_id: str = Field(..., alias="conversationId", description="Unique identifier for the conversation")
@@ -312,6 +321,11 @@ class ConversationResponse(BaseModel):
         default=None, 
         alias="lastMessageSenderId",
         description="Firebase UID of the sender of the last message in the conversation")
+
+    participant_snapshots: Dict[str, ParticipantSnapshot] = Field(
+        default_factory=dict,
+        alias="participantSnapshots",
+        description="Denormalized profile snapshots keyed by participant user ID")
     
     model_config = ConfigDict(
         from_attributes = True,

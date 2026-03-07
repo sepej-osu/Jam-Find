@@ -8,6 +8,7 @@ import {
   Grid,
   GridItem,
   IconButton,
+  Button,
   Flex,
   Tag,
   Icon,
@@ -19,21 +20,25 @@ import {
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { CgPlayButtonO, CgProfile } from "react-icons/cg";
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import profileService from './services/profileService';
+import conversationService from './services/conversationService';
+import { toaster } from './components/ui/toaster';
 import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
 import { getInstrumentIcon, getSkillColor } from './utils/iconMappings';
 
 function Profile() {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const items = Array.from({ length: 5 });
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [messageLoading, setMessageLoading] = useState(false);
 
   // Use the userId from URL params, or fall back to current user's ID
   const profileUserId = userId || currentUser?.uid;
@@ -56,6 +61,28 @@ function Profile() {
       fetchProfile();
     }
   }, [profileUserId]);
+
+  const canMessageUser = !!currentUser?.uid && !!profileUserId && currentUser.uid !== profileUserId;
+
+  const handleMessageUser = async () => {
+    if (!canMessageUser || messageLoading) return;
+
+    try {
+      setMessageLoading(true);
+      const conversation = await conversationService.createConversation(profileUserId);
+      navigate(`/messages/${conversation.conversationId}`);
+    } catch (err) {
+      toaster.create({
+        title: 'Unable to start conversation',
+        description: err.message || 'Please try again later',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setMessageLoading(false);
+    }
+  };
 
 
 
@@ -127,7 +154,14 @@ function Profile() {
       </GridItem>
       <GridItem colSpan={4} textAlign={'left'} pl={6}>
         <Box mb={4}>
-          <Heading size="lg">{profile?.firstName} {profile?.lastName}</Heading>
+          <Flex justify="space-between" align="center" gap={3}>
+            <Heading size="lg">{profile?.firstName} {profile?.lastName}</Heading>
+            {canMessageUser && (
+              <Button colorPalette="cyan" onClick={handleMessageUser} loading={messageLoading}>
+                Message
+              </Button>
+            )}
+          </Flex>
           <Text fontSize="sm" fontWeight="semibold" color="gray.600" mt={1}>
             {profile?.gender ? GENDER_DISPLAY_NAMES[profile.gender] + ' - ' : 'No gender set - '}
             <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />

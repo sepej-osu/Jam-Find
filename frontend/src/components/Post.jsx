@@ -10,26 +10,33 @@ import {
   Spinner,
   Alert,
   Avatar,
+  Button,
   IconButton,
   Separator
 } from '@chakra-ui/react';
 import { toaster } from "./ui/toaster"
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import postService from '../services/postService';
+import conversationService from '../services/conversationService';
+import { useAuth } from '../contexts/AuthContext';
 import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES } from '../utils/displayNameMappings';
 import { getInstrumentIcon, getSkillColor } from '../utils/iconMappings';
 
 function Post() {
   const { postId } = useParams();
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [likesCount, setLikesCount] = useState(0);
   const [isLiked, setIsLiked] = useState(false);
   const [likingInProgress, setLikingInProgress] = useState(false);
+  const [messagingInProgress, setMessagingInProgress] = useState(false);
+  const isOwnPost = currentUser?.uid === post?.userId;
 
 useEffect(() => {
     const fetchPost = async () => {
@@ -79,6 +86,26 @@ useEffect(() => {
     }
   };
 
+  const handleStartConversation = async () => {
+    if (!post || !currentUser?.uid || currentUser.uid === post.userId || messagingInProgress) return;
+
+    try {
+      setMessagingInProgress(true);
+      const conversation = await conversationService.createConversation(post.userId);
+      navigate(`/messages/${conversation.conversationId}`);
+    } catch (err) {
+      toaster.create({
+        title: 'Unable to start conversation',
+        description: err.message || 'Please try again later',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setMessagingInProgress(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minH="100vh">
@@ -114,12 +141,12 @@ return (
       <Box p={6} borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md">
         
         {/* Render Author Info directly from the post object */}
-        <Flex align="center" mb={4}>
+        <Flex align="center" justify="space-between" mb={4}>
           <Avatar.Root size="md" mr={3}>
             <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
             <Avatar.Image src={post.profilePicUrl} />
           </Avatar.Root>
-          <Box>
+          <Box flex="1">
             <Text fontWeight="semibold" fontSize="md">
               {post.firstName} {post.lastName}
             </Text>
@@ -133,6 +160,11 @@ return (
               </Text>
             )}
           </Box>
+          {currentUser?.uid && (
+            <Button colorPalette="cyan" onClick={handleStartConversation} loading={messagingInProgress} disabled={isOwnPost}>
+              Message
+            </Button>
+          )}
         </Flex>
 
         <Heading size="lg" mb={2}>{post.title}</Heading>

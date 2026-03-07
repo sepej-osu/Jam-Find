@@ -24,3 +24,11 @@ async def list_conversations(
 ):
     return await conversation_service.list_conversations(current_user_id, limit, last_doc_id)
 
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
+async def get_conversation(
+    conversation_id: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    return await conversation_service.get_conversation_by_id(conversation_id, current_user_id)
+

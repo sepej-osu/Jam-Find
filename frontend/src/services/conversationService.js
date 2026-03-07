@@ -7,37 +7,72 @@ async function getAuthToken() {
 }
 
 const conversationService = {
-    getConversations: async (params = {}) => {
+  getConversations: async (params = {}) => {
+    try {
+      const token = await getAuthToken();
+      const {
+        limit = 10,
+        lastDocId = null,
+      } = params;
+
+      const urlParams = new URLSearchParams({
+        limit: limit.toString(),
+      });
+      if (lastDocId) {
+        urlParams.append('last_doc_id', lastDocId);
+      }
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations?${urlParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        let errorMsg = `Error: ${response.status}`;
         try {
-            const token = await getAuthToken();
-            const {
-                limit = 10, // Number of conversations to fetch
-                lastDocId = null,   
-            } = params;
-
-            const urlParams = new URLSearchParams({
-                limit: limit.toString(),
-            });
-            if (lastDocId) {
-                urlParams.append('last_doc_Id', lastDocId);
-            }
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations?${urlParams}`, {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
-            if (!response.ok) {
-                throw new Error(`Error: ${response.status}`);
-            }
-            return await response.json();
-        } catch (error) {
-            console.error('Failed to fetch conversations:', error);
-            throw new Error('Failed to fetch conversations');
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch (_) {
+          // Ignore JSON parsing errors
         }
+        throw new Error(errorMsg);
+      }
 
-    },
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch conversations:', error);
+      throw error;
+    }
+  },
+
+  getConversation: async (conversationId) => {
+    try {
+      const token = await getAuthToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations/${conversationId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to fetch conversation:', error);
+      throw new Error('Failed to fetch conversation');
+    }
+  },
+
 createConversation: async (recipientId) => {
     try {
       const token = await getAuthToken();
@@ -49,7 +84,7 @@ createConversation: async (recipientId) => {
           'Content-Type': 'application/json'
           
         },
-        body: JSON.stringify({ recipient_id: recipientId })
+        body: JSON.stringify({ recipientId })
       });
 
       if (!response.ok) {

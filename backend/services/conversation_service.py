@@ -3,9 +3,18 @@ from firebase_config import get_db
 from datetime import datetime, timezone
 from fastapi import HTTPException, status
 from typing import Optional
-from google.cloud import firestore
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 COLLECTION_NAME = "conversations"
+
+
+def _build_profile_snapshot(profile_data: dict) -> dict:
+    """Normalize profile fields for denormalized conversation snapshots."""
+    return {
+        "first_name": profile_data.get("firstName") or profile_data.get("first_name"),
+        "last_name": profile_data.get("lastName") or profile_data.get("last_name"),
+        "profile_pic_url": profile_data.get("profilePicUrl") or profile_data.get("profile_pic_url")
+    }
 
 
 def validate_participant(recipient_id: str, current_user_id: str):
@@ -22,17 +31,32 @@ async def create_conversation(conversation: ConversationCreate, current_user_id:
         
         validate_participant(recipient_id, current_user_id)
 
-        # check if recipient has a profile in the database
-        if db.collection("profiles").document(recipient_id).get().exists is False:
+        current_user_profile_doc = db.collection("profiles").document(current_user_id).get()
+        if current_user_profile_doc.exists is False:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Current user profile not found")
+
+        recipient_profile_doc = db.collection("profiles").document(recipient_id).get()
+        if recipient_profile_doc.exists is False:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient user not found")
+
+        participant_snapshots = {
+            current_user_id: _build_profile_snapshot(current_user_profile_doc.to_dict() or {}),
+            recipient_id: _build_profile_snapshot(recipient_profile_doc.to_dict() or {})
+        }
         
                 # Check if conversation already exists between these two users
         existing_convos = db.collection(COLLECTION_NAME)\
-            .where("participant_ids", "array-contains", current_user_id).stream()
+                    .where(filter=FieldFilter("participant_ids", "array_contains", current_user_id)).stream()
         
         for doc in existing_convos:
             data = doc.to_dict()
             if recipient_id in data.get("participant_ids", []):
+                if not data.get("participant_snapshots"):
+                    data["participant_snapshots"] = participant_snapshots
+                    db.collection(COLLECTION_NAME).document(doc.id).update({
+                        "participant_snapshots": participant_snapshots,
+                        "updated_at": now
+                    })
                 # Conversation already exists, return it
                 return ConversationResponse(**data, conversation_id=doc.id)
         
@@ -42,7 +66,8 @@ async def create_conversation(conversation: ConversationCreate, current_user_id:
             "participant_ids": [current_user_id, recipient_id],
             "last_message_preview": None,
             "last_message_sent_at": None,
-            "last_message_sender_id": None
+            "last_message_sender_id": None,
+            "participant_snapshots": participant_snapshots
         }
         new_conversation_ref = db.collection(COLLECTION_NAME).document()
         new_conversation_ref.set(conversation_data)
@@ -65,28 +90,36 @@ async def list_conversations(
     try:
         db = get_db()
         
-        query = db.collection(COLLECTION_NAME)\
-            .where("participant_ids", "array-contains", current_user_id)\
-            .order_by("updated_at", direction=firestore.Query.DESCENDING)
-        
-        if last_doc_id:
-            last_doc = db.collection(COLLECTION_NAME).document(last_doc_id).get()
-            query = query.start_after(last_doc)
-        
-        docs = query.limit(limit + 1).stream()
-        conversations = []
-        
+        # Keep query index-free for MVP stability: fetch participant matches,
+        # then sort/paginate in Python by updated_at descending.
+        docs = db.collection(COLLECTION_NAME)\
+            .where(filter=FieldFilter("participant_ids", "array_contains", current_user_id))\
+            .stream()
+
+        all_conversations = []
         for doc in docs:
             data = doc.to_dict()
-            conversations.append(ConversationResponse(**data, conversation_id=doc.id))
-        
-        # Handle pagination
+            all_conversations.append(ConversationResponse(**data, conversation_id=doc.id))
+
+        all_conversations.sort(
+            key=lambda convo: convo.updated_at or datetime.min.replace(tzinfo=timezone.utc),
+            reverse=True
+        )
+
+        start_index = 0
+        if last_doc_id:
+            for index, convo in enumerate(all_conversations):
+                if convo.conversation_id == last_doc_id:
+                    start_index = index + 1
+                    break
+
+        page = all_conversations[start_index:start_index + limit + 1]
         next_page_token = None
-        if len(conversations) > limit:
-            conversations = conversations[:limit]
-            next_page_token = conversations[-1].conversation_id
+        if len(page) > limit:
+            next_page_token = page[limit - 1].conversation_id
+            page = page[:limit]
         
-        return PaginatedConversationsResponse(conversations=conversations, next_page_token=next_page_token)
+        return PaginatedConversationsResponse(conversations=page, next_page_token=next_page_token)
         
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
