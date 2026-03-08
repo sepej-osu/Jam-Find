@@ -18,6 +18,7 @@ function Messages() {
     setError(null);
 
     try {
+      // we fetch the first page of conversations for the current user. We set a limit of 10 conversations per page.
       const data = await conversationService.getConversations({ limit: 10 });
       setConversations(data.conversations || []);
       setNextPageToken(data.nextPageToken || null);
@@ -51,9 +52,10 @@ function Messages() {
   }, []);
 
   const getConversationDisplayName = (conversation) => {
-    const otherParticipantId = (conversation.participantIds || []).find((id) => id !== currentUser?.uid);
-    if (!otherParticipantId) return 'Unknown user';
-
+    // we find the ID of the other participant in the conversation by looking at the participantIds array
+    const otherParticipantId = conversation.participantIds.find((id) => id !== currentUser?.uid);
+    if (!otherParticipantId) return 'Unknown user'; // this should not happen
+    // we use the ID to get their snapshot object which has their denormalized name.
     const snapshot = conversation.participantSnapshots?.[otherParticipantId];
     if (!snapshot) return 'Unknown user';
 
@@ -61,7 +63,7 @@ function Messages() {
     const lastName = snapshot.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
 
-    return fullName || 'Unknown user';
+    return fullName;
   };
 
   return (
@@ -81,7 +83,7 @@ function Messages() {
           <Text color="gray.600">No conversations yet.</Text>
         )}
 
-        {!loading && !error && conversations.length > 0 && (
+        {!loading && !error && conversations.length > 0 && ( 
           <VStack align="stretch" gap={3}>
             {conversations.map((conversation) => (
               <Box
@@ -93,7 +95,10 @@ function Messages() {
                 _hover={{ bg: 'gray.50' }}
                 onClick={() => navigate(`/messages/${conversation.conversationId}`)}
               >
+                
                 <Text fontWeight="bold">{getConversationDisplayName(conversation)}</Text>
+                {/* we show a preview of the last message in the conversation. 
+                If there are no messages yet, we show a placeholder text. */}
                 <Text color="gray.600" noOfLines={1}>
                   {conversation.lastMessagePreview || 'No messages yet'}
                 </Text>

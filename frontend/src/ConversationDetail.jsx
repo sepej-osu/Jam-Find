@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Button, Center, Heading, HStack, Spinner, Text, VStack } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -18,60 +18,58 @@ function ConversationDetail() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // we define this function will handle the loading of conversation details and messages. 
     const load = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const [conversationData, messagesData] = await Promise.all([
+      // Fetch the conversation details and the first page of messages in parallel
+      // so the screen loads faster than awaiting them one after the other.
+      // Promise.all runs the two requests in parallel and waits for both to finish before proceeding.
+        const [conversation, messagesData] = await Promise.all([
           conversationService.getConversation(conversationId),
           conversationService.getConversationMessages(conversationId, { limit: 20 }),
         ]);
 
-        setConversation(conversationData);
-        setMessages((messagesData.messages || []).slice().reverse());
+        setConversation(conversation);
+        // Here we create a shallow copy of the messages array and reverse it so the
+        // most recent messages are at the bottom of the screen.
+        setMessages(Array.from(messagesData.messages).reverse());
       } catch (err) {
         setError(err.message || 'Failed to load conversation');
       } finally {
         setLoading(false);
       }
     };
-
+    // reload the conversation details when the component mounts and whenever
+    // the conversationId changes (e.g. when navigating to a different conversation)
     load();
-  }, [conversationId, currentUser?.uid]);
+  }, [conversationId]);
 
-  const otherParticipantName = useMemo(() => {
-    if (!conversation) return 'Conversation';
-    const otherParticipantId = (conversation.participantIds || []).find((id) => id !== currentUser?.uid);
-    if (!otherParticipantId) return 'Conversation';
-
-    const snapshot = conversation.participantSnapshots?.[otherParticipantId];
-    const firstName = snapshot?.firstName || '';
-    const lastName = snapshot?.lastName || '';
-    const fullName = `${firstName} ${lastName}`.trim();
-
-    return fullName || 'Conversation';
-  }, [conversation, currentUser?.uid]);
+  // we find the ID of the other participant in the conversation by looking at the participantIds array
+  const otherParticipantId = conversation?.participantIds.find(
+    (id) => id !== currentUser?.uid
+  );
+ // use the ID to get their snapshot object which has their denormalized name.
+  const snapshot = otherParticipantId
+    ? conversation?.participantSnapshots?.[otherParticipantId]
+    : null;
+  // we construct the other participant's name by combining their first and last name from the snapshot.
+  const otherParticipantName =
+    `${snapshot?.firstName || ''} ${snapshot?.lastName || ''}`.trim() || 'Conversation';
 
   const handleSend = async () => {
-    const trimmed = draft.trim();
-    if (!trimmed || sending) return;
+    // prevent sending empty or multiple messages at the same time
+    if (!draft.trim() || sending) return; 
 
     setSending(true);
     try {
-      const newMessage = await conversationService.sendMessage(conversationId, trimmed);
+      //we call the sendMessage method from the conversationService to send the message to the backend.
+      const newMessage = await conversationService.sendMessage(conversationId, draft);
       setMessages((prev) => [...prev, newMessage]);
-      setDraft('');
-      setConversation((prev) => {
-        if (!prev) return prev;
-        return {
-          ...prev,
-          lastMessagePreview: newMessage.content,
-          lastMessageSenderId: newMessage.senderId,
-          lastMessageSentAt: newMessage.createdAt,
-          updatedAt: newMessage.createdAt,
-        };
-      });
+      setDraft(''); // clear the input field after sending the message
+
     } catch (err) {
       setError(err.message || 'Failed to send message');
     } finally {
@@ -96,11 +94,12 @@ function ConversationDetail() {
         )}
 
         {error && <Text color="red.500" mb={3}>{error}</Text>}
-
+        
         {!loading && (
           <VStack align="stretch" gap={3} mb={4}>
             {messages.length === 0 && <Text color="gray.600">No messages yet.</Text>}
-
+            {/* Here we map through the messages array to display each conversation message.
+            We change the alignment and color based on whether the message is sent by the current user. */}
             {messages.map((message) => {
               const mine = message.senderId === currentUser?.uid;
               return (
@@ -113,7 +112,7 @@ function ConversationDetail() {
                   py={2}
                   maxW="80%"
                 >
-                  <Text>{message.content}</Text>
+                  <Text whiteSpace="break-spaces">{message.content}</Text>
                 </Box>
               );
             })}
@@ -122,6 +121,8 @@ function ConversationDetail() {
 
         <HStack>
           <Box flex="1" onKeyDown={(event) => {
+            // we listen for the Enter key press in the input field to allow sending messages by pressing Enter.
+            // We also allow users to create new lines by pressing Shift + Enter.
             if (event.key === 'Enter' && !event.shiftKey) {
               event.preventDefault();
               handleSend();
@@ -129,8 +130,9 @@ function ConversationDetail() {
           }}>
             <InputField
               label="Message"
+              maxLength={500}
               name="messageDraft"
-              type="text"
+              type="textarea"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
               placeholder="Type a message"
