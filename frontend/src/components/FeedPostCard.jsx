@@ -113,7 +113,7 @@ return (
             )}
             <Wrap gap={1}>
               {post.instruments.map((i, index) => (
-                <Tooltip key={index} openDelay={10} closeDelay={10} content={`Skill level: ${i.skillLevel}/5`} showArrow>
+                <Tooltip key={index} openDelay={10} closeDelay={10} content={`Skill level: ${i.skillLevel}/5`}>
                   <Badge
                     bg={`${getSkillColor(i.skillLevel)}.subtle`}
                     color={`${getSkillColor(i.skillLevel)}.fg`}
