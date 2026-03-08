@@ -35,7 +35,7 @@ const Login = () => {
       // Wait a tiny bit for context to load profile
       setTimeout(() => {
         if (hasProfile) {
-          navigate('/home');
+          navigate('/feed');
         } else {
           navigate('/create-profile');
         }
@@ -55,19 +55,15 @@ const Login = () => {
   };
 
   return (
-    <Center minH="100vh" bg="gray.50" px={4}>
+    <Center bg="jam.700" px={4}>
       <Box 
         maxW="450px" 
         w="full"
-        p={10} 
-        borderWidth="1px" 
-        borderRadius="lg" 
-        shadow="lg"
-        bg="white"
+        layerStyle="card"
       >
         <VStack gap={6} mb={6}>
-          <Heading size="lg">Welcome Back</Heading>
-          <Text color="gray.600">Login to your account</Text>
+          <Heading size="lg">Welcome to Jam Find</Heading>
+          <Text color="jam.text">Login to or sign up for an account</Text>
         </VStack>
 
         <form onSubmit={handleLogin}>
@@ -94,8 +90,11 @@ const Login = () => {
 
             <Button
               type="submit"
-              colorPalette="blue"
               size="lg"
+              variant="solid"
+              bg="jam.accent"
+              fontWeight="semibold"
+              _hover={{ bg: "jam.400" }}
               width="100%"
               isLoading={loading === 'true'? 'true' : 'false'}
               loadingText="Logging in..."
@@ -105,9 +104,9 @@ const Login = () => {
           </VStack>
         </form>
 
-        <Text textAlign="center" mt={6} color="gray.600">
+        <Text textAlign="center" mt={6} color="jam.text">
           Don't have an account?{' '}
-          <ChakraLink color="blue.500" asChild>
+          <ChakraLink color="jam.textMuted" asChild>
           <RouterLink to="/register">Sign up</RouterLink>
           </ChakraLink>
         </Text>

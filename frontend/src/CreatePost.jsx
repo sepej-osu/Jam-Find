@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Flex, Button, Heading, VStack, Input, Field } from '@chakra-ui/react';
+import { Box, Flex, Button, Heading, VStack, HStack, Input, Field } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -127,7 +127,7 @@ function CreatePost() {
   return (
 
 
-        <Box>
+        <Box p={3} mb={4} layerStyle="card">
           <VStack gap={4} mb={6}>
             <Heading size="lg">Create a Post</Heading>
           </VStack>
@@ -188,26 +188,27 @@ function CreatePost() {
 
               {/* TODO: add input field for media here. */}
               
-              <Button
-                type="submit"
-                colorPalette="blue"
-                size="lg"
-                width="100%"
-                isLoading={loading}
-                loadingText="Creating Post..."
-              >
-                Create Post
-              </Button>
-
-              <Button
-                  colorPalette="red"
-                  size="sm"
-                  width="100%"
-                  alignSelf="center"
+              <HStack gap={3} pr={3}>
+                <Button
+                  type="submit"
+                  variant="jam"
+                  size="lg"
+                  width="70%"
+                  loading={loading}
+                  loadingText="Creating Post..."
+                >
+                  Create Post
+                </Button>
+                <Button
+                  variant="jamDark"
+                  size="lg"
+                  width="30%"
                   onClick={() => navigate('/')}
-              >
-                Back
-              </Button>
+                  disabled={loading}
+                >
+                  Back
+                </Button>
+              </HStack>
             </VStack>
           </form>
         </Box>

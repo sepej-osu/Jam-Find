@@ -58,7 +58,7 @@ function FeedPostCard({ post, userLat = null, userLng = null }) {
   };
   
 return (
-    <Box maxW="1000px" mx="auto" p={3} mb={4} borderWidth="1px" borderColor="jam.border" borderRadius="lg" bg="jam.bg" boxShadow="md">
+    <Box maxW="1000px" mx="auto" mb={4} layerStyle="card">
         <Flex align="center" mb={4}>
           <Avatar.Root size="xl" shape="rounded" mr={3} cursor="pointer" onClick={() => navigate(`/profile/${post.userId}`)}>
             <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
@@ -131,7 +131,7 @@ return (
           <Box mb={3}>
             <Wrap gap={1}>
               {post.genres.map((g, index) => (
-                <Badge key={index} bg="jam.50" color="jam.700">
+                <Badge key={index} variant="jam">
                   {GENRE_DISPLAY_NAMES[g] ?? g}
                 </Badge>
               ))}

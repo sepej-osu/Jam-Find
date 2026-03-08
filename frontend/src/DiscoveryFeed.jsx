@@ -84,10 +84,10 @@ function DiscoveryFeed() {
       {posts.map(post => <FeedPostCard key={post.postId} post={post} userLat={userLat} userLng={userLng} />)}
       {nextPageToken && (
         <HStack mt={4}>
-          <Button onClick={loadMore} loading={loadingMore} flex={1} variant="solid" bg="jam.accent" fontWeight="semibold" _hover={{ bg: "jam.400" }}>
+          <Button onClick={loadMore} loading={loadingMore} flex={1} variant="jam">
             Load More
           </Button>
-          <Button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} variant="solid" bg="jam.accent" fontWeight="semibold" _hover={{ bg: "jam.400" }}>
+          <Button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} variant="jam">
             Back to Top <Icon as={FaArrowUp} ml={1} />
           </Button>
         </HStack>

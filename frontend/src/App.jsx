@@ -2,7 +2,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from './Login';
 import Register from './Register';
-import Home from './Home';
 import CreatePost from './CreatePost';
 import CreateProfile from './CreateProfile';
 import UpdateProfile from './UpdateProfile';
@@ -45,7 +44,7 @@ function App() {
           index
           element={
             (currentUser && hasProfile)
-              ? <Navigate to="/home" replace />
+              ? <Navigate to="/feed" replace />
               : <Navigate to="/login" replace />
           }
         />
@@ -53,7 +52,7 @@ function App() {
         <Route
           path="login"
           element={
-            (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Login />
+            (currentUser && hasProfile) ? <Navigate to="/feed" replace /> : <Login />
           }
         />
 
@@ -67,14 +66,7 @@ function App() {
         <Route
           path="register"
           element={
-            (currentUser && hasProfile) ? <Navigate to="/home" replace /> : <Register />
-          }
-        />
-
-        <Route
-          path="home"
-          element={
-            (currentUser && hasProfile) ? <Home /> : <Navigate to="/login" replace />
+            (currentUser && hasProfile) ? <Navigate to="/feed" replace /> : <Register />
           }
         />
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { Box, Center, Button, Heading, VStack, Field, Input } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, HStack, Field, Input } from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -100,10 +100,10 @@ const handleSubmit = async (e) => {
 };
 
 return (
-    <Box>
+    <Box layerStyle="card">
 
       <VStack gap={4} mb={6}>
-        <Heading size="md" color="gray.600">Update Your Profile</Heading>
+        <Heading size="lg">Update Your Profile</Heading>
       </VStack>
 
       {/* Step 2: Profile Setup */}
@@ -176,25 +176,27 @@ return (
               label="Select Your Preferred Genres"
             />  
             
-            <Button
-              type="submit"
-              colorPalette="blue"
-              size="lg"
-              width="100%"
-              loading={loading}
-              loadingText="Updating Profile..."
-            >
-              Update
-            </Button>
-            <Button
-              colorPalette="red"
-              size="sm"
-              width="100%"
-              alignSelf="center"
-              onClick={() => navigate('/')}
-            >
-              Back
-            </Button>
+            <HStack gap={3} pr={3}>
+              <Button
+                type="submit"
+                variant="jam"
+                size="lg"
+                width="70%"
+                loading={loading}
+                loadingText="Updating Profile..."
+              >
+                Update
+              </Button>
+              <Button
+                variant="jamDark"
+                size="lg"
+                width="30%"
+                onClick={() => navigate('/')}
+                disabled={loading}
+              >
+                Back
+              </Button>
+            </HStack>
 
           </VStack>
         </form>

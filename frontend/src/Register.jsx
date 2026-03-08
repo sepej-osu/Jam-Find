@@ -229,27 +229,23 @@ const handleStep2Submit = async (e) => {
 };
 
   return (
-    <Center minH="100vh" bg="gray.50" px={4}>
+    <Center px={4}>
       <Box 
         maxW="600px" 
         w="full"
-        p={10} 
-        borderWidth="1px" 
-        borderRadius="lg" 
-        shadow="lg"
-        bg="white"
+        layerStyle="card"
       >
         <p style={{ marginTop: 2, marginBottom: 5, textAlign: 'center' }}>
           Already have an account?{' '}
-          <ChakraLink color="blue.500" asChild><RouterLink to="/login">Login
+          <ChakraLink color="jam.textMuted" asChild><RouterLink to="/login">Login
                   </RouterLink></ChakraLink>
         </p>
           {/* Progress indicator */}
 
           <VStack gap={4} mb={6}>
             <Heading size="lg">Create Your Account</Heading>
-            <Text color="gray.600">Step {step} of 2</Text>
-            <Progress.Root value={step === 1 ? 50 : 100} width="100%" colorPalette="blue">
+            <Text color="jam.textMuted">Step {step} of 2</Text>
+            <Progress.Root value={step === 1 ? 50 : 100} width="100%" colorPalette="blackAlpha">
               <Progress.Track>
                 <Progress.Range />
               </Progress.Track>
@@ -303,10 +299,10 @@ const handleStep2Submit = async (e) => {
 
                 <Button
                   type="submit"
-                  colorPalette="blue"
                   size="lg"
                   width="100%"
                   isLoading={loading}
+                  variant="jam"
                   loadingText="Creating Account..."
                 >
                   Next

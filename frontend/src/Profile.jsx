@@ -9,7 +9,7 @@ import {
   GridItem,
   IconButton,
   Flex,
-  Tag,
+  Badge,
   Icon,
   Progress,
   VStack,
@@ -114,6 +114,7 @@ function Profile() {
       templateColumns="repeat(5, 1fr)"
       gap={0}
       mx="auto"
+      layerStyle="card"
     >
       <GridItem colSpan={3} textAlign="left">
         <Box mb={4}>
@@ -130,7 +131,7 @@ function Profile() {
             )}
           </Text>
         </Box>
-        <GridItem colSpan={4} textAlign="left">
+        <GridItem colSpan={4} textAlign="left" pr={4}>
           <Box mb={4}>
             <Text fontSize="lg" fontWeight="semibold" mb={1}>Bio:</Text>
             <Text fontSize="lg" color="gray.900">{profile?.bio}</Text>
@@ -155,9 +156,9 @@ function Profile() {
           <Flex gap={2} flexWrap="wrap">
             {profile?.genres?.length > 0 ? (
               profile.genres.map((genre, index) => (
-                <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
+                <Badge key={index} variant="jam">
                   {GENRE_DISPLAY_NAMES[genre] ?? genre}
-                </Tag.Root>
+                </Badge>
               ))
             ) : (
               <Text fontSize="md" color="gray.600">No genres listed</Text>

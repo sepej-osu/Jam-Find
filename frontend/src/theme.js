@@ -23,6 +23,47 @@ import { createSystem, defineConfig, defaultConfig } from "@chakra-ui/react";
 
 const config = defineConfig({
   theme: {
+    recipes: {
+      badge: {
+        variants: {
+          variant: {
+            jam: {
+              bg: "{colors.jam.50}",
+              color: "{colors.jam.700}",
+            },
+          },
+        },
+      },
+      button: {
+        variants: {
+          variant: {
+            jam: {
+              bg: "jam.accent",
+              color: "white",
+              fontWeight: "semibold",
+              _hover: { bg: "{colors.jam.400}" },
+            },
+            jamDark: {
+              bg: "jam.700",
+              color: "white",
+              fontWeight: "semibold",
+              _hover: { bg: "{colors.jam.800}" },
+            },
+          },
+        },
+      },
+    },
+    layerStyles: {
+      card: {
+        value: {
+          p: "15px",
+          borderWidth: "1px",
+          borderRadius: "10px",
+          shadow: "lg",
+          bg: "jam.bg",
+        },
+      },
+    },
     tokens: {
       colors: {
         jam: {

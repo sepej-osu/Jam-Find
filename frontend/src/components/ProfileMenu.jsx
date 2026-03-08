@@ -54,10 +54,10 @@ function ProfileMenu() {
             my={2}
             w="100%"
           >
-            <Box textAlign="center" fontWeight="semibold">
+            <Box textAlign="center" fontWeight="semibold" color="jam.text" display={{ base: 'none', md: 'block' }} fontSize="lg">
               {fullName}
             </Box>
-            <Avatar.Root size="xl" shape="rounded" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${currentUser?.uid}`); }}>
+            <Avatar.Root size="2xl" shape="rounded" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${currentUser?.uid}`); }}>
               <Avatar.Fallback name={fullName} />
               <Avatar.Image src={profile?.profilePicUrl} />
             </Avatar.Root>

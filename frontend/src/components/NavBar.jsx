@@ -36,8 +36,8 @@ function NavBar() {
     <Box pt={0} display="flex" flexDirection="column" h="100%">
       <Box
         as="nav"
-        borderTopLeftRadius={45}
         overflow="hidden"
+        borderTopLeftRadius="45px"
         flex="1"
         w="220px"
         py={5}
