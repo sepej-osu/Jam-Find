@@ -155,6 +155,11 @@ return (
                 {POST_TYPE_DISPLAY_NAMES[post.postType] ?? post.postType}
               </Badge>
             )}
+            {currentUser?.uid && (
+            <Button colorPalette="cyan" onClick={handleStartConversation} loading={messagingInProgress} disabled={isOwnPost}>
+              Message
+            </Button>
+          )}
           </Flex>
           {(post.location?.formattedAddress) && (
             <Flex align="center" color="jam.textMuted">
@@ -168,11 +173,7 @@ return (
               <Text fontSize="sm">{post.location.formattedAddress}</Text>
             </Flex>
           )}
-            {currentUser?.uid && (
-            <Button colorPalette="cyan" onClick={handleStartConversation} loading={messagingInProgress} disabled={isOwnPost}>
-              Message
-            </Button>
-          )}
+
         </Box>
       </Flex>
 
