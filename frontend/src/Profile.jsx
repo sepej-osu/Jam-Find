@@ -10,13 +10,16 @@ import {
   IconButton,
   Button,
   Flex,
-  Tag,
+  Badge,
   Icon,
   Progress,
   VStack,
+  Wrap,
+  WrapItem,
   Spinner,
   Alert
 } from '@chakra-ui/react';
+import InstrumentCard from './components/ui/InstrumentCard';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { CgPlayButtonO, CgProfile } from "react-icons/cg";
@@ -27,12 +30,12 @@ import profileService from './services/profileService';
 import conversationService from './services/conversationService';
 import { toaster } from './components/ui/toaster';
 import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
-import { getInstrumentIcon, getSkillColor } from './utils/iconMappings';
+import { getDistanceMiles } from './utils/helpers';
 
 function Profile() {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { currentUser } = useAuth();
+  const { currentUser, profile: currentUserProfile } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -62,29 +65,14 @@ function Profile() {
     }
   }, [profileUserId]);
 
-  const canMessageUser = !!currentUser?.uid && !!profileUserId && currentUser.uid !== profileUserId;
+  const userLat = currentUserProfile?.location?.lat ?? null;
+  const userLng = currentUserProfile?.location?.lng ?? null;
 
-  const handleMessageUser = async () => {
-    if (!canMessageUser || messageLoading) return;
-
-    try {
-      setMessageLoading(true);
-      const conversation = await conversationService.createConversation(profileUserId);
-      navigate(`/messages/${conversation.conversationId}`);
-    } catch (err) {
-      toaster.create({
-        title: 'Unable to start conversation',
-        description: err.message || 'Please try again later',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setMessageLoading(false);
-    }
-  };
-
-
+  const distanceMiles =
+    userLat !== null && userLng !== null &&
+    profile?.location?.lat != null && profile?.location?.lng != null
+      ? getDistanceMiles(userLat, userLng, profile.location.lat, profile.location.lng)
+      : null;
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % items.length);
@@ -127,173 +115,127 @@ function Profile() {
   return (
     <Grid
       templateColumns="repeat(5, 1fr)"
-      gap={4}
-      p={4}
-      maxW="1400px"
+      gap={0}
       mx="auto"
+      layerStyle="card"
     >
-      <GridItem rowSpan={2} colSpan={1} pt={1}>
+      <GridItem colSpan={3} textAlign="left">
+        <Box mb={4}>
+          <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
+          <Text fontSize="sm" color="gray.600" mt={1}>
+            {profile?.gender ? GENDER_DISPLAY_NAMES[profile.gender] + ' · ' : 'No gender set · '}
+            <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />
+            {profile?.location?.formattedAddress || 'No location set'}
+            {distanceMiles !== null && (
+              <>
+                {profile?.location?.formattedAddress && <Text as="span" mx={1}>·</Text>}
+                <Text as="span">{distanceMiles < 5 ? 'within 5 mi' : `~${Math.round(distanceMiles)} mi away`}</Text>
+              </>
+            )}
+          </Text>
+        </Box>
+        <GridItem colSpan={4} textAlign="left" pr={4}>
+          <Box mb={4}>
+            <Text fontSize="lg" fontWeight="semibold" mb={1}>Bio:</Text>
+            <Text fontSize="lg" color="gray.900">{profile?.bio}</Text>
+          </Box>
+        </GridItem>
+        <Box mb={4} pr={4}>
+          <Text fontSize="lg" fontWeight="semibold" mb={1}>Instruments Played:</Text>
+          <Wrap gap={3}>
+            {profile?.instruments?.length > 0 ? (
+              profile.instruments.map((instrument, index) => (
+                <WrapItem key={index} flex="1" minW="200px">
+                  <InstrumentCard instrument={instrument} w="100%" />
+                </WrapItem>
+              ))
+            ) : (
+              <Text fontSize="md" color="gray.600">No instruments listed</Text>
+            )}
+          </Wrap>
+        </Box>
+        <Box mb={4}>
+          <Text fontSize="lg" fontWeight="semibold" mb={1}>Genres Played:</Text>
+          <Flex gap={2} flexWrap="wrap">
+            {profile?.genres?.length > 0 ? (
+              profile.genres.map((genre, index) => (
+                <Badge key={index} variant="jam">
+                  {GENRE_DISPLAY_NAMES[genre] ?? genre}
+                </Badge>
+              ))
+            ) : (
+              <Text fontSize="md" color="gray.600">No genres listed</Text>
+            )}
+          </Flex>
+        </Box>
+      </GridItem>
+      <GridItem rowSpan={2} colSpan={2} pt={1}>
         <Box 
           p={3}
           borderWidth="1px" 
           borderRadius="md" 
           bg="white"
           boxShadow="sm"
-          height="100%" 
+          height="400px" 
           width="100%"
           display="flex"
           alignItems="center"
           justifyContent="center"
         >
           {profile?.profilePictureUrl ? (
-            <Image borderRadius="full" boxSize="150px" src={profile.profilePictureUrl} alt={`${profile?.firstName}'s profile picture`} />
+            <Image borderRadius="full" src={profile.profilePictureUrl} alt={`${profile?.firstName}'s profile picture`} />
           ) : (
             <Icon as={CgProfile} boxSize="150px" color="gray.300" aria-label="Profile Picture" />
           )}
         </Box>
       </GridItem>
-      <GridItem colSpan={4} textAlign={'left'} pl={6}>
-        <Box mb={4}>
-          <Flex justify="space-between" align="center" gap={3}>
-            <Heading size="lg">{profile?.firstName} {profile?.lastName}</Heading>
-            {canMessageUser && (
-              <Button colorPalette="cyan" onClick={handleMessageUser} loading={messageLoading}>
-                Message
-              </Button>
-            )}
-          </Flex>
-          <Text fontSize="sm" fontWeight="semibold" color="gray.600" mt={1}>
-            {profile?.gender ? GENDER_DISPLAY_NAMES[profile.gender] + ' - ' : 'No gender set - '}
-            <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />
-            {profile?.location?.formattedAddress || 'No location set'}
-          </Text>
-        </Box>
-        <Box mt={2}>
-          <Box mb={2}>
-            <Text fontSize="lg" fontWeight="semibold" mb={1}>Instruments:</Text>
-            <Flex gap={3} flexWrap="wrap">
-              {profile?.instruments?.length > 0 ? (
-                profile.instruments.map((instrument, index) => (
-                  <Box 
-                    key={index} 
-                    p={3} 
-                    borderWidth="1px" 
-                    borderRadius="md" 
-                    bg="white"
-                    minW="200px"
-                    boxShadow="sm"
-                  >
-                    <Flex align="center" mb={2}>
-                      <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
-                      <Text fontSize="md" fontWeight="semibold">{INSTRUMENT_DISPLAY_NAMES[instrument.name] ?? instrument.name}</Text>
-                    </Flex>
-                    <VStack align="stretch" gap={1}>
-                      <Flex justify="space-between" align="center">
-                        <Text fontSize="sm" color="gray.600">Skill Level</Text>
-                        <Text fontSize="sm" fontWeight="bold" color={`${getSkillColor(instrument.skillLevel)}.600`}>{instrument.skillLevel}/5</Text>
-                      </Flex>
-                      <Progress.Root
-                        value={parseInt(instrument.skillLevel * 20)}
-                        size="sm"
-                        colorPalette={getSkillColor(instrument.skillLevel)}
-                        borderRadius="full">
-                        <Progress.Track>
-                          <Progress.Range />
-                        </Progress.Track>
-                      </Progress.Root>
-                    </VStack>
-                  </Box>
-                ))
-              ) : (
-                <Text fontSize="md" color="gray.600">No instruments listed</Text>
-              )}
-            </Flex>
-          </Box>
-          <Box>
-            <Text fontSize="lg" fontWeight="semibold" mb={1}>Genres Played:</Text>
-            <Flex gap={2} flexWrap="wrap">
-              {profile?.genres?.length > 0 ? (
-                profile.genres.map((genre, index) => (
-                  <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
-                    {GENRE_DISPLAY_NAMES[genre] ?? genre}
-                  </Tag.Root>
-                ))
-              ) : (
-                <Text fontSize="md" color="gray.600">No genres listed</Text>
-              )}
-            </Flex>
-          </Box>
-        </Box>
-      </GridItem>
-      <GridItem colSpan={4} textAlign={'left'} pl={6}>
+      <GridItem colSpan={3} pr={4}>
         <Box>
-          <Text fontSize="lg" fontWeight="semibold" mb={1}>
-            Bio:
-          </Text>
-          <Text fontSize="lg" color="gray.900">
-            {profile?.bio}
-          </Text>
-        </Box>
-      </GridItem>
-      <GridItem colSpan={1}>
-        {/* Spacer to align with the profile picture column */}
-      </GridItem>
-      <GridItem colSpan={4} textAlign={'left'} pl={6}>
-        <Box mt={2}>
-          <Box mb={2}>
-            <Text fontSize="lg" fontWeight="semibold" mb={1}>Media:</Text>
-          </Box>
-        </Box>
-      </GridItem>
-      <GridItem colSpan={5}>
-        <Box maxW="md" mx="auto" position="relative">
-          <Box overflow="hidden" borderRadius="lg">
-            <Box
-              display="flex"
-              transform={`translateX(-${currentSlide * 100}%)`}
-              transition="transform 0.3s ease"
-            >
-              {items.map((_, index) => (
-                <Box
-                  key={index}
-                  minW="100%"
-                  h="100px"
-                  bg="gray.100"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  fontSize="2.5rem"
-                >
-                  <Icon as={CgPlayButtonO} color="blue.500" />
-                </Box>
-              ))}
+          <Text fontSize="lg" fontWeight="semibold" mb={2}>Media:</Text>
+          <Box maxW="100%" position="relative">
+            <Box overflow="hidden" borderRadius="lg">
+              <Box
+                display="flex"
+                transform={`translateX(-${currentSlide * 100}%)`}
+                transition="transform 0.3s ease"
+              >
+                {items.map((_, index) => (
+                  <Box
+                    key={index}
+                    minW="100%"
+                    h="100px"
+                    bg="gray.100"
+                    display="flex"
+                    alignItems="center"
+                    justifyContent="center"
+                    fontSize="2.5rem"
+                  >
+                    <Icon as={CgPlayButtonO} color="blue.500" />
+                  </Box>
+                ))}
+              </Box>
             </Box>
-          </Box>
-
-          {/* Navigation Controls */}
-          <Flex justifyContent="center" alignItems="center" gap={4} mt={4}>
-            <IconButton size="xs" variant="ghost" onClick={prevSlide} aria-label="Previous Slide"><LuChevronLeft /></IconButton>
-
-            {/* Indicators */}
-            <Flex gap={2}>
-              {items.map((_, index) => (
-                <Box
-                  as="button"
-                  type="button"
-                  key={index}
-                  w="8px"
-                  h="8px"
-                  borderRadius="full"
-                  bg={currentSlide === index ? "blue.500" : "gray.300"}
-                  cursor="pointer"
-                  aria-label={`Go to slide ${index + 1}`}
-                  aria-current={currentSlide === index ? "true" : undefined}
-                />
-              ))}
+            <Flex justifyContent="center" alignItems="center" gap={4} mt={4}>
+              <IconButton size="xs" variant="ghost" onClick={prevSlide} aria-label="Previous Slide"><LuChevronLeft /></IconButton>
+              <Flex gap={2}>
+                {items.map((_, index) => (
+                  <Box
+                    as="button"
+                    type="button"
+                    key={index}
+                    w="8px"
+                    h="8px"
+                    borderRadius="full"
+                    bg={currentSlide === index ? "blue.500" : "gray.300"}
+                    cursor="pointer"
+                    aria-label={`Go to slide ${index + 1}`}
+                    aria-current={currentSlide === index ? "true" : undefined}
+                  />
+                ))}
+              </Flex>
+              <IconButton size="xs" variant="ghost" onClick={nextSlide} aria-label="Next Slide"><LuChevronRight /></IconButton>
             </Flex>
-
-            <IconButton size="xs" variant="ghost" onClick={nextSlide} aria-label="Next Slide"><LuChevronRight /></IconButton>
-          </Flex>
+          </Box>
         </Box>
       </GridItem>
     </Grid>
