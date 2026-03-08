@@ -11,9 +11,9 @@ COLLECTION_NAME = "conversations"
 def _build_profile_snapshot(profile_data: dict) -> dict:
     """Normalize profile fields for denormalized conversation snapshots."""
     return {
-        "first_name": profile_data.get("firstName") or profile_data.get("first_name"),
-        "last_name": profile_data.get("lastName") or profile_data.get("last_name"),
-        "profile_pic_url": profile_data.get("profilePicUrl") or profile_data.get("profile_pic_url")
+        "first_name": profile_data.get("firstName"),
+        "last_name": profile_data.get("lastName"),
+        "profile_pic_url": profile_data.get("profilePicUrl")
     }
 
 
@@ -40,26 +40,23 @@ async def create_conversation(conversation: ConversationCreate, current_user_id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient user not found")
 
         participant_snapshots = {
-            current_user_id: _build_profile_snapshot(current_user_profile_doc.to_dict() or {}),
-            recipient_id: _build_profile_snapshot(recipient_profile_doc.to_dict() or {})
+            current_user_id: _build_profile_snapshot(current_user_profile_doc.to_dict()),
+            recipient_id: _build_profile_snapshot(recipient_profile_doc.to_dict())
         }
         
-                # Check if conversation already exists between these two users
+        # Check if conversation already exists between these two users
+        # we search for any conversation that contains the current user,
+        # then check if the recipient is also a participant.
         existing_convos = db.collection(COLLECTION_NAME)\
                     .where(filter=FieldFilter("participant_ids", "array_contains", current_user_id)).stream()
         
         for doc in existing_convos:
             data = doc.to_dict()
             if recipient_id in data.get("participant_ids", []):
-                if not data.get("participant_snapshots"):
-                    data["participant_snapshots"] = participant_snapshots
-                    db.collection(COLLECTION_NAME).document(doc.id).update({
-                        "participant_snapshots": participant_snapshots,
-                        "updated_at": now
-                    })
                 # Conversation already exists, return it
                 return ConversationResponse(**data, conversation_id=doc.id)
-        
+            
+        # No existing conversation, create a new one
         conversation_data = {
             "created_at": now,
             "updated_at": now,
@@ -69,10 +66,11 @@ async def create_conversation(conversation: ConversationCreate, current_user_id:
             "last_message_sender_id": None,
             "participant_snapshots": participant_snapshots
         }
+        # Create new conversation document with auto-generated ID
         new_conversation_ref = db.collection(COLLECTION_NAME).document()
         new_conversation_ref.set(conversation_data)
         
-        # Build response with conversation_id
+        # Build response model including the new conversation ID from the document reference
         conversation_data["conversation_id"] = new_conversation_ref.id
         return ConversationResponse(**conversation_data)
         
@@ -86,26 +84,26 @@ async def list_conversations(
     current_user_id: str,             
     limit: int = 10, 
     last_doc_id: Optional[str] = None) -> PaginatedConversationsResponse:
-
+    """List conversations for the current user with pagination."""
     try:
         db = get_db()
         
-        # Keep query index-free for MVP stability: fetch participant matches,
-        # then sort/paginate in Python by updated_at descending.
+        # We fetch all conversations that include the current user, then sort and paginate in memory.
         docs = db.collection(COLLECTION_NAME)\
             .where(filter=FieldFilter("participant_ids", "array_contains", current_user_id))\
             .stream()
 
         all_conversations = []
+        # we convert each document to a ConversationResponse model
         for doc in docs:
             data = doc.to_dict()
             all_conversations.append(ConversationResponse(**data, conversation_id=doc.id))
+       # Then we sort the conversations by updated_at timestamp in descending order
+        all_conversations.sort(key=lambda convo: convo.updated_at, reverse=True)
 
-        all_conversations.sort(
-            key=lambda convo: convo.updated_at or datetime.min.replace(tzinfo=timezone.utc),
-            reverse=True
-        )
-
+       # Here we implement pagination by finding the index of the last document from the previous page.
+       # If last_doc_id is provided, we find its index and start the next page from the following document.
+       # otherwise we start from the top of the list.
         start_index = 0
         if last_doc_id:
             for index, convo in enumerate(all_conversations):
@@ -113,6 +111,8 @@ async def list_conversations(
                     start_index = index + 1
                     break
 
+        # we then take the slice of conversations for the current page based on the limit.
+        # we fetch one extra document than the limit to determine if there is a next page.
         page = all_conversations[start_index:start_index + limit + 1]
         next_page_token = None
         if len(page) > limit:
@@ -128,8 +128,8 @@ async def list_conversations(
 async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> ConversationResponse:
     """
     Fetch a conversation and verify the current user is a participant.
-    Used internally by message routes to validate access before operating on messages.
-    Raises 404 if not found, 403 if user is not a participant.
+    Used internally by message routes to validate access before letting users interact
+    with messages. Raises 404 if not found, 403 if user is not a participant.
     """
     try:
         db = get_db()

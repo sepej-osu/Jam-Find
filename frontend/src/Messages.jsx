@@ -3,14 +3,12 @@ import { Box, Button, Center, Heading, Spinner, Text, VStack } from '@chakra-ui/
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import conversationService from './services/conversationService';
-import profileService from './services/profileService';
 
 function Messages() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [nextPageToken, setNextPageToken] = useState(null);
-  const [fallbackNames, setFallbackNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
@@ -52,54 +50,18 @@ function Messages() {
     loadConversations();
   }, []);
 
-  useEffect(() => {
-    const resolveMissingNames = async () => {
-      const missingParticipantIds = conversations
-        .map((conversation) => (conversation.participantIds || []).find((id) => id !== currentUser?.uid))
-        .filter((id) => {
-          if (!id) return false;
-          if (fallbackNames[id]) return false;
-
-          const conversation = conversations.find((item) => (item.participantIds || []).includes(id));
-          const snapshot = conversation?.participantSnapshots?.[id];
-          return !(snapshot?.firstName || snapshot?.lastName);
-        });
-
-      if (missingParticipantIds.length === 0) return;
-
-      const uniqueIds = Array.from(new Set(missingParticipantIds));
-      const profileResults = await Promise.all(uniqueIds.map((id) => profileService.getProfile(id).catch(() => null)));
-
-      const updates = {};
-      uniqueIds.forEach((id, index) => {
-        const profile = profileResults[index];
-        if (!profile) return;
-        const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-        if (fullName) {
-          updates[id] = fullName;
-        }
-      });
-
-      if (Object.keys(updates).length > 0) {
-        setFallbackNames((prev) => ({ ...prev, ...updates }));
-      }
-    };
-
-    resolveMissingNames();
-  }, [conversations, currentUser?.uid, fallbackNames]);
-
-  const getOtherParticipantName = (conversation) => {
+  const getConversationDisplayName = (conversation) => {
     const otherParticipantId = (conversation.participantIds || []).find((id) => id !== currentUser?.uid);
     if (!otherParticipantId) return 'Unknown user';
 
     const snapshot = conversation.participantSnapshots?.[otherParticipantId];
-    if (!snapshot) return fallbackNames[otherParticipantId] || 'Unknown user';
+    if (!snapshot) return 'Unknown user';
 
     const firstName = snapshot.firstName || '';
     const lastName = snapshot.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
 
-    return fullName || fallbackNames[otherParticipantId] || 'Unknown user';
+    return fullName || 'Unknown user';
   };
 
   return (
@@ -131,7 +93,7 @@ function Messages() {
                 _hover={{ bg: 'gray.50' }}
                 onClick={() => navigate(`/messages/${conversation.conversationId}`)}
               >
-                <Text fontWeight="bold">{getOtherParticipantName(conversation)}</Text>
+                <Text fontWeight="bold">{getConversationDisplayName(conversation)}</Text>
                 <Text color="gray.600" noOfLines={1}>
                   {conversation.lastMessagePreview || 'No messages yet'}
                 </Text>

@@ -3,7 +3,6 @@ import { Box, Button, Center, Heading, HStack, Spinner, Text, VStack } from '@ch
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import conversationService from './services/conversationService';
-import profileService from './services/profileService';
 import InputField from './components/InputField';
 
 function ConversationDetail() {
@@ -14,7 +13,6 @@ function ConversationDetail() {
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState('');
-  const [fallbackName, setFallbackName] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
@@ -32,17 +30,6 @@ function ConversationDetail() {
 
         setConversation(conversationData);
         setMessages((messagesData.messages || []).slice().reverse());
-
-        const otherParticipantId = (conversationData.participantIds || []).find((id) => id !== currentUser?.uid);
-        const snapshot = otherParticipantId ? conversationData.participantSnapshots?.[otherParticipantId] : null;
-
-        if (otherParticipantId && !(snapshot?.firstName || snapshot?.lastName)) {
-          const profile = await profileService.getProfile(otherParticipantId).catch(() => null);
-          if (profile) {
-            const fullName = `${profile.firstName || ''} ${profile.lastName || ''}`.trim();
-            setFallbackName(fullName);
-          }
-        }
       } catch (err) {
         setError(err.message || 'Failed to load conversation');
       } finally {
@@ -63,8 +50,8 @@ function ConversationDetail() {
     const lastName = snapshot?.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
 
-    return fullName || fallbackName || 'Conversation';
-  }, [conversation, currentUser?.uid, fallbackName]);
+    return fullName || 'Conversation';
+  }, [conversation, currentUser?.uid]);
 
   const handleSend = async () => {
     const trimmed = draft.trim();

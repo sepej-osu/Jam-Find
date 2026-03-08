@@ -295,7 +295,8 @@ class ConversationCreate(BaseModel):
 
 
 class ParticipantSnapshot(BaseModel):
-    """Denormalized participant fields stored on conversations for fast list rendering."""
+    """Denormalized participant fields stored on conversations for efficient list rendering.
+    This reduces the number of API calls needed to render conversation lists."""
     first_name: Optional[str] = Field(default=None, alias="firstName", description="Participant first name")
     last_name: Optional[str] = Field(default=None, alias="lastName", description="Participant last name")
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="Participant profile picture URL")
@@ -335,8 +336,15 @@ class ConversationResponse(BaseModel):
 
 class PaginatedConversationsResponse(BaseModel):
     """Response model for paginated list of conversations"""
-    conversations: List[ConversationResponse] = Field(..., alias="conversations", description="List of conversations for the current page")
-    next_page_token: Optional[str] = Field(default=None, alias="nextPageToken", description="Token to retrieve the next page of results, if any")
+    conversations: List[ConversationResponse] = Field(
+        ..., alias="conversations",
+        description="List of conversations for the current page"
+        )
+    # Using last document ID as the pagination token for simplicity and efficiency as the token.
+    next_page_token: Optional[str] = Field( 
+        default=None, alias="nextPageToken",
+        description="Token to retrieve the next page of results, if any"
+        )
     
     model_config = ConfigDict(
         populate_by_name = True
