@@ -211,7 +211,7 @@ const handleStep2Submit = async (e) => {
       isClosable: true,
     });
 
-    navigate('/home');
+    navigate('/feed');
     
   } catch (err) {
     console.error('Registration error:', err);
@@ -385,7 +385,7 @@ const handleStep2Submit = async (e) => {
 
                 <Button
                   type="submit"
-                  colorPalette="blue"
+                  variant="jam"
                   size="lg"
                   width="100%"
                   loading={loading}
@@ -395,7 +395,7 @@ const handleStep2Submit = async (e) => {
                 </Button>
 
                 <Button
-                  variant="ghost"
+                  variant="jamDark"
                   onClick={() => setStep(1)}
                   disabled={loading}
                 >

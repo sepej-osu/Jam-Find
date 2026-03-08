@@ -11,7 +11,6 @@ import InputField from './components/InputField';
 import { PasswordInput } from './components/ui/password-input';
 
 const Login = () => {
-  const navigate = useNavigate();
   const { hasProfile } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -31,15 +30,7 @@ const Login = () => {
         duration: 4000,
         isClosable: true,
       });
-
-      // Wait a tiny bit for context to load profile
-      setTimeout(() => {
-        if (hasProfile) {
-          navigate('/feed');
-        } else {
-          navigate('/create-profile');
-        }
-      }, 800); // set to 800ms to give the context enough time to update after login
+      // Navigation is handled by the route guard in App.jsx once auth state updates
       
     } catch (err) {
       toaster.create({
