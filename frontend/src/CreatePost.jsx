@@ -109,7 +109,7 @@ function CreatePost() {
         isClosable: true,
       });
 
-      navigate('/home');
+      navigate('/feed');
       
     } catch (err) {
       toaster.create({
