@@ -65,14 +65,23 @@ const conversationService = {
       });
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        let errorMsg = `Error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch (_) {
+          // Ignore JSON parsing errors
+        }
+        throw new Error(errorMsg);
       }
      // If the response is successful, we parse and return the conversation data as JSON to the caller.
      //  This will include details about the conversation such as participant IDs, snapshots, and timestamps.
       return await response.json();
     } catch (error) {
       console.error('Failed to fetch conversation:', error);
-      throw new Error('Failed to fetch conversation');
+      throw error;
     }
   },
 
