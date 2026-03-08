@@ -1,14 +1,11 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
-from typing import Annotated, Optional
+from fastapi import APIRouter, status, Depends, Query
+from typing import Optional
 from models import MessageCreate, MessageResponse
 from auth import get_current_user
 from services import message_service
 
 
 router = APIRouter()
-COLLECTION_NAME = "messages"
-
-
 @router.post("/conversations/{conversation_id}/messages", response_model=MessageResponse, status_code=status.HTTP_201_CREATED)
 async def send_message(
     conversation_id: str,

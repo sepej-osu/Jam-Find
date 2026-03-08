@@ -89,7 +89,7 @@ async def list_messages(conversation_id: str, current_user_id: str, limit: int =
             messages = messages[:limit]
             next_page_token = messages[-1].message_id
         
-        return {"messages": messages, "next_page_token": next_page_token}
+        return {"messages": messages, "nextPageToken": next_page_token}
         
     except HTTPException:
         raise
