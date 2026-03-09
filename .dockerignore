@@ -1,0 +1,9 @@
+# The Dockerfiles clone directly from GitHub, so local source files
+# are not needed in the build context. Exclude heavy directories.
+node_modules/
+.git/
+*.log
+__pycache__/
+backend/__pycache__/
+frontend/node_modules/
+frontend/dist/
