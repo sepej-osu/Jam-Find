@@ -5,6 +5,7 @@ import {
   Tag,
   Icon,
   Avatar,
+  Button,
   IconButton,
   Separator,
   Link,
@@ -17,17 +18,23 @@ import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import postService from '../services/postService';
+import conversationService from '../services/conversationService';
+import { useAuth } from '../contexts/AuthContext';
 import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES, POST_TYPE_PLAY_LABELS } from '../utils/displayNameMappings';
 import { getSkillColor, getInstrumentIcon } from '../utils/iconMappings';
 import { getRelativeTime, getDistanceMiles } from '../utils/helpers';
 import { Tooltip } from './ui/tooltip';
 
 function FeedPostCard({ post, userLat = null, userLng = null }) {
+  const { currentUser } = useAuth();
   const [likesCount, setLikesCount] = useState(post.likes || 0);
   const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
   const [likingInProgress, setLikingInProgress] = useState(false);
+  const [messagingInProgress, setMessagingInProgress] = useState(false);
   const navigate = useNavigate();
   const instrumentLabel = POST_TYPE_PLAY_LABELS[post.postType];
+  const isOwnPost = currentUser?.uid === post.userId;
+  const canMessageOwner = !!currentUser?.uid && currentUser.uid !== post.userId;
 
   const distanceMiles =
     userLat !== null && userLng !== null &&
@@ -54,6 +61,26 @@ function FeedPostCard({ post, userLat = null, userLng = null }) {
       });
     } finally {
       setLikingInProgress(false);
+    }
+  };
+
+  const handleStartConversation = async () => {
+    if (!canMessageOwner || messagingInProgress) return;
+
+    try {
+      setMessagingInProgress(true);
+      const conversation = await conversationService.createConversation(post.userId);
+      navigate(`/messages/${conversation.conversationId}`);
+    } catch (err) {
+      toaster.create({
+        title: 'Unable to start conversation',
+        description: err.message || 'Please try again later',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setMessagingInProgress(false);
     }
   };
   
@@ -154,6 +181,18 @@ return (
               {likesCount} {likesCount === 1 ? 'like' : 'likes'}
             </Text>
           </Flex>
+          {currentUser?.uid && (
+            <Button
+              variant="outline"
+              colorPalette="cyan"
+              onClick={handleStartConversation}
+              loading={messagingInProgress}
+              disabled={isOwnPost}
+              size="sm"
+            >
+              Message
+            </Button>
+          )}
         </Flex>
     </Box>
   );

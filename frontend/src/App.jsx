@@ -9,6 +9,8 @@ import Profile from './Profile';
 import Post from './components/Post';
 import DiscoveryFeed from './DiscoveryFeed';
 import Layout from './Layout';
+import Messages from './Messages';
+import ConversationDetail from './ConversationDetail';
 
 import { useAuth } from './contexts/AuthContext';
 import { useEffect } from 'react';
@@ -109,6 +111,20 @@ function App() {
           path="posts/:postId"
           element={
             (currentUser && hasProfile) ? <Post /> : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path="messages"
+          element={
+            (currentUser && hasProfile) ? <Messages /> : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path="messages/:conversationId"
+          element={
+            (currentUser && hasProfile) ? <ConversationDetail /> : <Navigate to="/login" replace />
           }
         />
       </Route>
