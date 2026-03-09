@@ -21,7 +21,7 @@ import {
 } from '@chakra-ui/react';
 import InstrumentCard from './components/ui/InstrumentCard';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
-import { FaMapMarkerAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
 import { CgPlayButtonO, CgProfile } from "react-icons/cg";
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -143,12 +143,20 @@ function Profile() {
     >
       <GridItem colSpan={3} textAlign="left">
         <Box mb={4}>
-          <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
-           {canMessageUser && (
-              <Button colorPalette="cyan" onClick={handleMessageUser} loading={messageLoading}>
+          <Flex align="center" justify="space-between" pr={4}>
+            <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
+            {canMessageUser && (
+              <Button
+                size="sm"
+                variant="jam"
+                onClick={handleMessageUser}
+                loading={messageLoading}
+              >
+                <Icon as={FaCommentAlt} />
                 Message
               </Button>
             )}
+          </Flex>
           <Text fontSize="sm" color="gray.600" mt={1}>
             {profile?.gender ? GENDER_DISPLAY_NAMES[profile.gender] + ' · ' : 'No gender set · '}
             <Icon as={FaMapMarkerAlt} color="red.600" display="inline" mb="-1px" mr="1" />

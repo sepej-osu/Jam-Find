@@ -13,7 +13,7 @@ import {
   Wrap
 } from '@chakra-ui/react';
 import { toaster } from "./ui/toaster"
-import { FaMapMarkerAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -181,15 +181,14 @@ return (
               {likesCount} {likesCount === 1 ? 'like' : 'likes'}
             </Text>
           </Flex>
-          {currentUser?.uid && (
+          {canMessageOwner && (
             <Button
-              variant="outline"
-              colorPalette="cyan"
+              size="sm"
+              variant="jam"
               onClick={handleStartConversation}
               loading={messagingInProgress}
-              disabled={isOwnPost}
-              size="sm"
             >
+              <Icon as={FaCommentAlt} />
               Message
             </Button>
           )}

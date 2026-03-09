@@ -67,10 +67,10 @@ function Messages() {
   };
 
   return (
-    <Box maxW="900px" mx="auto" mt="80px" px={4} pb={8}>
+    <Box mx="auto" layerStyle="card">
       <Heading size="lg" mb={4}>Messages</Heading>
 
-      <Box borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md" p={4}>
+      <Box>
         {loading && (
           <Center py={8}>
             <Spinner />
@@ -80,7 +80,7 @@ function Messages() {
         {error && <Text color="red.500">{error}</Text>}
 
         {!loading && !error && conversations.length === 0 && (
-          <Text color="gray.600">No conversations yet.</Text>
+          <Text color="jam.textMuted">No conversations yet.</Text>
         )}
 
         {!loading && !error && conversations.length > 0 && ( 
@@ -88,25 +88,25 @@ function Messages() {
             {conversations.map((conversation) => (
               <Box
                 key={conversation.conversationId}
-                borderWidth="1px"
-                borderRadius="md"
-                p={3}
+                layerStyle="card"
                 cursor="pointer"
                 _hover={{ bg: 'gray.50' }}
                 onClick={() => navigate(`/messages/${conversation.conversationId}`)}
               >
                 
-                <Text fontWeight="bold">{getConversationDisplayName(conversation)}</Text>
+                <Text fontWeight="semibold" color="jam.text">
+                  {getConversationDisplayName(conversation)}
+                </Text>
                 {/* we show a preview of the last message in the conversation. 
                 If there are no messages yet, we show a placeholder text. */}
-                <Text color="gray.600" noOfLines={1}>
+                <Text color="jam.textMuted" noOfLines={1}>
                   {conversation.lastMessagePreview || 'No messages yet'}
                 </Text>
               </Box>
             ))}
 
             {nextPageToken && (
-              <Button onClick={loadMore} loading={loadingMore} alignSelf="center" variant="outline">
+              <Button onClick={loadMore} loading={loadingMore} alignSelf="center" variant="jam">
                 Load more
               </Button>
             )}

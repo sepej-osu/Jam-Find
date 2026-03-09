@@ -78,15 +78,15 @@ function ConversationDetail() {
   };
 
   return (
-    <Box maxW="900px" mx="auto" mt="80px" px={4} pb={8}>
+    <Box layerStyle="card" mx="auto" color="jam.text">
       <HStack mb={4} justify="space-between">
-        <Button variant="outline" onClick={() => navigate('/messages')}>
+        <Button variant="jam" onClick={() => navigate('/messages')}>
           Back
         </Button>
-        <Heading size="md">{otherParticipantName}</Heading>
+        <Heading size="md" cursor="pointer" onClick={() => navigate(`/profile/${otherParticipantId}`)}>{otherParticipantName}</Heading>
       </HStack>
 
-      <Box borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md" p={4}>
+      <Box layerStyle="card">
         {loading && (
           <Center py={8}>
             <Spinner />
@@ -97,7 +97,7 @@ function ConversationDetail() {
         
         {!loading && (
           <VStack align="stretch" gap={3} mb={4}>
-            {messages.length === 0 && <Text color="gray.600">No messages yet.</Text>}
+            {messages.length === 0 && <Text color="jam.textMuted">No messages yet.</Text>}
             {/* Here we map through the messages array to display each conversation message.
             We change the alignment and color based on whether the message is sent by the current user. */}
             {messages.map((message) => {
@@ -106,7 +106,7 @@ function ConversationDetail() {
                 <Box
                   key={message.messageId}
                   alignSelf={mine ? 'flex-end' : 'flex-start'}
-                  bg={mine ? 'cyan.100' : 'gray.100'}
+                  bg={mine ? 'jam.50' : 'jam.400'}
                   borderRadius="md"
                   px={3}
                   py={2}
@@ -138,7 +138,7 @@ function ConversationDetail() {
               placeholder="Type a message"
             />
           </Box>
-          <Button onClick={handleSend} loading={sending} colorPalette="cyan">
+          <Button onClick={handleSend} loading={sending} variant="jam">
             Send
           </Button>
         </HStack>
