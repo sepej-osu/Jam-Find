@@ -16,7 +16,7 @@ import {
   Wrap,
 } from '@chakra-ui/react';
 import { toaster } from "./ui/toaster"
-import { FaMapMarkerAlt } from 'react-icons/fa';
+import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
@@ -155,11 +155,7 @@ return (
                 {POST_TYPE_DISPLAY_NAMES[post.postType] ?? post.postType}
               </Badge>
             )}
-  {currentUser?.uid && (
-            <Button colorPalette="cyan" onClick={handleStartConversation} loading={messagingInProgress} disabled={isOwnPost}>
-              Message
-            </Button>
-          )}
+
           </Flex>
           {(post.location?.formattedAddress) && (
             <Flex align="center" color="jam.textMuted">
@@ -232,10 +228,17 @@ return (
             {likesCount} {likesCount === 1 ? 'like' : 'likes'}
           </Text>
         </Flex>
-        <Flex fontSize="sm" color="jam.textMuted" gap={2}>
-          <Text>{new Date(post.createdAt).toLocaleDateString()}</Text>
-          {post.edited && <Text>(edited)</Text>}
-        </Flex>
+        {!isOwnPost && currentUser?.uid && (
+          <Button
+            size="sm"
+            variant="jam"
+            onClick={handleStartConversation}
+            loading={messagingInProgress}
+          >
+            <Icon as={FaCommentAlt} />
+            Message
+          </Button>
+        )}
       </Flex>
     </Box>
   );
