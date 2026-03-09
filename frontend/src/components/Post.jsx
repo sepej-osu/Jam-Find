@@ -3,27 +3,30 @@ import {
   Heading,
   Text,
   Flex,
-  Tag,
+  Badge,
   Icon,
-  Progress,
   VStack,
   Spinner,
   Alert,
   Avatar,
   Button,
   IconButton,
-  Separator
+  Separator,
+  Link,
+  Wrap,
 } from '@chakra-ui/react';
 import { toaster } from "./ui/toaster"
 import { FaMapMarkerAlt } from 'react-icons/fa';
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import postService from '../services/postService';
+import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES, POST_TYPE_PLAY_LABELS } from '../utils/displayNameMappings';
 import conversationService from '../services/conversationService';
 import { useAuth } from '../contexts/AuthContext';
-import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES } from '../utils/displayNameMappings';
 import { getInstrumentIcon, getSkillColor } from '../utils/iconMappings';
+import { getRelativeTime } from '../utils/helpers';
+import { Tooltip } from './ui/tooltip';
 
 function Post() {
   const { postId } = useParams();
@@ -137,135 +140,103 @@ useEffect(() => {
   }
   
 return (
-    <Box maxW="1000px" mx="auto" p={6}>
-      <Box p={6} borderWidth="1px" borderRadius="lg" bg="white" boxShadow="md">
-        
-        {/* Render Author Info directly from the post object */}
-        <Flex align="center" justify="space-between" mb={4}>
-          <Avatar.Root size="md" mr={3}>
-            <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
-            <Avatar.Image src={post.profilePicUrl} />
-          </Avatar.Root>
-          <Box flex="1">
-            <Text fontWeight="semibold" fontSize="md">
-              {post.firstName} {post.lastName}
-            </Text>
-            {/* If you also embedded the location in the snapshot, 
-               you'd access it here via post.location 
-            */}
-            {post.location?.formattedAddress && (
-              <Text fontSize="sm" color="gray.600">
-                <Icon as={FaMapMarkerAlt} color="red.600" mr="1" />
-                {post.location.formattedAddress}
-              </Text>
+    <Box maxW="1000px" mx="auto" mb={4} layerStyle="card">
+      {/* Header: avatar + title + post type */}
+      <Flex align="center" mb={4}>
+        <Avatar.Root size="xl" shape="rounded" mr={3} cursor="pointer" onClick={() => navigate(`/profile/${post.userId}`)}>
+          <Avatar.Fallback name={`${post.firstName} ${post.lastName}`} />
+          <Avatar.Image src={post.profilePicUrl} />
+        </Avatar.Root>
+        <Box flex="1">
+          <Flex justify="space-between" align="center" mb={1}>
+            <Heading size="lg" color="jam.text">{post.title}</Heading>
+            {post.postType && (
+              <Badge size="sm" color="jam.text" fontWeight="medium" bg="jam.50">
+                {POST_TYPE_DISPLAY_NAMES[post.postType] ?? post.postType}
+              </Badge>
             )}
-          </Box>
-          {currentUser?.uid && (
+  {currentUser?.uid && (
             <Button colorPalette="cyan" onClick={handleStartConversation} loading={messagingInProgress} disabled={isOwnPost}>
               Message
             </Button>
           )}
-        </Flex>
-
-        <Heading size="lg" mb={2}>{post.title}</Heading>
-        {post.postType && (
-          <Tag.Root size="md" colorPalette="blue" variant="subtle" mb={4}>
-            {POST_TYPE_DISPLAY_NAMES[post.postType] ?? post.postType}
-          </Tag.Root>
-        )}
-
-        {post.location?.formattedAddress && (
-          <Flex align="center" mb={4} color="gray.600">
-            <Icon as={FaMapMarkerAlt} color="red.600" mr={2} />
-            <Text fontSize="md">{post.location.formattedAddress}</Text>
           </Flex>
-        )}
-
-        <Separator mb={4} />
-
-        <Box mb={6}>
-          <Text fontSize="lg" color="gray.800" whiteSpace="pre-wrap">
-            {post.body}
-          </Text>
+          {(post.location?.formattedAddress) && (
+            <Flex align="center" color="jam.textMuted">
+              <Link fontSize="sm" color="jam.text" fontWeight="semibold" mr={1} onClick={() => navigate(`/profile/${post.userId}`)} cursor="pointer">{post.firstName} {post.lastName}</Link>
+              <Text fontSize="sm" mx={1}>·</Text>
+              <Tooltip content={new Date(post.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })} contentProps={{ bg: "jam.800", color: "jam.50" }}>
+                <Text fontSize="sm" cursor="default" mr={1}>{getRelativeTime(post.createdAt)}</Text>
+              </Tooltip>
+              <Text fontSize="sm" mx={1}>·</Text>
+              <Icon as={FaMapMarkerAlt} color="red.600" mr="1" />
+              <Text fontSize="sm">{post.location.formattedAddress}</Text>
+            </Flex>
+          )}
         </Box>
+      </Flex>
 
-        {post.instruments?.length > 0 && (
-          <Box mb={6}>
-            <Flex gap={3} flexWrap="wrap">
-              {post.instruments.map((instrument, index) => (
-                <Box 
-                  key={index} 
-                  p={3} 
-                  borderWidth="1px" 
-                  borderRadius="md" 
-                  bg="gray.50"
-                  minW="200px"
-                  boxShadow="sm"
-                >
-                  <Flex align="center" mb={2}>
-                    <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
-                    <Text fontSize="md" fontWeight="semibold">{INSTRUMENT_DISPLAY_NAMES[instrument.name] ?? instrument.name}</Text>
-                  </Flex>
-                  <VStack align="stretch" gap={1}>
-                    <Flex justify="space-between" align="center">
-                      <Text fontSize="sm" color="gray.600">Skill Level</Text>
-                      <Text fontSize="sm" fontWeight="bold" color={`${getSkillColor(instrument.skillLevel)}.600`}>
-                        {instrument.skillLevel}/5
-                      </Text>
-                    </Flex>
-                    <Progress.Root
-                      value={parseInt(instrument.skillLevel * 20)}
-                      size="sm"
-                      colorPalette={getSkillColor(instrument.skillLevel)}
-                      borderRadius="full">
-                      <Progress.Track>
-                        <Progress.Range />
-                      </Progress.Track>
-                    </Progress.Root>
-                  </VStack>
-                </Box>
-              ))}
-            </Flex>
-          </Box>
-        )}
+      <Separator mb={2} />
 
-        {post.genres?.length > 0 && (
-          <Box mb={6}>
-            <Flex gap={2} flexWrap="wrap">
-              {post.genres.map((genre, index) => (
-                <Tag.Root key={index} size="md" color="white" fontWeight="semibold" bg="blue.500">
-                  {GENRE_DISPLAY_NAMES[genre] ?? genre}
-                </Tag.Root>
-              ))}
-            </Flex>
-          </Box>
-        )}
+      <Box mb={3}>
+        <Text fontSize="lg" color="jam.text" whiteSpace="pre-wrap">
+          {post.body}
+        </Text>
+      </Box>
 
-        <Separator my={4} />
-        
-        {/* Likes Section */}
-        <Flex justify="space-between" align="center" mb={4}>
-          <Flex align="center" gap={2}>
-            <IconButton
-              aria-label={isLiked ? "Unlike post" : "Like post"}
-              colorPalette={isLiked ? "red" : "gray"}
-              variant="ghost"
-              onClick={handleLikeToggle}
-              loading={likingInProgress}
-              size="lg"><Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} /></IconButton>
-            <Text fontWeight="semibold" fontSize="md">
-              {likesCount} {likesCount === 1 ? 'like' : 'likes'}
-            </Text>
-          </Flex>
+      {post.instruments?.length > 0 && (
+        <Box mb={2}>
+          {POST_TYPE_PLAY_LABELS[post.postType] && (
+            <Text fontSize="sm" color="jam.textMuted" fontWeight="normal" mb={1}>{POST_TYPE_PLAY_LABELS[post.postType]}</Text>
+          )}
+          <Wrap gap={1}>
+            {post.instruments.map((i, index) => (
+              <Tooltip key={index} openDelay={10} closeDelay={10} content={`Skill level: ${i.skillLevel}/5`}>
+                <Badge
+                  bg={`${getSkillColor(i.skillLevel)}.subtle`}
+                  color={`${getSkillColor(i.skillLevel)}.fg`}
+                  cursor="default">
+                  <Icon as={getInstrumentIcon(i.name)} />
+                  {INSTRUMENT_DISPLAY_NAMES[i.name] ?? i.name}
+                </Badge>
+              </Tooltip>
+            ))}
+          </Wrap>
+        </Box>
+      )}
+
+      {post.genres?.length > 0 && (
+        <Box mb={3}>
+          <Wrap gap={1}>
+            {post.genres.map((g, index) => (
+              <Badge key={index} variant="jam">
+                {GENRE_DISPLAY_NAMES[g] ?? g}
+              </Badge>
+            ))}
+          </Wrap>
+        </Box>
+      )}
+
+      <Separator my={4} />
+
+      {/* Likes Section */}
+      <Flex justify="space-between" align="center" mb={0}>
+        <Flex align="center" gap={2}>
+          <IconButton
+            aria-label={isLiked ? "Unlike post" : "Like post"}
+            variant="ghost"
+            onClick={handleLikeToggle}
+            loading={likingInProgress}
+            size="lg"><Icon as={isLiked ? IoHeart : IoHeartOutline} boxSize={6} color={isLiked ? "jam.liked" : "jam.textMuted"} /></IconButton>
+          <Text color="jam.text" fontWeight="semibold" fontSize="md">
+            {likesCount} {likesCount === 1 ? 'like' : 'likes'}
+          </Text>
         </Flex>
-
-        <Separator mb={4} />
-        
-        <Flex justify="space-between" fontSize="sm" color="gray.500">
+        <Flex fontSize="sm" color="jam.textMuted" gap={2}>
           <Text>{new Date(post.createdAt).toLocaleDateString()}</Text>
           {post.edited && <Text>(edited)</Text>}
         </Flex>
-      </Box>
+      </Flex>
     </Box>
   );
 }

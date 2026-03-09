@@ -90,7 +90,7 @@ function ListboxFilter({ label, collection, selectedValues, onValueChange, onMod
         </Listbox.Content>
       </Listbox.Root>
       <Flex align="center" gap={2} mt={2}>
-        <Text fontSize="sm" color="gray.500">Match:</Text>
+        <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1} textTransform="uppercase">Match</Text>
         <SegmentGroup.Root
           size="sm"
           value={mode}
@@ -117,7 +117,7 @@ function ListboxFilter({ label, collection, selectedValues, onValueChange, onMod
 function NativeFilter({ label, children }) {
   return (
     <Box minW="140px" flex="1">
-      <Text fontSize="xs" fontWeight="semibold" color="gray.500" mb={1} textTransform="uppercase">{label}</Text>
+      <Text fontSize="xs" fontWeight="semibold" color="jam.textMuted" mb={1} textTransform="uppercase">{label}</Text>
       {children}
     </Box>
   );
@@ -169,7 +169,7 @@ function FeedFilterBar({ filters, onChange, hasLocation = false }) {
   const activeAdvancedCount = filters.genres.length + filters.instruments.length + (filters.radiusMiles !== DEFAULT_FILTERS.radiusMiles ? 1 : 0);
 
   return (
-    <Box p={4} borderWidth="1px" borderRadius="lg" bg="white" boxShadow="sm" mb={4}>
+    <Box layerStyle="card" mb={4}>
 
       {/* Row 1: Post Type, Sort By, Order, Advanced toggle */}
       <Flex gap={3} wrap="wrap" align="flex-end">
@@ -221,8 +221,8 @@ function FeedFilterBar({ filters, onChange, hasLocation = false }) {
 
         <Button
           size="sm"
-          variant={showAdvanced ? 'solid' : 'outline'}
-          colorPalette={activeAdvancedCount > 0 ? 'blue' : 'gray'}
+          variant={showAdvanced ? 'jamDark' : 'outline'}
+          colorPalette={activeAdvancedCount > 0 ? 'green' : 'gray'}
           onClick={() => setShowAdvanced(v => !v)}
           alignSelf="flex-end"
         >
@@ -295,13 +295,15 @@ function FeedFilterBar({ filters, onChange, hasLocation = false }) {
             </Box>
             <IconButton
               size="sm"
-              colorPalette="blue"
-              variant={isDirty ? 'solid' : 'outline'}
+              colorPalette="green"
+              variant={isDirty ? 'jam' : 'outline'}
               onClick={handleSearch}
               alignSelf="flex-end"
               aria-label="Search"
+              px={3}
             >
               <SearchIcon />
+              Search
             </IconButton>
           </Flex>
         </Collapsible.Content>

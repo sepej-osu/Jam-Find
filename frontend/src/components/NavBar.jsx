@@ -1,73 +1,53 @@
 import { Box, Button, VStack, Image } from '@chakra-ui/react';
-import { Link as RouterLink } from 'react-router-dom';
-import logo from '../assets/jamfind logo.svg';
-import { FaBinoculars, FaEnvelope, FaPlusCircle } from 'react-icons/fa';
+import { NavLink, useLocation } from 'react-router-dom';
+import { FaCompass, FaCommentAlt, FaPlusCircle } from 'react-icons/fa';
 
+const navButtonStyles = {
+  variant: "solid",
+  bg: "jam.800",
+  color: "jam.50",
+  w: "100%",
+  fontSize: "larger",
+  justifyContent: "flex-start",
+  paddingLeft: "40px",
+  rounded: "none",
+  _hover: { bg: "jam.accent", color: "jam.bg" },
+  _currentPage: { bg: "jam.accent", color: "jam.bg", fontWeight: "bold" },
+};
+
+function NavButton({ to, children }) {
+  const { pathname } = useLocation();
+  const isActive = pathname === to;
+  return (
+    <Button asChild aria-current={isActive ? "page" : undefined} {...navButtonStyles}>
+      <NavLink to={to}>{children}</NavLink>
+    </Button>
+  );
+}
 
 function NavBar() {
   return (
 
     // The NavBar is a vertical sidebar on the left side of the screen. It contains 
     // the logo at the top and navigation buttons below it. The buttons use React 
-    // Router's Link component to navigate to different pages without reloading the page. 
-    // To add more pages, just add Button components with the appropriate "to" prop and icon.
+    // Router's NavLink component to navigate to different pages without reloading the page. 
+    // To add more pages, just add a NavButton with the appropriate "to" prop and icon.
  
-    <Box>
-      <Box mb={6} position="relative" top={30} left={0} w="220px" px={2.5} py={5} bg="white">
-        <Image src={logo} alt="Jam-Find" top={10} w="250px" mx="auto" />
-      </Box>
+    <Box pt={0} display="flex" flexDirection="column" h="100%">
       <Box
-        position="relative"
         as="nav"
-        borderTopRadius={45}
         overflow="hidden"
-        left={0}
-        top={10}
-        minHeight="100%"
+        borderTopLeftRadius="45px"
+        flex="1"
         w="220px"
-        py={10}
-        bg="cyan.800"
-        color="fg.muted"
-        boxShadow="lg"
+        py={5}
+        bg="jam.800"
+        color="jam.50"
       >
-        <VStack align="stretch" spacing={3}>
-          <Button
-            as={RouterLink}
-            to="/home"
-            variant="solid"
-            bg={'cyan.800'}
-            w="100%"
-            textAlign="center"
-            fontSize="larger"
-            _hover={{ bg: 'cyan.700' }}
-          
-          >
-            <FaBinoculars /> Discover
-          </Button>
-          <Button
-            as={RouterLink}
-            to="/messages"
-            variant="solid"
-            bg={'cyan.800'}
-            w="100%"
-            textAlign="center"
-            fontSize="larger"
-            _hover={{ bg: 'cyan.700' }}
-          >
-            <FaEnvelope /> Messages
-          </Button>
-          <Button
-            as={RouterLink}
-            to="/create-post"
-            variant="solid"
-            bg={'cyan.800'}
-            w="100%"
-            textAlign="center"
-            fontSize="larger"
-            _hover={{ bg: 'cyan.700' }}
-          >
-            <FaPlusCircle /> Create Post
-          </Button>
+        <VStack>
+          <NavButton to="/feed"><FaCompass /> Discover</NavButton>
+          <NavButton to="/messages"><FaCommentAlt /> Messages</NavButton>
+          <NavButton to="/create-post"><FaPlusCircle /> Create Post</NavButton>
         </VStack>
       </Box>
     </Box>
