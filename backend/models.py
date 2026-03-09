@@ -285,33 +285,8 @@ class MessageResponse(MessageBase):
         populate_by_name = True
     )
 
-
-class ConversationBase(BaseModel):
-    """Base model for conversations."""
-    participant_ids: List[str] = Field(
-        ...,
-        alias="participantIds",
-        description="Exactly two unique Firebase UIDs participating in this conversation",
-    )
-
-    model_config = ConfigDict(populate_by_name=True)
-
-    @model_validator(mode="after")
-    def validate_participants(self) -> "ConversationBase":
-        ids = [uid.strip() for uid in self.participant_ids]
-
-        if len(ids) != 2:
-            raise ValueError("participantIds must contain exactly two Firebase UIDs")
-        if len(set(ids)) != 2:
-            raise ValueError("participantIds must contain two unique Firebase UIDs")
-        # checking for empty strings after stripping whitespace
-        if any(not uid for uid in ids):
-            raise ValueError("participantIds cannot contain empty values")
-
-        self.participant_ids = ids
-        return self
     
-class ConversationCreate(ConversationBase):
+class ConversationCreate(BaseModel):
     """Model for creating a new conversation. Inherits from ConversationBase."""
     recipient_id: str = Field(..., 
                             alias="recipientId",
@@ -319,9 +294,20 @@ class ConversationCreate(ConversationBase):
     model_config = ConfigDict(populate_by_name=True)
 
 
-class ConversationResponse(ConversationBase):
+class ParticipantSnapshot(BaseModel):
+    """Denormalized participant fields stored on conversations for efficient list rendering.
+    This reduces the number of API calls needed to render conversation lists."""
+    first_name: Optional[str] = Field(default=None, alias="firstName", description="Participant first name")
+    last_name: Optional[str] = Field(default=None, alias="lastName", description="Participant last name")
+    profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="Participant profile picture URL")
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ConversationResponse(BaseModel):
     """Response model for conversations, includes conversation_id and timestamps."""
     conversation_id: str = Field(..., alias="conversationId", description="Unique identifier for the conversation")
+    participant_ids: List[str] = Field(..., alias="participantIds", description="List of Firebase UIDs of the conversation participants")
     created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the conversation was created")
     updated_at: datetime = Field(..., alias="updatedAt", description="Timestamp of the last update to the conversation")
     last_message_preview: Optional[str] = Field(default=None, alias="lastMessagePreview",
@@ -336,8 +322,30 @@ class ConversationResponse(ConversationBase):
         default=None, 
         alias="lastMessageSenderId",
         description="Firebase UID of the sender of the last message in the conversation")
+
+    participant_snapshots: Dict[str, ParticipantSnapshot] = Field(
+        default_factory=dict,
+        alias="participantSnapshots",
+        description="Denormalized profile snapshots keyed by participant user ID")
     
     model_config = ConfigDict(
         from_attributes = True,
+        populate_by_name = True
+    )
+
+
+class PaginatedConversationsResponse(BaseModel):
+    """Response model for paginated list of conversations"""
+    conversations: List[ConversationResponse] = Field(
+        ..., alias="conversations",
+        description="List of conversations for the current page"
+        )
+    # Using last document ID as the pagination token for simplicity and efficiency as the token.
+    next_page_token: Optional[str] = Field( 
+        default=None, alias="nextPageToken",
+        description="Token to retrieve the next page of results, if any"
+        )
+    
+    model_config = ConfigDict(
         populate_by_name = True
     )

@@ -1,0 +1,33 @@
+from fastapi import APIRouter, status, Depends, Query
+from typing import Optional
+from models import ConversationCreate, ConversationResponse, PaginatedConversationsResponse
+from auth import get_current_user
+from services import conversation_service
+
+
+router = APIRouter()
+
+@router.post("/conversations", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+async def create_conversation(
+    conversation: ConversationCreate,
+    current_user_id: str = Depends(get_current_user)
+):
+    return await conversation_service.create_conversation(conversation, current_user_id)
+
+
+@router.get("/conversations", response_model=PaginatedConversationsResponse)
+async def list_conversations(
+    limit: int = Query(10, ge=1),
+    last_doc_id: Optional[str] = Query(None),
+    current_user_id: str = Depends(get_current_user)
+):
+    return await conversation_service.list_conversations(current_user_id, limit, last_doc_id)
+
+
+@router.get("/conversations/{conversation_id}", response_model=ConversationResponse)
+async def get_conversation(
+    conversation_id: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    return await conversation_service.get_conversation_by_id(conversation_id, current_user_id)
+
