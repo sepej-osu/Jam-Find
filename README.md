@@ -2,6 +2,12 @@
 
 Find, chat, and jam with musicians near you.
 
+## Prerequisites
+
+- Python 3.11 or higher
+- Node.js 18 or higher
+- Docker and Docker Compose (only required for the Docker setup)
+
 ## Setup
 
 ### Backend Setup
@@ -19,14 +25,31 @@ pip install -r requirements.txt
 4. Click "Generate New Private Key"
 5. Save the JSON file as `serviceAccountKey.json` in the `backend/` directory
 
+### Backend Environment Setup
+```bash
+cd backend
+cp .env.example .env
+```
+
+Edit `backend/.env` and set the following:
+
+```
+FIREBASE_CREDENTIALS_PATH=serviceAccountKey.json
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key
+CORS_ORIGINS=["http://localhost:5173"]
+DEV_MODE=False
+```
+
+Set `DEV_MODE=True` to bypass Firebase authentication during local development. Never enable this in production.
+
 ### Frontend Setup
 ```bash
 cd frontend
 npm install
 ```
 
-### Frontend Firebase Setup
-Use the .env.example file and rename it to .env and fill that in with the Firebase Jam Find Web App config.
+### Frontend Environment Setup
+Copy `frontend/.env.example` to `frontend/.env` and fill in the Firebase config values.
 
 You can find the Firebase config variables here: https://console.firebase.google.com/u/0/project/jam-find/settings/general/
 
@@ -38,6 +61,7 @@ VITE_FIREBASE_STORAGE_BUCKET=your_storage_bucket
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
 VITE_FIREBASE_APP_ID=your_app_id
 VITE_FIREBASE_MEASUREMENT_ID=your_measurement_id
+VITE_API_URL=http://localhost:8000
 ```
 
 ## Running
@@ -68,3 +92,33 @@ Use at your own risk.
 ```
 
 API docs available at `http://localhost:8000/docs`
+
+## Running Tests
+
+```bash
+cd backend
+source venv/bin/activate
+pytest
+```
+
+## Docker
+
+The Docker setup runs the frontend and backend behind an nginx reverse proxy.
+
+### Setup
+
+1. Copy the root `.env.example` to `.env` and fill in all values (both backend and frontend variables):
+
+```bash
+cp .env.example .env
+```
+
+2. Place `serviceAccountKey.json` in the root directory.
+
+3. Build and start the containers:
+
+```bash
+docker compose up --build
+```
+
+The frontend will be available at `http://localhost` and the API at `http://localhost:8000`.

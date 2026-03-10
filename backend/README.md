@@ -36,7 +36,7 @@ DEV_MODE=True
 DEV_USER_ID=dev_test_user_123
 ```
 
-**⚠️ WARNING:** Never enable `DEV_MODE` in production!
+WARNING: Never enable `DEV_MODE` in production.
 
 When `DEV_MODE=True`:
 - All API endpoints work without Firebase JWT tokens
@@ -55,6 +55,19 @@ python main.py
 ```
 
 The API will be available at `http://localhost:8000`
+
+## Running Tests
+
+```bash
+# Make sure virtual environment is activated
+pytest
+```
+
+Run with coverage:
+
+```bash
+pytest --cov
+```
 
 ## API Endpoints
 
