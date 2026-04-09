@@ -1,7 +1,5 @@
 import { DEFAULT_FILTERS } from '../components/FeedFilterBar';
 
-export const DISTANCE_SORTS = ['distance'];
-
 // Convert search params from URL into filter object for API calls
 export function filtersFromSearchParams(searchParams) {
   const radius = searchParams.get('radiusMiles');
@@ -32,23 +30,16 @@ export function filtersToSearchParams(filters) {
 }
 
 // Build API params from filters, user location, and pagination token.
-// Distance sort uses page-offset pagination (page number) since the backend sorts by
-// computed distance — cursor-based pagination can't be used with a derived sort key.
-export function buildParams(filters, userLat = null, userLng = null, pageOrCursor = null) {
+export function buildParams(filters, userLat = null, userLng = null, page = null) {
   const hasLocation = userLat !== null && userLng !== null;
   // Distance sort requires coordinates — fall back to createdAt if they're missing.
   const sortBy = filters.sortBy === 'distance' && !hasLocation ? 'createdAt' : filters.sortBy;
-  const isDistanceSort = DISTANCE_SORTS.includes(sortBy);
   const params = {
     limit: 10,
     sortBy: sortBy,
     sortOrder: filters.sortOrder,
   };
-  if (isDistanceSort) {
-    if (pageOrCursor !== null) params.page = Number(pageOrCursor);
-  } else {
-    if (pageOrCursor !== null) params.lastDocId = pageOrCursor;
-  }
+  if (page !== null) params.page = Number(page);
   if (filters.postType) params.postType = filters.postType;
   if (filters.genres.length) {
     params.genres = filters.genres;
