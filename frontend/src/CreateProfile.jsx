@@ -7,6 +7,7 @@ import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 import { toaster } from "./components/ui/toaster";
+import { FileUpload } from './components/ui/file-upload';
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
 
 
@@ -72,7 +73,8 @@ const handleSubmit = async (e) => {
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
-      genres: formData.selectedGenres
+      genres: formData.selectedGenres,
+      profilePicUrl: formData.profilePicUrl || null,
     };
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
@@ -198,6 +200,8 @@ return (
                 onChange={handleChange}
                 maxLength={500}
               />
+
+              <FileUpload type="profile-image" label="Profile Picture" onUpload={(url) => setFormData({ ...formData, profilePicUrl: url })} />
 
               <InputField
                 label="Years of Experience"

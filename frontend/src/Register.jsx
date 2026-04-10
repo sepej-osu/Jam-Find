@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
 import { Box, Center, Button, Heading, VStack, Progress, Text, Input, Field} from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
+import { FileUpload } from './components/ui/file-upload';
 
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -169,7 +170,8 @@ const handleStep2Submit = async (e) => {
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
-      genres: formData.selectedGenres
+      genres: formData.selectedGenres,
+      profilePicUrl: formData.profilePicUrl || null
     };
 
     // Send profile data to backend API
@@ -362,6 +364,8 @@ const handleStep2Submit = async (e) => {
                   onChange={handleChange}
                   maxLength={500}
                 />
+
+                <FileUpload type="profile-image" label="Profile Picture" onUpload={(url) => setFormData({ ...formData, profilePicUrl: url })} />
 
                 <InputField
                   label="Years of Experience"

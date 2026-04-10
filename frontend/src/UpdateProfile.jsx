@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
 import { Box, Center, Button, Heading, VStack, HStack, Field, Input } from '@chakra-ui/react';
+import { FileUpload } from './components/ui/file-upload';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -68,7 +69,8 @@ const handleSubmit = async (e) => {
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
-      genres: formData.selectedGenres
+      genres: formData.selectedGenres,
+      profilePicUrl: formData.profilePicUrl || null
     };
 
     // Use the profileService.updateProfile method instead of direct fetch
@@ -156,6 +158,8 @@ return (
               onChange={handleChange}
               maxLength={500}
             />
+
+            <FileUpload type="profile-image" label="Profile Picture" currentUrl={formData.profilePicUrl || null} onUpload={(url) => setFormData({ ...formData, profilePicUrl: url })} />
 
             <InputField
               label="Years of Experience"
