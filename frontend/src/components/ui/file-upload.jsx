@@ -6,7 +6,7 @@ import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage
 import { storage, auth } from '../../firebase';
 
 const TYPE_CONFIG = {
-  'profile-image': { accept: 'image/*', label: 'image', storagePath: 'profile-picture', resizeWidth: 400, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap, resized to max width of 400px
+  'profile-image': { accept: 'image/*', label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap, resized to max 400x800px
   'post-image': { accept: 'image/*', label: 'image', storagePath: 'post-images', maxSize: 20 * 1024 * 1024 }, // 20 MB input cap
   'music': { accept: 'audio/*', label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024 }, // 10 MB input cap
 };
@@ -18,15 +18,19 @@ function pathFromDownloadUrl(url) {
   return decodeURIComponent(new URL(url).pathname.split('/o/')[1]); // This will give us something like 'users%2Fuid%2Fprofile-picture%2Ffilename.jpg, which we can use to delete the file later
 }
 
-// Resize an image file to maxWidth using the Canvas API.
+// Resize an image to fit within maxWidth x maxHeight using the Canvas API, preserving aspect ratio.
 // Always outputs JPEG regardless of input format — consistent compression, no transparency needed for profile pics.
-function resizeImage(file, maxWidth) {
+function resizeImage(file, maxWidth, maxHeight) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
     img.onload = () => {
       URL.revokeObjectURL(objectUrl);
-      const scale = Math.min(1, maxWidth / img.width);
+      const scale = Math.min(
+        1,
+        maxWidth ? maxWidth / img.width : 1,
+        maxHeight ? maxHeight / img.height : 1,
+      );
       const canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
@@ -78,7 +82,7 @@ export function FileUpload({ type, label, currentUrl, onUpload }) {
       let uploadBlob = file;
       let ext = file.name.split('.').pop();
       if (config.resizeWidth) {
-        uploadBlob = await resizeImage(file, config.resizeWidth);
+        uploadBlob = await resizeImage(file, config.resizeWidth, config.resizeHeight);
         ext = 'jpg'; // resizeImage always outputs JPEG
       }
       const filename = `${uuidv4()}.${ext}`;
