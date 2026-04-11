@@ -1,5 +1,15 @@
 // @ts-check
 import { defineConfig, devices } from '@playwright/test';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const backendCwd = path.resolve(__dirname, '../../backend');
+const frontendCwd = path.resolve(__dirname, '..');
+const backendPython = process.platform === 'win32'
+  ? path.join(backendCwd, 'venv', 'Scripts', 'python.exe')
+  : path.join(backendCwd, 'venv', 'bin', 'python');
 
 /**
  * Read environment variables from file.
@@ -71,11 +81,22 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  /* Boot backend + frontend before tests */
+  webServer: [
+    {
+      command: `"${backendPython}" main.py`,
+      cwd: backendCwd,
+      url: 'http://127.0.0.1:8000/health',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+    {
+      command: 'npm run dev -- --host 127.0.0.1 --port 5173 --strictPort',
+      cwd: frontendCwd,
+      url: 'http://127.0.0.1:5173/login',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
+  ],
 });
 
