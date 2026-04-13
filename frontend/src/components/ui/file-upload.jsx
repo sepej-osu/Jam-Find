@@ -13,9 +13,22 @@ const TYPE_CONFIG = {
 
 // TODO: Add a toast for failed uploads with reasons why (file too large, wrong type, etc) and show upload progress for larger files. Possibly add previews for uploads before submitting as well.
 
+const MIME_TO_EXT = {
+  'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
+  'image/webp': 'webp', 'image/avif': 'avif',
+  'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
+  'audio/wav': 'wav', 'audio/webm': 'webm', 'audio/flac': 'flac',
+  'audio/aac': 'aac', 'audio/x-m4a': 'm4a',
+}; // Common MIME types to extensions mapping for safer extension derivation
+
+// Returns the file extension for recognized MIME types, or null if unsupported.
+function safeExt(file) {
+  return MIME_TO_EXT[file.type] ?? null;
+}
+
 function pathFromDownloadUrl(url) {
   // Firebase download URLs encode the storage path after /o/
-  return decodeURIComponent(new URL(url).pathname.split('/o/')[1]); // This will give us something like 'users%2Fuid%2Fprofile-picture%2Ffilename.jpg, which we can use to delete the file later
+  return decodeURIComponent(new URL(url).pathname.split('/o/')[1]); // Returns a decoded path like users/uid/profile-picture/filename.jpg, suitable for use with Firebase Storage refs
 }
 
 // Resize an image to fit within maxWidth x maxHeight using the Canvas API, preserving aspect ratio.
@@ -46,6 +59,11 @@ export function FileUpload({ type, label, currentUrl, onUpload }) {
   const [uploading, setUploading] = useState(false);
   const config = TYPE_CONFIG[type];
 
+  if (!config) {
+    console.error(`Unsupported FileUpload type: ${type}`);
+    return null;
+  }
+
   // Track the storage path of the current file. Prefer the exact path we uploaded
   // (most reliable) and fall back to parsing currentUrl on first render.
   const storagePath = useRef(null);
@@ -59,11 +77,32 @@ export function FileUpload({ type, label, currentUrl, onUpload }) {
 
   const handleFileChange = async ({ acceptedFiles }) => {
     const file = acceptedFiles[0]; // Limit only to 1 file
-    if (!file) return;
+    if (!file) {
+      // User removed the selected file
+      if (storagePath.current) {
+        const user = auth.currentUser;
+        if (user && storagePath.current.startsWith(`users/${user.uid}/`)) {
+          try {
+            await deleteObject(ref(storage, storagePath.current));
+          } catch (err) {
+            console.warn('Could not delete previous file:', err);
+          }
+        }
+        storagePath.current = null;
+      }
+      onUpload?.(null);
+      return;
+    }
 
     if (config.maxSize && file.size > config.maxSize) {
       const limitMB = config.maxSize / (1024 * 1024);
       console.error(`File exceeds the ${limitMB}MB size limit`);
+      return;
+    }
+
+    const ext = safeExt(file);
+    if (!ext) {
+      console.error(`Unsupported file type: ${file.type}`);
       return;
     }
 
@@ -72,7 +111,7 @@ export function FileUpload({ type, label, currentUrl, onUpload }) {
 
     setUploading(true);
     try {
-      if (storagePath.current) {
+      if (storagePath.current && storagePath.current.startsWith(`users/${user.uid}/`)) {
         try {
           await deleteObject(ref(storage, storagePath.current)); // Delete previous file if it exists
         } catch (err) {
@@ -80,12 +119,12 @@ export function FileUpload({ type, label, currentUrl, onUpload }) {
         }
       }
       let uploadBlob = file;
-      let ext = file.name.split('.').pop();
+      let finalExt = ext;
       if (config.resizeWidth) {
         uploadBlob = await resizeImage(file, config.resizeWidth, config.resizeHeight);
-        ext = 'jpg'; // resizeImage always outputs JPEG
+        finalExt = 'jpg'; // resizeImage always outputs JPEG
       }
-      const filename = `${uuidv4()}.${ext}`;
+      const filename = `${uuidv4()}.${finalExt}`;
       const newPath = `users/${user.uid}/${config.storagePath}/${filename}`;
       await uploadBytes(ref(storage, newPath), uploadBlob);
       const url = await getDownloadURL(ref(storage, newPath));
