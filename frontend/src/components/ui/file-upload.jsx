@@ -1,12 +1,12 @@
 import { FileUpload as ChakraFileUpload, Button, IconButton } from '@chakra-ui/react';
 import { LuUpload, LuX } from 'react-icons/lu';
-import { useState, useRef } from 'react';
+import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, auth } from '../../firebase';
 
 const TYPE_CONFIG = {
-  'profile-image': { accept: 'image/*', label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap, resized to max 400x800px
+  'profile-image': { accept: 'image/*', label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
   'post-image': { accept: 'image/*', label: 'image', storagePath: 'post-images', maxSize: 20 * 1024 * 1024 }, // 20 MB input cap
   'music': { accept: 'audio/*', label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024 }, // 10 MB input cap
 };
@@ -55,80 +55,134 @@ function resizeImage(file, maxWidth, maxHeight) {
   });
 }
 
-export function FileUpload({ type, label, currentUrl, onUpload }) {
-  const [uploading, setUploading] = useState(false);
+// Validates file size and MIME type against config. Returns the derived extension string if valid, or null.
+function validateFile(file, config) {
+  if (config.maxSize && file.size > config.maxSize) {
+    console.error(`File exceeds the ${config.maxSize / (1024 * 1024)}MB size limit`);
+    return null;
+  }
+  const ext = safeExt(file);
+  if (!ext) {
+    console.error(`Unsupported file type: ${file.type}`);
+    return null;
+  }
+  return ext;
+}
+
+// Resizes (if configured), uploads to Firebase Storage, and returns { url, path }.
+async function performUpload(uid, file, config) {
+  let uploadBlob = file;
+  let finalExt = safeExt(file);
+  if (config.resizeWidth) {
+    uploadBlob = await resizeImage(file, config.resizeWidth, config.resizeHeight);
+    finalExt = 'jpg'; // resizeImage always outputs JPEG
+  }
+  const path = `users/${uid}/${config.storagePath}/${uuidv4()}.${finalExt}`;
+  await uploadBytes(ref(storage, path), uploadBlob);
+  const url = await getDownloadURL(ref(storage, path));
+  return { url, path };
+}
+
+export const FileUpload = forwardRef(function FileUpload({ type, label, currentUrl, onUpload }, imperativeRef) {
   const config = TYPE_CONFIG[type];
+  const [uploading, setUploading] = useState(false);
+  // uploadedPath: set only after a successful upload in this session.
+  // Cleared when the user removes the file or a new upload replaces it.
+  const uploadedPath = useRef(null);
+  // priorPath: parsed from currentUrl on first render (the server-side existing file).
+  // Consumed (deleted + cleared) when a new upload replaces it.
+  const priorPath = useRef(null);
+  
+  
+  // pendingFile: stores a file selected before the user is authenticated (Only used during registration).
+  // Call upload(uid) imperatively after auth is established to complete the upload.
+  const pendingFileRef = useRef(null);
+
+  // Defers the upload until after account creation. The File object is stored in pendingFileRef.
+  // Call upload(uid) once the user is authenticated
+  // Then performs the upload and calls onUpload(url) to notify the parent.
+  useImperativeHandle(imperativeRef, () => ({
+    upload: async (uid) => {
+      if (!pendingFileRef.current || !config) return null;
+      const file = pendingFileRef.current;
+      if (!validateFile(file, config)) return null;
+      setUploading(true);
+      try {
+        const { url, path } = await performUpload(uid, file, config);
+        uploadedPath.current = path;
+        pendingFileRef.current = null;
+        onUpload?.(url);
+        return url;
+      } catch (err) {
+        console.error('Deferred upload failed:', err);
+        return null;
+      } finally {
+        setUploading(false);
+      }
+    }
+  }));
 
   if (!config) {
     console.error(`Unsupported FileUpload type: ${type}`);
     return null;
   }
 
-  // Track the storage path of the current file. Prefer the exact path we uploaded
-  // (most reliable) and fall back to parsing currentUrl on first render.
-  const storagePath = useRef(null);
-  if (currentUrl && storagePath.current === null) {
+  // One-time initialization: parse the pre-existing file path from currentUrl on first render.
+  if (currentUrl && priorPath.current === null && uploadedPath.current === null) {
     try {
-      storagePath.current = pathFromDownloadUrl(currentUrl);
+      priorPath.current = pathFromDownloadUrl(currentUrl);
     } catch {
       // Ignore unparseable URLs
     }
   }
 
+  // Handle file selection or removal
   const handleFileChange = async ({ acceptedFiles }) => {
     const file = acceptedFiles[0]; // Limit only to 1 file
+    const user = auth.currentUser; // Get current user for permission checks and path construction
     if (!file) {
-      // User removed the selected file
-      if (storagePath.current) {
-        const user = auth.currentUser;
-        if (user && storagePath.current.startsWith(`users/${user.uid}/`)) {
+      // User removed the selected file.
+      if (config.deleteOnReplace && uploadedPath.current) {
+        if (user && uploadedPath.current.startsWith(`users/${user.uid}/`)) {
           try {
-            await deleteObject(ref(storage, storagePath.current));
+            await deleteObject(ref(storage, uploadedPath.current));
           } catch (err) {
             console.warn('Could not delete previous file:', err);
           }
         }
-        storagePath.current = null;
+        uploadedPath.current = null;
       }
-      onUpload?.(null);
+      onUpload?.(null); // Notify parent of file removal with null URL
       return;
     }
 
-    if (config.maxSize && file.size > config.maxSize) {
-      const limitMB = config.maxSize / (1024 * 1024);
-      console.error(`File exceeds the ${limitMB}MB size limit`);
+    // Validate file size and MIME type; reject early if invalid.
+    if (!validateFile(file, config)) return;
+
+    // If no user yet (e.g. during registration), store the file for deferred upload via upload(uid).
+    if (!user) {
+      pendingFileRef.current = file;
       return;
     }
 
-    const ext = safeExt(file);
-    if (!ext) {
-      console.error(`Unsupported file type: ${file.type}`);
-      return;
-    }
-
-    const user = auth.currentUser;
-    if (!user) return;
-
+    // Upload, but delete previous file first if it exists
     setUploading(true);
     try {
-      if (storagePath.current && storagePath.current.startsWith(`users/${user.uid}/`)) {
-        try {
-          await deleteObject(ref(storage, storagePath.current)); // Delete previous file if it exists
-        } catch (err) {
-          console.warn('Could not delete previous file:', err);
+      // For types that replace a single file (e.g. profile picture), delete the previous one first.
+      if (config.deleteOnReplace) {
+        const pathToDelete = uploadedPath.current ?? priorPath.current;
+        if (pathToDelete && pathToDelete.startsWith(`users/${user.uid}/`)) {
+          try {
+            await deleteObject(ref(storage, pathToDelete));
+          } catch (err) {
+            console.warn('Could not delete previous file:', err);
+          }
         }
       }
-      let uploadBlob = file;
-      let finalExt = ext;
-      if (config.resizeWidth) {
-        uploadBlob = await resizeImage(file, config.resizeWidth, config.resizeHeight);
-        finalExt = 'jpg'; // resizeImage always outputs JPEG
-      }
-      const filename = `${uuidv4()}.${finalExt}`;
-      const newPath = `users/${user.uid}/${config.storagePath}/${filename}`;
-      await uploadBytes(ref(storage, newPath), uploadBlob);
-      const url = await getDownloadURL(ref(storage, newPath));
-      storagePath.current = newPath;
+      uploadedPath.current = null;
+      priorPath.current = null;
+      const { url, path } = await performUpload(user.uid, file, config);
+      uploadedPath.current = path;
       onUpload?.(url);
     } catch (err) {
       console.error('Upload failed:', err);
@@ -169,6 +223,6 @@ export function FileUpload({ type, label, currentUrl, onUpload }) {
       </ChakraFileUpload.ItemGroup>
     </ChakraFileUpload.Root>
   );
-}
+});
 
 export default FileUpload;

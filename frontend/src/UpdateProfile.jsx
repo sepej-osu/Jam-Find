@@ -159,7 +159,7 @@ return (
               maxLength={500}
             />
 
-            <FileUpload type="profile-image" label="Profile Picture" onUpload={(url) => setFormData(prev => ({ ...prev, profilePicUrl: url }))} />
+            <FileUpload type="profile-image" label="Profile Picture" currentUrl={formData.profilePicUrl} onUpload={(url) => setFormData(prev => ({ ...prev, profilePicUrl: url }))} />
 
             <InputField
               label="Years of Experience"

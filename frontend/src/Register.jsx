@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -23,6 +23,7 @@ function Register() {
   // Tracks which step the user is on (1 or 2)
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const fileUploadRef = useRef(null);
 
   // All form data in one state object
   const [formData, setFormData] = useState({
@@ -152,6 +153,9 @@ const handleStep2Submit = async (e) => {
     
     const user = userCredential.user;
     const token = await user.getIdToken();
+
+    // Upload profile picture now that the account exists and we have a UID
+    const profilePicUrl = await fileUploadRef.current?.upload(user.uid) ?? null;
     
     // convert selectedInstruments object to array of { name, skillLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
@@ -171,7 +175,7 @@ const handleStep2Submit = async (e) => {
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres,
-      profilePicUrl: formData.profilePicUrl || null
+      profilePicUrl: profilePicUrl
     };
 
     // Send profile data to backend API
@@ -365,7 +369,7 @@ const handleStep2Submit = async (e) => {
                   maxLength={500}
                 />
 
-                <FileUpload type="profile-image" label="Profile Picture" onUpload={(url) => setFormData({ ...formData, profilePicUrl: url })} />
+                <FileUpload ref={fileUploadRef} type="profile-image" label="Profile Picture" onUpload={(url) => setFormData({ ...formData, profilePicUrl: url })} />
 
                 <InputField
                   label="Years of Experience"
