@@ -1,23 +1,24 @@
 // @ts-check
-import { defineConfig, devices } from '@playwright/test';
+import playwright from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
+
+const { defineConfig, devices } = playwright;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const backendCwd = path.resolve(__dirname, '../../backend');
-const frontendCwd = path.resolve(__dirname, '..');
+const backendCwd = path.resolve(__dirname, '..', 'backend');
+const frontendCwd = path.resolve(__dirname, '..', 'frontend');
 const backendPython = process.platform === 'win32'
   ? path.join(backendCwd, 'venv', 'Scripts', 'python.exe')
   : path.join(backendCwd, 'venv', 'bin', 'python');
 
 /**
- * Read environment variables from file.
+ * Load and Read environment variables from .env file.
  * https://github.com/motdotla/dotenv
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * @see https://playwright.dev/docs/test-configuration
