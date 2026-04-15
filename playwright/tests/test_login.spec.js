@@ -20,7 +20,8 @@ test('test login and logout', async ({ page }) => {
   await expect(page.getByRole('navigation')).toContainText('Create Post');
 
   // Open profile menu (it is hidden until hover on avatar area)
-  await page.locator('div').filter({ hasText: /^PP$/ }).first().hover();
+  // await page.locator('div').filter({ hasText: /^PP$/ }).first().hover();
+  await page.locator('[id*="avatar"]').first().hover();
   await page.getByRole('menuitem', { name: 'Logout' }).click();
 
   // After logout, app should return to login
