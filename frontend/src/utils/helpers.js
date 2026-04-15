@@ -25,3 +25,11 @@ export function getRelativeTime(dateStr) {
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays}d ago`;
 }
+
+// Extracts the Firebase Storage object path from a download URL.
+// Returns a decoded path like users/uid/profile-picture/filename.jpg.
+// Firebase Storage URLs have the format https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media&token={token}
+// So we're taking the part after /o/ and before ?alt=media, and decoding any URL-encoded characters.
+export function pathFromStorageUrl(url) {
+  return decodeURIComponent(new URL(url).pathname.split('/o/')[1]);
+}
