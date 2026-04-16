@@ -369,7 +369,7 @@ const handleStep2Submit = async (e) => {
                   maxLength={500}
                 />
 
-                <FileUpload ref={fileUploadRef} type="profile-image" label="Profile Picture" onUpload={(url) => setFormData({ ...formData, profilePicUrl: url })} />
+                <FileUpload ref={fileUploadRef} type="profile-image" label="Profile Picture" onUpload={(url) => setFormData((prev) => ({ ...prev, profilePicUrl: url }))} />
 
                 <InputField
                   label="Years of Experience"

@@ -206,7 +206,27 @@ function Profile() {
       </GridItem>
       <GridItem rowSpan={2} colSpan={2} pt={1}>
         {profile?.profilePicUrl ? (
-          <Image borderRadius="md" src={profile.profilePicUrl} alt={`${profile?.firstName}'s profile picture`} w="100%" objectFit="contain" boxShadow={'sm'} />
+          <Box
+            p={0}
+            borderRadius="md"
+            bg="white"
+            boxShadow="sm"
+            height="400px"
+            width="100%"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            overflow="hidden"
+          >
+            <Image
+              borderRadius="md"
+              src={profile.profilePicUrl}
+              alt={`${profile?.firstName}'s profile picture`}
+              w="100%"
+              h="100%"
+              objectFit="contain"
+            />
+          </Box>
         ) : (
           <Box
             p={0}

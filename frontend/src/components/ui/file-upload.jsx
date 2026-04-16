@@ -72,6 +72,11 @@ function resizeImage(file, maxWidth, maxHeight) {
 // Validates MIME type against config. Returns the derived extension string if valid, or null.
 // Note: file size is enforced by ChakraFileUpload.Root via maxFileSize
 function validateFile(file, config) {
+  const allowedTypes = config.accept.split(',').map(t => t.trim());
+  if (!allowedTypes.includes(file.type)) {
+    toaster.create({ title: 'Wrong file type', description: `${file.type || 'Unknown type'} is not allowed here. Please upload a ${config.label}.`, type: 'error', closable: true });
+    return null;
+  }
   const ext = safeExt(file);
   if (!ext) {
     toaster.create({ title: 'Unsupported file type', description: `${file.type || 'Unknown type'} is not allowed.`, type: 'error', closable: true });
@@ -212,24 +217,23 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       return;
     }
 
-    // Upload, but delete previous file first if it exists
+    // Capture the path to delete before upload so the ref can't change underneath us.
+    // Upload new file -> get download URL -> delete old file (if configured)
+    //  -> update state with new URL -> call onUpload with new URL
     setUploading(true);
     try {
-      // For types that replace a single file (e.g. profile picture), delete the previous one first.
-      if (config.deleteOnReplace) {
-        const pathToDelete = uploadedPath.current ?? priorPath.current;
-        if (pathToDelete && pathToDelete.startsWith(`users/${user.uid}/`)) {
-          try {
-            await deleteObject(ref(storage, pathToDelete));
-          } catch (err) {
-            console.warn('Could not delete previous file:', err);
-          }
+      const pathToDelete = config.deleteOnReplace ? (uploadedPath.current ?? priorPath.current) : null;
+      const { url, path } = await performUpload(user.uid, file, config);
+      // Upload succeeded, now delete old file if needed
+      if (pathToDelete && pathToDelete !== path && pathToDelete.startsWith(`users/${user.uid}/`)) {
+        try {
+          await deleteObject(ref(storage, pathToDelete));
+        } catch (err) {
+          console.warn('Could not delete previous file:', err);
         }
       }
-      uploadedPath.current = null;
-      priorPath.current = null;
-      const { url, path } = await performUpload(user.uid, file, config);
       uploadedPath.current = path;
+      priorPath.current = null;
       onUpload?.(url);
       toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
     } catch (err) {
