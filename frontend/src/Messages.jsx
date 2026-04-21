@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Center, Heading, Spinner, Text, VStack } from '@chakra-ui/react';
+import { Box, Center, Heading, Spinner, Text, VStack } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import conversationService from './services/conversationService';
@@ -8,48 +8,30 @@ function Messages() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const [nextPageToken, setNextPageToken] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const loadConversations = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // we fetch the first page of conversations for the current user. We set a limit of 10 conversations per page.
-      const data = await conversationService.getConversations({ limit: 10 });
-      setConversations(data.conversations || []);
-      setNextPageToken(data.nextPageToken || null);
-    } catch (err) {
-      setError(err.message || 'Failed to load conversations');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadMore = async () => {
-    if (!nextPageToken || loadingMore) return;
-
-    setLoadingMore(true);
-    try {
-      const data = await conversationService.getConversations({
-        limit: 10,
-        lastDocId: nextPageToken,
-      });
-      setConversations((prev) => [...prev, ...(data.conversations || [])]);
-      setNextPageToken(data.nextPageToken || null);
-    } catch (err) {
-      setError(err.message || 'Failed to load more conversations');
-    } finally {
-      setLoadingMore(false);
-    }
-  };
-
   useEffect(() => {
-    loadConversations();
-  }, []);
+    if (!currentUser?.uid) return;
+
+    const unsubscribe = conversationService.subscribeConversations(
+      currentUser.uid,
+      {
+        onData: (items) => {
+          setConversations(items);
+          setError(null);
+          setLoading(false);
+        },
+        onError: (listenerError) => {
+          setError(listenerError.message || 'Failed to load conversations');
+          setLoading(false);
+        },
+      },
+      { limit: 100 }
+    );
+
+    return unsubscribe;
+  }, [currentUser?.uid]);
 
   const getConversationDisplayName = (conversation) => {
     // we find the ID of the other participant in the conversation by looking at the participantIds array
@@ -104,12 +86,6 @@ function Messages() {
                 </Text>
               </Box>
             ))}
-
-            {nextPageToken && (
-              <Button onClick={loadMore} loading={loadingMore} alignSelf="center" variant="jam">
-                Load more
-              </Button>
-            )}
           </VStack>
         )}
       </Box>

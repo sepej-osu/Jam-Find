@@ -1,9 +1,85 @@
 import { auth } from '../firebase';
+import { db } from '../firebase';
+import {
+  collection,
+  doc,
+  limit as limitQuery,
+  limitToLast,
+  onSnapshot,
+  orderBy,
+  query,
+  where,
+} from 'firebase/firestore';
 
 async function getAuthToken() {
   const user = auth.currentUser;
   if (!user) throw new Error('No user logged in');
   return user.getIdToken();
+}
+
+// This helper function converts a Firestore timestamp or JavaScript
+// Date object to an ISO string format for consistency
+function toIsoString(value) {
+  if (!value) return null;
+  if (typeof value?.toDate === 'function') {
+    return value.toDate().toISOString();
+  }
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
+  return value;
+}
+
+// normalizes the participant snapshot data from Firestore
+// it takes a snapshot object and returns a normalized participant object
+// with consistent field names and default values.
+function normalizeParticipantSnapshot(snapshot = {}) {
+
+  // TODO: we can remove the snake_case support later, once we are ready to
+  // nuke the DB again before deployment
+  const participants = {
+    firstName: snapshot.firstName ?? snapshot.first_name ?? '',
+    lastName: snapshot.lastName ?? snapshot.last_name ?? '',
+    profilePicUrl: snapshot.profilePicUrl ?? snapshot.profile_pic_url ?? null,
+  };
+  return participants;
+}
+
+// this function takes a firestore document snapshot for a conversation and
+// normalizes its data into a consistent format. Its called by the realtime
+// listeners to convert the raw Firestore data
+function normalizeConversationDocument(docSnapshot) {
+  const data = docSnapshot.data();
+  const rawSnapshots = data?.participant_snapshots;
+  const normalizedSnapshots = {};
+  for (const entry of Object.entries(rawSnapshots)) {
+    const uid = entry[0];
+    const snapshot = entry[1];
+    normalizedSnapshots[uid] = normalizeParticipantSnapshot(snapshot);
+  }
+
+  return {
+    conversationId: docSnapshot.id,
+    participantIds: data?.participant_ids,
+    createdAt: toIsoString(data?.createdAt),
+    updatedAt: toIsoString(data?.updatedAt),
+    lastMessagePreview: data?.last_message_preview,
+    lastMessageSentAt: toIsoString(data?.last_message_sent_at),
+    lastMessageSenderId: data?.last_message_sender_id,
+    participantSnapshots: normalizedSnapshots,
+  };
+}
+
+// normalizes a Firestore document snapshot for a message
+function normalizeMessageDocument(docSnapshot, conversationId) {
+  const data = docSnapshot.data();
+  return {
+    messageId: docSnapshot.id,
+    conversationId,
+    senderId: data?.senderId ?? data?.sender_id ?? null,
+    content: data?.content ?? '',
+    createdAt: toIsoString(data?.createdAt ?? data?.created_at),
+  };
 }
 
 const conversationService = {
@@ -38,7 +114,7 @@ const conversationService = {
           if (errorData?.detail) {
             errorMsg = errorData.detail;
           }
-        } catch (_) {
+        } catch {
           // Ignore JSON parsing errors
         }
         throw new Error(errorMsg);
@@ -49,6 +125,42 @@ const conversationService = {
       console.error('Failed to fetch conversations:', error);
       throw error;
     }
+  },
+
+  subscribeConversations: (
+    currentUserId,
+    { onData, onError } = {},
+    { limit = 50 } = {}
+  ) => {
+    if (!currentUserId) {
+      throw new Error('No user logged in');
+    }
+
+    const conversationsRef = collection(db, 'conversations');
+    const conversationsQuery = query(
+      conversationsRef,
+      where('participant_ids', 'array-contains', currentUserId),
+      limitQuery(limit)
+    );
+
+    return onSnapshot(
+      conversationsQuery,
+      (snapshot) => {
+        const conversations = snapshot.docs
+          .map(normalizeConversationDocument)
+          .sort((a, b) => {
+            const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+            const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+            return bTime - aTime;
+          });
+
+        onData?.(conversations);
+      },
+      (error) => {
+        console.error('Realtime conversation listener failed:', error);
+        onError?.(error);
+      }
+    );
   },
 
   getConversation: async (conversationId) => {
@@ -71,7 +183,7 @@ const conversationService = {
           if (errorData?.detail) {
             errorMsg = errorData.detail;
           }
-        } catch (_) {
+        } catch {
           // Ignore JSON parsing errors
         }
         throw new Error(errorMsg);
@@ -83,6 +195,29 @@ const conversationService = {
       console.error('Failed to fetch conversation:', error);
       throw error;
     }
+  },
+
+  subscribeConversation: (conversationId, { onData, onError } = {}) => {
+    if (!conversationId) {
+      throw new Error('Conversation id is required');
+    }
+
+    const conversationRef = doc(db, 'conversations', conversationId);
+    return onSnapshot(
+      conversationRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          onData?.(null);
+          return;
+        }
+
+        onData?.(normalizeConversationDocument(snapshot));
+      },
+      (error) => {
+        console.error('Realtime conversation detail listener failed:', error);
+        onError?.(error);
+      }
+    );
   },
 
 createConversation: async (recipientId) => {
@@ -107,7 +242,7 @@ createConversation: async (recipientId) => {
           if (errorData?.detail) {
             errorMsg = errorData.detail;
           }
-        } catch (_) {
+        } catch {
           // Ignore JSON parsing errors
         }
         throw new Error(errorMsg);
@@ -154,7 +289,7 @@ createConversation: async (recipientId) => {
           if (errorData?.detail) {
             errorMsg = errorData.detail;
           }
-        } catch (_) {
+        } catch {
           // Ignore JSON parsing errors
         }
         throw new Error(errorMsg);
@@ -166,6 +301,37 @@ createConversation: async (recipientId) => {
       console.error('Failed to fetch messages:', error);
       throw error;
     }
+  },
+
+  subscribeConversationMessages: (
+    conversationId,
+    { onData, onError } = {},
+    { limit = 200 } = {}
+  ) => {
+    if (!conversationId) {
+      throw new Error('Conversation id is required');
+    }
+
+    const messagesRef = collection(db, 'conversations', conversationId, 'messages');
+    const messagesQuery = query(
+      messagesRef,
+      orderBy('createdAt', 'asc'),
+      limitToLast(limit)
+    );
+
+    return onSnapshot(
+      messagesQuery,
+      (snapshot) => {
+        const messages = snapshot.docs.map((docSnapshot) =>
+          normalizeMessageDocument(docSnapshot, conversationId)
+        );
+        onData?.(messages);
+      },
+      (error) => {
+        console.error('Realtime message listener failed:', error);
+        onError?.(error);
+      }
+    );
   },
 // This function sends a new message in a specific conversation. It takes the conversation ID and message content as parameters,
 // and sends a POST request to the messages endpoint. If successful, it returns the newly created message data as JSON.
@@ -190,7 +356,7 @@ createConversation: async (recipientId) => {
           if (errorData?.detail) {
             errorMsg = errorData.detail;
           }
-        } catch (_) {
+        } catch {
           // Ignore JSON parsing errors
         }
         throw new Error(errorMsg);

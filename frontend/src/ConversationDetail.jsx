@@ -18,33 +18,58 @@ function ConversationDetail() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // we define this function will handle the loading of conversation details and messages. 
-    const load = async () => {
-      setLoading(true);
-      setError(null);
+    if (!conversationId) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-      // Fetch the conversation details and the first page of messages in parallel
-      // so the screen loads faster than awaiting them one after the other.
-      // Promise.all runs the two requests in parallel and waits for both to finish before proceeding.
-        const [conversation, messagesData] = await Promise.all([
-          conversationService.getConversation(conversationId),
-          conversationService.getConversationMessages(conversationId, { limit: 20 }),
-        ]);
+    setLoading(true);
+    setError(null);
 
-        setConversation(conversation);
-        // Here we create a shallow copy of the messages array and reverse it so the
-        // most recent messages are at the bottom of the screen.
-        setMessages(Array.from(messagesData.messages).reverse());
-      } catch (err) {
-        setError(err.message || 'Failed to load conversation');
-      } finally {
+    let conversationLoaded = false;
+    let messagesLoaded = false;
+
+    const markLoaded = () => {
+      if (conversationLoaded && messagesLoaded) {
         setLoading(false);
       }
     };
-    // reload the conversation details when the component mounts and whenever
-    // the conversationId changes (e.g. when navigating to a different conversation)
-    load();
+
+    const unsubscribeConversation = conversationService.subscribeConversation(
+      conversationId,
+      {
+        onData: (conversationData) => {
+          setConversation(conversationData);
+          conversationLoaded = true;
+          markLoaded();
+        },
+        onError: (listenerError) => {
+          setError(listenerError.message || 'Failed to load conversation');
+          setLoading(false);
+        },
+      }
+    );
+
+    const unsubscribeMessages = conversationService.subscribeConversationMessages(
+      conversationId,
+      {
+        onData: (messageItems) => {
+          setMessages(messageItems);
+          messagesLoaded = true;
+          markLoaded();
+        },
+        onError: (listenerError) => {
+          setError(listenerError.message || 'Failed to load messages');
+          setLoading(false);
+        },
+      },
+      { limit: 300 }
+    );
+
+    return () => {
+      unsubscribeConversation();
+      unsubscribeMessages();
+    };
   }, [conversationId]);
 
   // we find the ID of the other participant in the conversation by looking at the participantIds array
@@ -66,8 +91,7 @@ function ConversationDetail() {
     setSending(true);
     try {
       //we call the sendMessage method from the conversationService to send the message to the backend.
-      const newMessage = await conversationService.sendMessage(conversationId, draft);
-      setMessages((prev) => [...prev, newMessage]);
+      await conversationService.sendMessage(conversationId, draft);
       setDraft(''); // clear the input field after sending the message
 
     } catch (err) {
