@@ -11,6 +11,48 @@ import {
   where,
 } from 'firebase/firestore';
 
+/**
+ *
+ * A service module that handles all conversation and messaging data operations.
+ * It connects to Firebase Firestore for real-time data and a REST API for
+ * write operations (creating conversations and sending messages).
+ *
+ * -----------------------------------------------------------------------------
+ * REAL-TIME LISTENERS (Firestore onSnapshot)
+ * -----------------------------------------------------------------------------
+ * Three subscribe methods set up live Firestore listeners. Each one:
+ *   - Takes an object with callback functions (onData, onError)
+ *   - Calls onData whenever Firestore pushes new data
+ *   - Calls onError if the listener fails
+ *   - Returns an unsubscribe function — call it to stop listening (used in
+ *     React useEffect cleanup)
+ *
+ *   subscribeConversations       — all conversations for the current user
+ *   subscribeConversation        — a single conversation by ID
+ *   subscribeConversationMessages — all messages within a conversation
+ *
+ * -----------------------------------------------------------------------------
+ * REST API CALLS
+ * -----------------------------------------------------------------------------
+ * Two async methods POST to the backend API. Each one fetches a Firebase auth
+ * token and includes it as a Bearer token in the Authorization header.
+ *
+ *   createConversation(recipientId)          — starts a new conversation
+ *   sendMessage(conversationId, content)     — sends a message
+ *
+ * -----------------------------------------------------------------------------
+ * DATA NORMALIZATION
+ * -----------------------------------------------------------------------------
+ * Raw Firestore documents are normalized before being passed to the UI:
+ *   - Firestore Timestamps are converted to ISO strings (toIsoString)
+ *   - Participant snapshot fields are standardized to camelCase
+ *     (normalizeParticipantSnapshot)
+ *   - Conversation and message documents are reshaped into consistent
+ *     objects (normalizeConversationDocument, normalizeMessageDocument)
+ */
+
+
+
 async function getAuthToken() {
   const user = auth.currentUser;
   if (!user) throw new Error('No user logged in');
@@ -50,7 +92,7 @@ function normalizeParticipantSnapshot(snapshot = {}) {
 // listeners to convert the raw Firestore data
 function normalizeConversationDocument(docSnapshot) {
   const data = docSnapshot.data();
-  const rawSnapshots = data?.participant_snapshots;
+  const rawSnapshots = data?.participant_snapshots ?? {};
   const normalizedSnapshots = {};
   for (const entry of Object.entries(rawSnapshots)) {
     const uid = entry[0];
@@ -78,145 +120,81 @@ function normalizeMessageDocument(docSnapshot, conversationId) {
     conversationId,
     senderId: data?.senderId ?? data?.sender_id ?? null,
     content: data?.content ?? '',
-    createdAt: toIsoString(data?.createdAt ?? data?.created_at),
+    createdAt: toIsoString(data?.createdAt),
   };
 }
 
 const conversationService = {
-  getConversations: async (params = {}) => {
-    try {
-      const token = await getAuthToken();
-      const {
-        limit = 10,   // default limit is 10 conversations per page
-        lastDocId = null,
-      } = params;
-      //  Here we construct the query parameters for pagination. We include the limit and,
-      //  if provided, the lastDocId which indicates where to start the next page of results.
-      const urlParams = new URLSearchParams({
-        limit: limit.toString(),
-      });
-      if (lastDocId) {
-        urlParams.append('last_doc_id', lastDocId);
-      }
-      // We send the GET request to the conversations endpoint with the appropriate query parameters and authorization header.
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations?${urlParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
 
-      if (!response.ok) {
-        let errorMsg = `Error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.detail) {
-            errorMsg = errorData.detail;
-          }
-        } catch {
-          // Ignore JSON parsing errors
-        }
-        throw new Error(errorMsg);
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to fetch conversations:', error);
-      throw error;
-    }
-  },
-
-  subscribeConversations: (
-    currentUserId,
-    { onData, onError } = {},
-    { limit = 50 } = {}
-  ) => {
+// This function sets up a real-time listener (via Firestore's onSnapshot) for the current user's conversations.
+// It listens for changes to the conversations collection where the user is a participant.
+  subscribeConversations: ({
+    currentUserId, // string
+    onData,  // callback function
+    onError, // callback function
+    limit = 50
+  }) => {
     if (!currentUserId) {
       throw new Error('No user logged in');
     }
-
+    // create the query where the user is a participant
     const conversationsRef = collection(db, 'conversations');
     const conversationsQuery = query(
       conversationsRef,
       where('participant_ids', 'array-contains', currentUserId),
+      orderBy('updatedAt', 'desc'),
       limitQuery(limit)
     );
+    // callback function to handle incoming snapshot data.
+    const handleSnapshot = (snapshot) => {
+      const conversations = snapshot.docs.map(
+        normalizeConversationDocument
+      );
+      // then we pass that normalized conversation data to the onData callback 
+      // provided by the component that called subscribeConversations.
+      onData?.(conversations);
+    };
+    // callback function to handle errors that occur while listening for real-time updates.
+    const handleError = (error) => {
+      console.error('Realtime conversation listener failed:', error);
+      onError?.(error);
+    };
 
     return onSnapshot(
-      conversationsQuery,
-      (snapshot) => {
-        const conversations = snapshot.docs
-          .map(normalizeConversationDocument)
-          .sort((a, b) => {
-            const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
-            const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
-            return bTime - aTime;
-          });
-
-        onData?.(conversations);
-      },
-      (error) => {
-        console.error('Realtime conversation listener failed:', error);
-        onError?.(error);
-      }
+      conversationsQuery, 
+      handleSnapshot,
+      handleError 
     );
   },
 
-  getConversation: async (conversationId) => {
-    try {
-      const token = await getAuthToken();
-      // We send a GET request to fetch the details of a specific conversation by its ID, including
-      // the authorization token in the header.
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations/${conversationId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        let errorMsg = `Error: ${response.status}`;
-        try {
-          const errorData = await response.json();
-          if (errorData?.detail) {
-            errorMsg = errorData.detail;
-          }
-        } catch {
-          // Ignore JSON parsing errors
-        }
-        throw new Error(errorMsg);
-      }
-     // If the response is successful, we parse and return the conversation data as JSON to the caller.
-     //  This will include details about the conversation such as participant IDs, snapshots, and timestamps.
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to fetch conversation:', error);
-      throw error;
-    }
-  },
-
-  subscribeConversation: (conversationId, { onData, onError } = {}) => {
+  subscribeConversation: ({
+    conversationId, // string
+    onData, // callback function
+    onError // callback function
+  }) => {
     if (!conversationId) {
       throw new Error('Conversation id is required');
     }
 
     const conversationRef = doc(db, 'conversations', conversationId);
+
+    const handleSnapshot = (snapshot) => {
+      if (!snapshot.exists()) {
+        onData?.(null);
+        return;
+      }
+      onData?.(normalizeConversationDocument(snapshot));
+    };
+
+    const handleError = (error) => {
+      console.error('Realtime conversation detail listener failed:', error);
+      onError?.(error);
+    };
+
     return onSnapshot(
       conversationRef,
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          onData?.(null);
-          return;
-        }
-
-        onData?.(normalizeConversationDocument(snapshot));
-      },
-      (error) => {
-        console.error('Realtime conversation detail listener failed:', error);
-        onError?.(error);
-      }
+      handleSnapshot,
+      handleError
     );
   },
 
@@ -256,58 +234,13 @@ createConversation: async (recipientId) => {
     }
   },
 
-   // This function fetches messages for a specific conversation, with support for pagination through limit and lastDocId parameters.
-   // It is called by the conversation detail view to load messages for the current conversation, and can also be used 
-   // to load more messages as the user scrolls up.
-  getConversationMessages: async (conversationId, params = {}) => {
-    try {
-      const token = await getAuthToken();
-
-      const {
-        limit = 20, // default limit is 20 messages per page
-        lastDocId = null,
-      } = params;
-         // We construct the query parameters for pagination, including the limit and lastDocId if provided.
-      const urlParams = new URLSearchParams({
-        limit: limit.toString(),
-      });
-      if (lastDocId) urlParams.append('last_doc_id', lastDocId);
-      // We send a GET request to the messages endpoint for the specified conversation,
-      //  including the pagination parameters and authorization token.
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations/${conversationId}/messages?${urlParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (!response.ok) {
-        let errorMsg = 'Failed to fetch messages';
-        try {
-          const errorData = await response.json();
-          if (errorData?.detail) {
-            errorMsg = errorData.detail;
-          }
-        } catch {
-          // Ignore JSON parsing errors
-        }
-        throw new Error(errorMsg);
-      }
-      // If the response is successful, we parse and return the messages data as JSON.
-      // This will include an array of messages and a nextPageToken if there are more messages to load.
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to fetch messages:', error);
-      throw error;
-    }
-  },
-
-  subscribeConversationMessages: (
+  // This function sets up a real-time listener for messages in a specific conversation.
+  subscribeConversationMessages: ({
     conversationId,
-    { onData, onError } = {},
-    { limit = 200 } = {}
-  ) => {
+    onData,
+    onError,
+    limit = 200
+  }) => {
     if (!conversationId) {
       throw new Error('Conversation id is required');
     }
@@ -319,18 +252,22 @@ createConversation: async (recipientId) => {
       limitToLast(limit)
     );
 
+    const handleSnapshot = (snapshot) => {
+      const messages = snapshot.docs.map((docSnapshot) =>
+        normalizeMessageDocument(docSnapshot, conversationId)
+      );
+      onData?.(messages);
+    };
+
+    const handleError = (error) => {
+      console.error('Realtime message listener failed:', error);
+      onError?.(error);
+    };
+
     return onSnapshot(
       messagesQuery,
-      (snapshot) => {
-        const messages = snapshot.docs.map((docSnapshot) =>
-          normalizeMessageDocument(docSnapshot, conversationId)
-        );
-        onData?.(messages);
-      },
-      (error) => {
-        console.error('Realtime message listener failed:', error);
-        onError?.(error);
-      }
+      handleSnapshot,
+      handleError
     );
   },
 // This function sends a new message in a specific conversation. It takes the conversation ID and message content as parameters,

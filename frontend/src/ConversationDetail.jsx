@@ -23,9 +23,11 @@ function ConversationDetail() {
       return;
     }
 
+    // reset loading and error state every time we enter a new conversation thread
     setLoading(true);
     setError(null);
 
+    // we wait for both listeners (conversation metadata + messages) before hiding the spinner
     let conversationLoaded = false;
     let messagesLoaded = false;
 
@@ -35,37 +37,47 @@ function ConversationDetail() {
       }
     };
 
-    const unsubscribeConversation = conversationService.subscribeConversation(
-      conversationId,
-      {
-        onData: (conversationData) => {
-          setConversation(conversationData);
-          conversationLoaded = true;
-          markLoaded();
-        },
-        onError: (listenerError) => {
-          setError(listenerError.message || 'Failed to load conversation');
-          setLoading(false);
-        },
-      }
-    );
+    // callback functions for the conversation listener
+    const handleConversationSnapshot = (conversationData) => {
+      setConversation(conversationData);
+      conversationLoaded = true;
+      markLoaded();
+    };
 
-    const unsubscribeMessages = conversationService.subscribeConversationMessages(
-      conversationId,
-      {
-        onData: (messageItems) => {
-          setMessages(messageItems);
-          messagesLoaded = true;
-          markLoaded();
-        },
-        onError: (listenerError) => {
-          setError(listenerError.message || 'Failed to load messages');
-          setLoading(false);
-        },
-      },
-      { limit: 300 }
-    );
+    const handleConversationError = (listenerError) => {
+      setError(listenerError.message || 'Failed to load conversation');
+      setLoading(false);
+    };
 
+    // callback functions for the messages listener
+    const handleMessagesSnapshot = (messageItems) => {
+      setMessages(messageItems);
+      messagesLoaded = true;
+      markLoaded();
+    };
+
+    const handleMessagesError = (listenerError) => {
+      setError(listenerError.message || 'Failed to load messages');
+      setLoading(false);
+    };
+
+    // start both realtime listeners in parallel so the page can update the header and chat together
+    const unsubscribeConversation = conversationService.subscribeConversation({
+      conversationId,
+      onData: handleConversationSnapshot,
+      onError: handleConversationError,
+    });
+
+    const unsubscribeMessages = conversationService.subscribeConversationMessages({
+      conversationId,
+      onData: handleMessagesSnapshot,
+      onError: handleMessagesError,
+      limit: 300,
+    });
+
+    // cleanup both listeners when leaving the page or switching to a different conversation
+    // each returns an unsubscribe function that we call here to stop listening for updates
+    // from Firestore when the component unmounts or the conversation ID changes
     return () => {
       unsubscribeConversation();
       unsubscribeMessages();

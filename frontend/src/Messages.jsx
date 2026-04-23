@@ -11,25 +11,33 @@ function Messages() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // we use useEffect to set up a real-time listener for the user's conversations when the component mounts
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    const unsubscribe = conversationService.subscribeConversations(
-      currentUser.uid,
-      {
-        onData: (items) => {
-          setConversations(items);
-          setError(null);
-          setLoading(false);
-        },
-        onError: (listenerError) => {
-          setError(listenerError.message || 'Failed to load conversations');
-          setLoading(false);
-        },
-      },
-      { limit: 100 }
-    );
+    setLoading(true);
 
+    // callback functions for the conversations listener
+    const handleConversationSnapshot = (conversations) => {
+      setConversations(conversations);
+      setError(null);
+      setLoading(false);
+    };
+
+    const handleConversationError = (listenerError) => {
+      setError(listenerError.message || 'Failed to load conversations');
+      setLoading(false);
+    };
+
+// we make the call to subscribeConversations, passing in the current user's ID and the two callback functions we just defined.
+    const unsubscribe = conversationService.subscribeConversations({
+      currentUserId: currentUser.uid,
+      onData: handleConversationSnapshot,
+      onError: handleConversationError,
+    });
+
+    // returns function that unsubscribes from the listener when the component 
+    // unmounts or the user ID changes
     return unsubscribe;
   }, [currentUser?.uid]);
 
