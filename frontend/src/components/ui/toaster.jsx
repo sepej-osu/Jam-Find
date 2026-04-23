@@ -23,7 +23,8 @@ export const Toaster = () => {
       <ChakraToaster toaster={toaster} insetInline={{ mdDown: '4' }}>
         {(toast) => (
           <Toast.Root width={{ md: 'sm' }}
-          bg={toast.status === 'error' ? 'bg.error' : 'bg.success'}
+          bg={toast.status === 'error' ? 'red.600' : undefined}
+          color={toast.status === 'error' ? 'white' : undefined}
           >
             {toast.type === 'loading' ? (
               <Spinner size='sm' color='blue.solid' />

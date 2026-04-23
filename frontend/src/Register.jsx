@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
 import { Box, Center, Button, Heading, VStack, Progress, Text, Input, Field} from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
+import { FileUpload } from './components/ui/file-upload';
 
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -22,6 +23,7 @@ function Register() {
   // Tracks which step the user is on (1 or 2)
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const fileUploadRef = useRef(null);
 
   // All form data in one state object
   const [formData, setFormData] = useState({
@@ -151,6 +153,9 @@ const handleStep2Submit = async (e) => {
     
     const user = userCredential.user;
     const token = await user.getIdToken();
+
+    // Upload profile picture now that the account exists and we have a UID
+    const profilePicUrl = await fileUploadRef.current?.upload(user.uid) ?? null;
     
     // convert selectedInstruments object to array of { name, skillLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
@@ -169,7 +174,8 @@ const handleStep2Submit = async (e) => {
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
-      genres: formData.selectedGenres
+      genres: formData.selectedGenres,
+      profilePicUrl: profilePicUrl
     };
 
     // Send profile data to backend API
@@ -362,6 +368,8 @@ const handleStep2Submit = async (e) => {
                   onChange={handleChange}
                   maxLength={500}
                 />
+
+                <FileUpload ref={fileUploadRef} type="profile-image" label="Profile Picture" onUpload={(url) => setFormData((prev) => ({ ...prev, profilePicUrl: url }))} />
 
                 <InputField
                   label="Years of Experience"
