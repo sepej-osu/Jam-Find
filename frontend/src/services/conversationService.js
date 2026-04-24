@@ -167,6 +167,8 @@ const conversationService = {
     );
   },
 
+  // This function sets up a real-time listener for a single conversation by its ID.
+  //  It listens for changes such as new messages, name updates, etc...
   subscribeConversation: ({
     conversationId, // string
     onData, // callback function
