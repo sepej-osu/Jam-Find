@@ -2,17 +2,22 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image, Text, IconButton } from '@chakra-ui/react';
 import { FileUpload } from './components/ui/file-upload';
-import { ref as storageRef, deleteObject } from 'firebase/storage';
+import { ACCEPTED_AUDIO_TYPES, MIME_TO_EXT, checkAudioDuration } from './components/ui/file-upload';
+import { ref as storageRef, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
 import { pathFromStorageUrl } from './utils/helpers';
+import { v4 as uuidv4 } from 'uuid';
+import { LuX, LuUpload } from 'react-icons/lu';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 import { toaster } from "./components/ui/toaster";
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
+
+const MAX_MUSIC_SAMPLES = 3;
 
 
 function UpdateProfile() {
@@ -23,8 +28,38 @@ function UpdateProfile() {
   const [hasPendingFile, setHasPendingFile] = useState(false); // True when user has selected a new file.
   const fileUploadRef = useRef(null);
 
+  // Each item is either { type: 'existing', url } or { type: 'pending', file }
+  const [musicSamples, setMusicSamples] = useState(
+    (profile?.musicSamples || []).slice(0, MAX_MUSIC_SAMPLES).map(s => ({ type: 'existing', url: s.url }))
+  );
+  const [musicUrlsToDelete, setMusicUrlsToDelete] = useState([]);
+  const musicFileInputRef = useRef(null);
+
   // Mark the existing photo for removal without touching storage — deletion happens on submit.
   const handleDeleteProfilePic = () => setPhotoRemoved(true);
+
+  const handleMusicFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // Reset so the same file can be re-selected after removal
+    if (!file) return;
+    if (musicSamples.length >= MAX_MUSIC_SAMPLES) return;
+    const allowed = ACCEPTED_AUDIO_TYPES.split(',');
+    if (!allowed.includes(file.type)) {
+      toaster.create({ title: 'Unsupported file type', description: 'Please upload an audio file (MP3, etc.).', type: 'error', closable: true });
+      return;
+    }
+    const valid = await checkAudioDuration(file, 600);
+    if (!valid) return;
+    setMusicSamples(prev => [...prev, { type: 'pending', file }]);
+  };
+
+  const removeMusicSample = (index) => {
+    const sample = musicSamples[index];
+    if (sample.type === 'existing') {
+      setMusicUrlsToDelete(prev => [...prev, sample.url]);
+    }
+    setMusicSamples(prev => prev.filter((_, i) => i !== index));
+  };
 
 
   const [formData, setFormData] = useState({
@@ -94,6 +129,33 @@ const handleSubmit = async (e) => {
       skillLevel
     }));
 
+    // Delete removed music samples from storage
+    for (const url of musicUrlsToDelete) {
+      try {
+        const path = pathFromStorageUrl(url);
+        if (path?.startsWith(`users/${currentUser.uid}/`)) await deleteObject(storageRef(storage, path));
+      } catch (err) { console.warn('Could not delete music sample:', err); }
+    }
+
+    // Upload any pending music samples
+    const uploadedSampleUrls = [];
+    for (const sample of musicSamples) {
+      if (sample.type === 'pending') {
+        const ext = MIME_TO_EXT[sample.file.type] ?? 'mp3';
+        const path = `users/${currentUser.uid}/music/${uuidv4()}.${ext}`;
+        console.log('[MusicUpload] Uploading to path:', path, 'file:', sample.file.name, sample.file.type, sample.file.size);
+        await uploadBytes(storageRef(storage, path), sample.file);
+        const url = await getDownloadURL(storageRef(storage, path));
+        console.log('[MusicUpload] Upload succeeded, url:', url);
+        uploadedSampleUrls.push(url);
+      }
+    }
+
+    const finalMusicSamples = [
+      ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url })),
+      ...uploadedSampleUrls.map(url => ({ url })),
+    ];
+
     const payload = {
       firstName: formData.firstName,
       lastName: formData.lastName,
@@ -104,7 +166,8 @@ const handleSubmit = async (e) => {
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres,
-      profilePicUrl: finalUrl
+      profilePicUrl: finalUrl,
+      musicSamples: finalMusicSamples,
     };
 
     // Use the profileService.updateProfile method instead of direct fetch
@@ -241,7 +304,53 @@ return (
               value ={formData.selectedGenres}
               onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
               label="Select Your Preferred Genres"
-            />  
+            />
+
+            {/* Music Samples (up to 3, up to 10 min each) */}
+            <Box>
+              <Text fontWeight="medium" mb={2}>
+                Music Samples ({musicSamples.length}/{MAX_MUSIC_SAMPLES})
+              </Text>
+              <VStack align="stretch" gap={2}>
+                {musicSamples.map((sample, index) => (
+                  <HStack key={index} gap={2} p={2} borderWidth="1px" borderRadius="md">
+                    {sample.type === 'existing' ? (
+                      <audio controls src={sample.url} style={{ flex: 1, minWidth: 0 }} />
+                    ) : (
+                      <Text fontSize="sm" flex={1} noOfLines={1}>{sample.file.name}</Text>
+                    )}
+                    <IconButton
+                      size="xs"
+                      variant="ghost"
+                      colorPalette="red"
+                      aria-label="Remove sample"
+                      onClick={() => removeMusicSample(index)}
+                    >
+                      <LuX />
+                    </IconButton>
+                  </HStack>
+                ))}
+                {musicSamples.length < MAX_MUSIC_SAMPLES && (
+                  <>
+                    <input
+                      ref={musicFileInputRef}
+                      type="file"
+                      accept={ACCEPTED_AUDIO_TYPES}
+                      style={{ display: 'none' }}
+                      onChange={handleMusicFileSelect}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => musicFileInputRef.current?.click()}
+                    >
+                      <LuUpload /> Add Sample
+                    </Button>
+                  </>
+                )}
+              </VStack>
+            </Box>  
             
             <HStack gap={3} pr={3}>
               <Button

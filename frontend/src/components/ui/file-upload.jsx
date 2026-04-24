@@ -9,19 +9,19 @@ import { toaster } from './toaster';
 import { pathFromStorageUrl } from '../../utils/helpers';
 
 const ACCEPTED_IMAGE_TYPES = 'image/jpeg,image/png,image/gif,image/webp,image/avif';
-const ACCEPTED_AUDIO_TYPES = 'audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/flac,audio/aac,audio/x-m4a';
+export const ACCEPTED_AUDIO_TYPES = 'audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/aac,audio/x-m4a';
 
 const TYPE_CONFIG = {
   'profile-image': { accept: ACCEPTED_IMAGE_TYPES, label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
   'post-image': { accept: ACCEPTED_IMAGE_TYPES, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap
-  'music': { accept: ACCEPTED_AUDIO_TYPES, label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024 }, // 10 MB input cap
+  'music': { accept: ACCEPTED_AUDIO_TYPES, label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
 };
 
-const MIME_TO_EXT = {
+export const MIME_TO_EXT = {
   'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
   'image/webp': 'webp', 'image/avif': 'avif',
   'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
-  'audio/wav': 'wav', 'audio/webm': 'webm', 'audio/flac': 'flac',
+  'audio/wav': 'wav', 'audio/webm': 'webm',
   'audio/aac': 'aac', 'audio/x-m4a': 'm4a',
 }; // Common MIME types to extensions mapping for safer extension derivation
 
@@ -30,8 +30,30 @@ function getTooltipContent(config) {
   const parts = [];
   parts.push(config.accept === ACCEPTED_IMAGE_TYPES ? 'Images only' : 'Audio files only');
   if (config.minWidth && config.minHeight) parts.push(`Min ${config.minWidth}×${config.minHeight}px`);
+  if (config.maxDurationSeconds) parts.push(`Max ${config.maxDurationSeconds / 60} min`);
   if (config.maxSize) parts.push(`Max ${config.maxSize / (1024 * 1024)} MB`);
   return parts.join(' · ');
+}
+
+// Checks that an audio file does not exceed the maximum duration (in seconds).
+// Returns a Promise resolving to true if valid, false otherwise (with a toast shown).
+export function checkAudioDuration(file, maxSeconds) {
+  return new Promise(resolve => {
+    const audio = document.createElement('audio');
+    const objectUrl = URL.createObjectURL(file);
+    audio.onloadedmetadata = () => {
+      URL.revokeObjectURL(objectUrl);
+      if (audio.duration > maxSeconds) {
+        const maxMin = Math.floor(maxSeconds / 60);
+        toaster.create({ title: 'Audio too long', description: `Maximum duration is ${maxMin} minutes.`, type: 'error', closable: true });
+        resolve(false);
+      } else {
+        resolve(true);
+      }
+    };
+    audio.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(false); };
+    audio.src = objectUrl;
+  });
 }
 
 // Returns the file extension for recognized MIME types, or null if unsupported.
@@ -148,6 +170,7 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       const file = pendingFileRef.current;
       if (!validateFile(file, config)) { setRejectionKey(k => k + 1); return null; }
       if (!await checkImageDimensions(file, config)) { setRejectionKey(k => k + 1); return null; }
+      if (config.maxDurationSeconds && !await checkAudioDuration(file, config.maxDurationSeconds)) { setRejectionKey(k => k + 1); return null; }
       setUploading(true);
       try {
         const { url, path } = await performUpload(uid, file, config);
@@ -209,6 +232,7 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
     // Validate file size and MIME type; reject early if invalid.
     if (!validateFile(file, config)) { setRejectionKey(k => k + 1); return; }
     if (!await checkImageDimensions(file, config)) { setRejectionKey(k => k + 1); return; }
+    if (config.maxDurationSeconds && !await checkAudioDuration(file, config.maxDurationSeconds)) { setRejectionKey(k => k + 1); return; }
 
     // If no user yet (e.g. during registration) or deferred mode, store the file for later upload via upload(uid).
     if (!user || deferred) {
