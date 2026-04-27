@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { Box, Center, Button, Heading, VStack, HStack, Field, Input } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image } from '@chakra-ui/react';
+import { FileUpload } from './components/ui/file-upload';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
+import { storage } from './firebase';
+import { pathFromStorageUrl } from './utils/helpers';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -15,6 +19,12 @@ function UpdateProfile() {
   const navigate = useNavigate(); // For navigation after profile creation
   const { currentUser, refreshProfile, profile } = useAuth(); // Get current user and refreshProfile function from AuthContext
   const [loading, setLoading] = useState(false);
+  const [photoRemoved, setPhotoRemoved] = useState(false); // Marks existing photo for deletion on submit — no storage ops until then.
+  const [hasPendingFile, setHasPendingFile] = useState(false); // True when user has selected a new file.
+  const fileUploadRef = useRef(null);
+
+  // Mark the existing photo for removal without touching storage — deletion happens on submit.
+  const handleDeleteProfilePic = () => setPhotoRemoved(true);
 
 
   const [formData, setFormData] = useState({
@@ -53,6 +63,31 @@ const handleSubmit = async (e) => {
   setLoading(true);
 
   try {
+    const originalUrl = profile?.profilePicUrl || null;
+    let finalUrl = originalUrl;
+
+    // User pressed "Remove photo": delete the old file from storage now.
+    if (photoRemoved && originalUrl) {
+      try {
+        const path = pathFromStorageUrl(originalUrl);
+        if (path.startsWith(`users/${currentUser.uid}/`)) await deleteObject(storageRef(storage, path));
+      } catch (err) { console.warn('Could not delete profile picture:', err); }
+      finalUrl = null;
+    }
+
+    // Upload any pending file selection.
+    const newUrl = await fileUploadRef.current?.upload(currentUser.uid);
+    if (newUrl) {
+      // User picked a replacement without pressing Remove first: delete the old photo.
+      if (originalUrl && !photoRemoved) {
+        try {
+          const path = pathFromStorageUrl(originalUrl);
+          if (path.startsWith(`users/${currentUser.uid}/`)) await deleteObject(storageRef(storage, path));
+        } catch (err) { console.warn('Could not delete previous photo:', err); }
+      }
+      finalUrl = newUrl;
+    }
+
     // convert selectedInstruments object to array of { name, skillLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
       name,
@@ -68,7 +103,8 @@ const handleSubmit = async (e) => {
       experienceYears: formData.experienceYears ? parseInt(formData.experienceYears) : null,
       location: formData.location,
       instruments: instruments,
-      genres: formData.selectedGenres
+      genres: formData.selectedGenres,
+      profilePicUrl: finalUrl
     };
 
     // Use the profileService.updateProfile method instead of direct fetch
@@ -156,6 +192,37 @@ return (
               onChange={handleChange}
               maxLength={500}
             />
+
+            
+
+            <FileUpload
+              ref={fileUploadRef}
+              type="profile-image"
+              label="Profile Picture"
+              currentUrl={profile?.profilePicUrl}
+              deferred
+              onFileSelect={(file) => setHasPendingFile(!!file)}
+            />
+
+            {profile?.profilePicUrl && !photoRemoved && !hasPendingFile && (
+              <VStack gap={2} align="start">
+                <Image
+                  src={profile.profilePicUrl}
+                  alt="Current profile picture"
+                  boxSize="120px"
+                  objectFit="cover"
+                  borderRadius="md"
+                />
+                <Button
+                  size="sm"
+                  variant="solid"
+                  colorPalette="red"
+                  onClick={handleDeleteProfilePic}
+                >
+                  Remove photo
+                </Button>
+              </VStack>
+            )}
 
             <InputField
               label="Years of Experience"

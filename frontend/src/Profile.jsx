@@ -205,24 +205,44 @@ function Profile() {
         </Box>
       </GridItem>
       <GridItem rowSpan={2} colSpan={2} pt={1}>
-        <Box 
-          p={3}
-          borderWidth="1px" 
-          borderRadius="md" 
-          bg="white"
-          boxShadow="sm"
-          height="400px" 
-          width="100%"
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          {profile?.profilePictureUrl ? (
-            <Image borderRadius="full" src={profile.profilePictureUrl} alt={`${profile?.firstName}'s profile picture`} />
-          ) : (
+        {profile?.profilePicUrl ? (
+          <Box
+            p={0}
+            borderRadius="md"
+            bg="white"
+            boxShadow="sm"
+            height="400px"
+            width="100%"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            overflow="hidden"
+          >
+            <Image
+              borderRadius="md"
+              src={profile.profilePicUrl}
+              alt={`${profile?.firstName}'s profile picture`}
+              w="100%"
+              h="100%"
+              objectFit="contain"
+            />
+          </Box>
+        ) : (
+          <Box
+            p={0}
+            borderWidth="1px"
+            borderRadius="md"
+            bg="white"
+            boxShadow="sm"
+            height="400px"
+            width="100%"
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+          >
             <Icon as={CgProfile} boxSize="150px" color="gray.300" aria-label="Profile Picture" />
-          )}
-        </Box>
+          </Box>
+        )}
       </GridItem>
       <GridItem colSpan={3} pr={4}>
         <Box>
