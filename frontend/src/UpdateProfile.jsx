@@ -10,6 +10,7 @@ import { storage } from './firebase';
 import { pathFromStorageUrl } from './utils/helpers';
 import { v4 as uuidv4 } from 'uuid';
 import { LuX, LuUpload } from 'react-icons/lu';
+import ReactPlayer from 'react-player';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
@@ -28,9 +29,9 @@ function UpdateProfile() {
   const [hasPendingFile, setHasPendingFile] = useState(false); // True when user has selected a new file.
   const fileUploadRef = useRef(null);
 
-  // Each item is either { type: 'existing', url } or { type: 'pending', file }
+  // Each item is either { type: 'existing', url, title } or { type: 'pending', file, title }
   const [musicSamples, setMusicSamples] = useState(
-    (profile?.musicSamples || []).slice(0, MAX_MUSIC_SAMPLES).map(s => ({ type: 'existing', url: s.url }))
+    (profile?.musicSamples || []).slice(0, MAX_MUSIC_SAMPLES).map(s => ({ type: 'existing', url: s.url, title: s.title || '' }))
   );
   const [musicUrlsToDelete, setMusicUrlsToDelete] = useState([]);
   const musicFileInputRef = useRef(null);
@@ -50,13 +51,22 @@ function UpdateProfile() {
     }
     const valid = await checkAudioDuration(file, 600);
     if (!valid) return;
-    setMusicSamples(prev => [...prev, { type: 'pending', file }]);
+    const defaultTitle = file.name.replace(/\.[^/.]+$/, '');
+    const objectUrl = URL.createObjectURL(file) + `#${file.name}`;
+    setMusicSamples(prev => [...prev, { type: 'pending', file, title: defaultTitle, objectUrl }]);
+  };
+
+  const handleMusicSampleTitleChange = (index, value) => {
+    setMusicSamples(prev => prev.map((s, i) => i === index ? { ...s, title: value } : s));
   };
 
   const removeMusicSample = (index) => {
     const sample = musicSamples[index];
     if (sample.type === 'existing') {
       setMusicUrlsToDelete(prev => [...prev, sample.url]);
+    }
+    if (sample.type === 'pending' && sample.objectUrl) {
+      URL.revokeObjectURL(sample.objectUrl.split('#')[0]);
     }
     setMusicSamples(prev => prev.filter((_, i) => i !== index));
   };
@@ -96,6 +106,12 @@ function UpdateProfile() {
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
+
+  if (musicSamples.some(s => !s.title.trim())) {
+    toaster.create({ title: 'Missing title', description: 'Please add a title for each music sample.', type: 'error', closable: true });
+    setLoading(false);
+    return;
+  }
 
   try {
     const originalUrl = profile?.profilePicUrl || null;
@@ -138,7 +154,7 @@ const handleSubmit = async (e) => {
     }
 
     // Upload any pending music samples
-    const uploadedSampleUrls = [];
+    const uploadedSamples = [];
     for (const sample of musicSamples) {
       if (sample.type === 'pending') {
         const ext = MIME_TO_EXT[sample.file.type] ?? 'mp3';
@@ -147,13 +163,13 @@ const handleSubmit = async (e) => {
         await uploadBytes(storageRef(storage, path), sample.file);
         const url = await getDownloadURL(storageRef(storage, path));
         console.log('[MusicUpload] Upload succeeded, url:', url);
-        uploadedSampleUrls.push(url);
+        uploadedSamples.push({ url, title: sample.title });
       }
     }
 
     const finalMusicSamples = [
-      ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url })),
-      ...uploadedSampleUrls.map(url => ({ url })),
+      ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url, title: s.title })),
+      ...uploadedSamples,
     ];
 
     const payload = {
@@ -313,11 +329,33 @@ return (
               </Text>
               <VStack align="stretch" gap={2}>
                 {musicSamples.map((sample, index) => (
-                  <HStack key={index} gap={2} p={2} borderWidth="1px" borderRadius="md">
+                  <VStack key={index} gap={1} p={2} borderWidth="1px" borderRadius="md" align="stretch">
+                    <Input
+                      placeholder="Title (required)"
+                      size="sm"
+                      value={sample.title}
+                      onChange={e => handleMusicSampleTitleChange(index, e.target.value)}
+                      required
+                    />
+                    <HStack gap={2}>
                     {sample.type === 'existing' ? (
-                      <audio controls src={sample.url} style={{ flex: 1, minWidth: 0 }} />
+                      <Box flex={1} minWidth={0}>
+                        <ReactPlayer
+                          src={sample.url}
+                          controls
+                          width="100%"
+                          height="auto"
+                        />
+                      </Box>
                     ) : (
-                      <Text fontSize="sm" flex={1} noOfLines={1}>{sample.file.name}</Text>
+                      <Box flex={1} minWidth={0}>
+                        <ReactPlayer
+                          src={sample.objectUrl}
+                          controls
+                          width="100%"
+                          height="auto"
+                        />
+                      </Box>
                     )}
                     <IconButton
                       size="xs"
@@ -328,7 +366,8 @@ return (
                     >
                       <LuX />
                     </IconButton>
-                  </HStack>
+                    </HStack>
+                  </VStack>
                 ))}
                 {musicSamples.length < MAX_MUSIC_SAMPLES && (
                   <>

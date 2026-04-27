@@ -241,11 +241,10 @@ function Profile() {
                     <Text fontSize="sm" fontWeight="medium" mb={1}>{sample.title}</Text>
                   )}
                   <ReactPlayer
-                    url={sample.url}
+                    src={sample.url}
                     controls
                     width="100%"
-                    height="50px"
-                    config={{ file: { forceAudio: true } }}
+                    height="auto"
                   />
                 </Box>
               ))}

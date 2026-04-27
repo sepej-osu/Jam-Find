@@ -56,7 +56,7 @@ echo -e "${GREEN}=== Jam-Find Development Server Startup ===${NC}\n"
 # Check if backend venv exists
 if [ ! -d "$BACKEND_DIR/venv" ]; then
     echo -e "${RED}Error: Backend virtual environment not found!${NC}"
-    echo -e "${YELLOW}Please run: cd backend && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt${NC}"
+    echo -e "${YELLOW}Please run: cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt${NC}"
     exit 1
 fi
 
