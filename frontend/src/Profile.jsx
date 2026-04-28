@@ -23,7 +23,7 @@ import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
 import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { CgProfile } from 'react-icons/cg';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import profileService from './services/profileService';
 import conversationService from './services/conversationService';
@@ -40,6 +40,25 @@ function Profile() {
   const [error, setError] = useState(null);
   const [messageLoading, setMessageLoading] = useState(false);
   const [sampleIndex, setSampleIndex] = useState(0);
+  const [playerVolume, setPlayerVolume] = useState(() => {
+    const saved = localStorage.getItem('playerVolume');
+    return saved !== null ? parseFloat(saved) : 1;
+  });
+  const playerContainerRef = useRef(null);
+
+  useEffect(() => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+    const handleVolumeChange = () => {
+      const audio = container.querySelector('audio');
+      if (audio) {
+        localStorage.setItem('playerVolume', audio.volume);
+        setPlayerVolume(audio.volume);
+      }
+    };
+    container.addEventListener('volumechange', handleVolumeChange, true);
+    return () => container.removeEventListener('volumechange', handleVolumeChange, true);
+  });
 
   // Use the userId from URL params, or fall back to current user's ID
   const profileUserId = userId || currentUser?.uid;
@@ -244,14 +263,17 @@ function Profile() {
                   {profile.musicSamples[sampleIndex].title}
                 </Text>
               )}
+              <div ref={playerContainerRef}>
               <ReactPlayer
                 key={sampleIndex}
                 src={profile.musicSamples[sampleIndex]?.url}
                 controls
                 width="100%"
                 height="auto"
+                volume={playerVolume}
                 style={{ background: 'var(--chakra-colors-jam-bg)' }}
               />
+              </div>
               {profile.musicSamples.length > 1 && (
                 <Flex justify="center" align="center" gap={4} mt={2}>
                   <IconButton
