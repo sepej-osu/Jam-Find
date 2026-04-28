@@ -250,7 +250,6 @@ function Profile() {
                 controls
                 width="100%"
                 height="auto"
-                volume
                 style={{ background: 'var(--chakra-colors-jam-bg)' }}
               />
               {profile.musicSamples.length > 1 && (
