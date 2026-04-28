@@ -161,12 +161,18 @@ def test_music_sample_title_too_long():
     assert response.status_code == 422
 
 
-def test_music_sample_title_optional():
-    """A music sample without a title is accepted (title is optional)."""
+def test_music_sample_title_required():
+    """A music sample without a title is rejected with 422."""
     samples = [{"url": FAKE_SAMPLE_URL_1}]
     response = client.post("/api/v1/profiles", json={**BASE_PROFILE, "musicSamples": samples})
-    assert response.status_code == 201
-    assert response.json()["musicSamples"][0]["title"] is None
+    assert response.status_code == 422
+
+
+def test_music_sample_empty_title_rejected():
+    """A music sample with an empty string title is rejected with 422."""
+    samples = [{"url": FAKE_SAMPLE_URL_1, "title": ""}]
+    response = client.post("/api/v1/profiles", json={**BASE_PROFILE, "musicSamples": samples})
+    assert response.status_code == 422
 
 
 def test_update_adds_music_samples():

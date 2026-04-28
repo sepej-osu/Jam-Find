@@ -69,7 +69,7 @@ class GenreType(str, Enum):
 class MusicSample(BaseModel):
     """Model for a music audio sample attached to a profile."""
     url: str = Field(..., alias="url", description="Firebase Storage download URL for the audio sample")
-    title: Optional[str] = Field(default=None, max_length=100, alias="title", description="Display title for the sample")
+    title: str = Field(..., min_length=1, max_length=100, alias="title", description="Display title for the sample")
     model_config = ConfigDict(populate_by_name=True)
 
 class _MusicSamplesValidatorMixin(BaseModel):
