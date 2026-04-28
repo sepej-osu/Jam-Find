@@ -18,7 +18,7 @@ import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
-import { createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected } from './utils/helpers';
+import { createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected, deleteStoragePaths } from './utils/helpers';
 
 const MAX_MUSIC_SAMPLES = 3;
 
@@ -154,6 +154,9 @@ const handleStep2Submit = async (e) => {
 
     if (!validateMusicSampleTitles(musicSamples)) { setLoading(false); return; }
 
+    let uploadedPaths = [];
+    let uploadUid = null;
+
     try {
     // Create Firebase account
     const userCredential = await createUserWithEmailAndPassword(
@@ -165,12 +168,14 @@ const handleStep2Submit = async (e) => {
     console.log('Firebase account created!');
     
     const user = userCredential.user;
+    uploadUid = user.uid;
     const token = await user.getIdToken();
 
     // Upload profile picture now that the account exists and we have a UID
     const profilePicUrl = await fileUploadRef.current?.upload(user.uid) ?? null;
 
-      const uploadedSamples = await uploadMusicSamples(user.uid, musicSamples);
+      const { samples: uploadedSamples, uploadedPaths: newPaths } = await uploadMusicSamples(user.uid, musicSamples);
+      uploadedPaths = newPaths;
     const instruments = instrumentsFromSelected(formData.selectedInstruments);
 
     const payload = {
@@ -232,6 +237,7 @@ const handleStep2Submit = async (e) => {
     
   } catch (err) {
     console.error('Registration error:', err);
+    await deleteStoragePaths(uploadUid, uploadedPaths);
     toaster.create({
       title: 'Error creating account',
       description: err.message,

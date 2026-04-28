@@ -101,6 +101,7 @@ export function createMusicSampleHandlers(setMusicSamples, maxSamples, { onRemov
 // Used by Register, CreateProfile, and UpdateProfile.
 export async function uploadMusicSamples(uid, musicSamples) {
   const uploaded = [];
+  const uploadedPaths = []; // tracked so callers can clean up on API failure
   for (const sample of musicSamples) {
     if (sample.type === 'pending') {
       const ext = safeExt(sample.file);
@@ -108,12 +109,32 @@ export async function uploadMusicSamples(uid, musicSamples) {
       await uploadBytes(storageRef(storage, path), sample.file);
       const url = await getDownloadURL(storageRef(storage, path));
       uploaded.push({ url, title: sample.title });
+      uploadedPaths.push(path);
     }
   }
-  return [
-    ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url, title: s.title })),
-    ...uploaded,
-  ];
+  return {
+    // Combine existing samples (type 'existing') with newly uploaded ones (type 'pending') into the final array of samples to send to the API.
+    samples: [
+      ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url, title: s.title })),
+      ...uploaded,
+    ],
+    uploadedPaths,
+  };
+}
+
+// Deletes a list of Firebase Storage paths belonging to the given user.
+// Used for cleanup when storage uploads succeed but the subsequent API call fails.
+export async function deleteStoragePaths(uid, paths) {
+  if (!uid || !paths?.length) return;
+  for (const path of paths) {
+    if (path?.startsWith(`users/${uid}/`)) {
+      try {
+        await deleteObject(storageRef(storage, path));
+      } catch (err) {
+        console.warn('Could not delete file during cleanup:', err);
+      }
+    }
+  }
 }
 
 // Validates that all music samples have non-empty titles.

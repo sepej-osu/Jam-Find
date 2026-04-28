@@ -12,7 +12,7 @@ import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
 import { Tooltip } from './components/ui/tooltip';
 import ReactPlayer from 'react-player';
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
-import { createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected } from './utils/helpers';
+import { createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected, deleteStoragePaths } from './utils/helpers';
 
 const MAX_MUSIC_SAMPLES = 3;
 
@@ -59,6 +59,7 @@ function CreateProfile() {
 const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
+  let uploadedPaths = [];
 
   try {
     const user = currentUser; // Use currentUser from AuthContext
@@ -86,7 +87,8 @@ const handleSubmit = async (e) => {
       profilePicUrl: formData.profilePicUrl || null,
     };
 
-    const uploadedSamples = await uploadMusicSamples(user.uid, musicSamples);
+    const { samples: uploadedSamples, uploadedPaths: newPaths } = await uploadMusicSamples(user.uid, musicSamples);
+    uploadedPaths = newPaths;
     if (uploadedSamples.length > 0) payload.musicSamples = uploadedSamples;
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
@@ -125,6 +127,7 @@ const handleSubmit = async (e) => {
     navigate('/');
     
   } catch (err) {
+    await deleteStoragePaths(currentUser?.uid, uploadedPaths);
     toaster.create({
       title: 'Error creating a profile',
       description: err.message,

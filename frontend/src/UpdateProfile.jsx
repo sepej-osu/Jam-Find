@@ -7,7 +7,7 @@ import { FileUpload, ACCEPTED_AUDIO_RECORD, MUSIC_TOOLTIP_CONTENT } from './comp
 import { toaster } from './components/ui/toaster';
 import { storage } from './firebase';
 import { ref as storageRef, deleteObject } from 'firebase/storage';
-import { pathFromStorageUrl, createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected } from './utils/helpers';
+import { pathFromStorageUrl, createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected, deleteStoragePaths } from './utils/helpers';
 import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
 import { Tooltip } from './components/ui/tooltip';
 import ReactPlayer from 'react-player';
@@ -82,6 +82,8 @@ const handleSubmit = async (e) => {
 
   if (!validateMusicSampleTitles(musicSamples)) { setLoading(false); return; }
 
+  let uploadedPaths = [];
+
   try {
     const originalUrl = profile?.profilePicUrl || null;
     let finalUrl = originalUrl;
@@ -118,7 +120,8 @@ const handleSubmit = async (e) => {
       } catch (err) { console.warn('Could not delete music sample:', err); }
     }
 
-    const finalMusicSamples = await uploadMusicSamples(currentUser.uid, musicSamples);
+    const { samples: finalMusicSamples, uploadedPaths: newPaths } = await uploadMusicSamples(currentUser.uid, musicSamples);
+    uploadedPaths = newPaths;
 
     const payload = {
       firstName: formData.firstName,
@@ -150,6 +153,7 @@ const handleSubmit = async (e) => {
     navigate('/'); // Redirect to home or profile page after successful update
     
   } catch (err) {
+    await deleteStoragePaths(currentUser?.uid, uploadedPaths);
     toaster.create({
       title: 'Error updating profile',
       description: err.message,
