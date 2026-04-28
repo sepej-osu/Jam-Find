@@ -1,4 +1,4 @@
-import { FileUpload as ChakraFileUpload, Button, IconButton, Float } from '@chakra-ui/react';
+import { FileUpload as ChakraFileUpload, useFileUpload, Button, IconButton, Float } from '@chakra-ui/react';
 import { LuUpload, LuX, LuInfo } from 'react-icons/lu';
 import { Tooltip } from './tooltip';
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
@@ -8,27 +8,41 @@ import { storage, auth } from '../../firebase';
 import { toaster } from './toaster';
 import { pathFromStorageUrl } from '../../utils/helpers';
 
-const ACCEPTED_IMAGE_TYPES = 'image/jpeg,image/png,image/gif,image/webp,image/avif';
-export const ACCEPTED_AUDIO_TYPES = 'audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/aac,audio/x-m4a,audio/flac';
-
-const TYPE_CONFIG = {
-  'profile-image': { accept: ACCEPTED_IMAGE_TYPES, label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
-  'post-image': { accept: ACCEPTED_IMAGE_TYPES, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap
-  'music': { accept: ACCEPTED_AUDIO_TYPES, label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
+// Record format (MIME type → extensions[]) is required by Chakra UI v3's useFileUpload / ChakraFileUpload.Root.
+// Browsers (especially on Linux/Chrome) ignore bare MIME types in the file picker and need the extensions too.
+// Zag.js builds the <input accept> attribute by concatenating both the keys and the extension arrays.
+const ACCEPTED_IMAGE_RECORD = {
+  'image/jpeg': ['.jpg', '.jpeg'],
+  'image/png': ['.png'],
+  'image/gif': ['.gif'],
+  'image/webp': ['.webp'],
+  'image/avif': ['.avif'],
+};
+export const ACCEPTED_AUDIO_RECORD = {
+  'audio/mpeg': ['.mp3'],
+  'audio/mp4': ['.mp4', '.m4a'],
+  'audio/ogg': ['.ogg'],
+  'audio/wav': ['.wav'],
+  'audio/webm': ['.webm'],
+  'audio/aac': ['.aac'],
+  'audio/x-m4a': ['.m4a'],
+  'audio/flac': ['.flac'],
 };
 
-export const MIME_TO_EXT = {
-  'image/jpeg': 'jpg', 'image/png': 'png', 'image/gif': 'gif',
-  'image/webp': 'webp', 'image/avif': 'avif',
-  'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
-  'audio/wav': 'wav', 'audio/webm': 'webm',
-  'audio/aac': 'aac', 'audio/x-m4a': 'm4a', 'audio/flac': 'flac',
-}; // Common MIME types to extensions mapping for safer extension derivation
+// Comma-separated MIME type strings derived from the Records above.
+// Used for JS MIME validation in helpers.js where the Record format isn't needed.
+export const ACCEPTED_AUDIO_TYPES = Object.keys(ACCEPTED_AUDIO_RECORD).join(',');
+
+const TYPE_CONFIG = {
+  'profile-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
+  'post-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap
+  'music': { acceptRecord: ACCEPTED_AUDIO_RECORD, label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
+};
 
 // Generates user-friendly tooltip content based on the TYPE_CONFIG
 function getTooltipContent(config) {
   const parts = [];
-  parts.push(config.accept === ACCEPTED_IMAGE_TYPES ? 'Images only' : 'Audio files only');
+  parts.push(config.label === 'image' ? 'Images only' : 'Audio files only');
   if (config.minWidth && config.minHeight) parts.push(`Min ${config.minWidth}×${config.minHeight}px`);
   if (config.maxDurationSeconds) parts.push(`Max ${config.maxDurationSeconds / 60} min`);
   if (config.maxSize) parts.push(`Max ${config.maxSize / (1024 * 1024)} MB`);
@@ -53,20 +67,16 @@ export function checkAudioDuration(file, maxSeconds) {
         resolve(true);
       }
     };
-    audio.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(false); };
+    audio.onerror = () => { URL.revokeObjectURL(objectUrl); resolve(null); }; // null = unreadable/invalid file
     audio.src = objectUrl;
   });
 }
 
-// Returns the file extension for recognized MIME types, or null if unsupported.
-function safeExt(file) {
-  return MIME_TO_EXT[file.type] ?? null;
-}
-
-// For backward compatibility with existing URLs, we need to extract the storage path from download URLs as well.
-// This is used to identify the existing file in storage for replacement or deletion when a new file is uploaded.
-function pathFromDownloadUrl(url) {
-  return pathFromStorageUrl(url);
+// Returns the canonical file extension (without dot) for a file's MIME type by looking it up
+// in the accepted Records. Always takes the first listed extension.
+export function safeExt(file) {
+  const exts = { ...ACCEPTED_IMAGE_RECORD, ...ACCEPTED_AUDIO_RECORD }[file.type];
+  return exts?.[0]?.slice(1) ?? null;
 }
 
 // Resize an image to fit within maxWidth x maxHeight using the Canvas API, preserving aspect ratio.
@@ -93,10 +103,9 @@ function resizeImage(file, maxWidth, maxHeight) {
   });
 }
 
-// Validates MIME type against config. Returns the derived extension string if valid, or null.
-// Note: file size is enforced by ChakraFileUpload.Root via maxFileSize
+// Validates MIME type against config. Returns the file extension string if valid, or null.
 function validateFile(file, config) {
-  const allowedTypes = config.accept.split(',').map(t => t.trim());
+  const allowedTypes = Object.keys(config.acceptRecord);
   if (!allowedTypes.includes(file.type)) {
     toaster.create({ title: 'Wrong file type', description: `${file.type || 'Unknown type'} is not allowed here. Please upload a ${config.label}.`, type: 'error', closable: true });
     return null;
@@ -142,6 +151,63 @@ async function performUpload(uid, file, config) {
   await uploadBytes(ref(storage, path), uploadBlob);
   const url = await getDownloadURL(ref(storage, path));
   return { url, path };
+}
+
+// Inner component — keyed by rejectionKey so the useFileUpload hook fully remounts on rejection,
+// which resets acceptedFiles and allows the same invalid file to be re-selected.
+function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }) {
+  const fileUpload = useFileUpload({
+    maxFiles: 1,
+    accept: config.acceptRecord,
+    onFileChange,
+    onFileReject,
+  });
+
+  return (
+    <ChakraFileUpload.RootProvider value={fileUpload}>
+      <ChakraFileUpload.HiddenInput />
+      {label && (
+        <ChakraFileUpload.Label display="flex" alignItems="center" gap="1">
+          {label}
+          <Tooltip content={getTooltipContent(config)}>
+            <IconButton variant="ghost" size="2xs" aria-label="File requirements">
+              <LuInfo />
+            </IconButton>
+          </Tooltip>
+        </ChakraFileUpload.Label>
+      )}
+      <ChakraFileUpload.Trigger asChild>
+        <Button type="button" variant="outline" loading={uploading}>
+          <LuUpload /> Upload {config.label}
+        </Button>
+      </ChakraFileUpload.Trigger>
+      {/* Images use chakra thumbnail list; audio uses a filename list */}
+      <ChakraFileUpload.ItemGroup>
+        {fileUpload.acceptedFiles.map(file => (
+          config.label === 'audio file' ? (
+            <ChakraFileUpload.Item key={file.name} file={file}>
+              <ChakraFileUpload.ItemPreview />
+              <ChakraFileUpload.ItemName />
+              <ChakraFileUpload.ItemDeleteTrigger asChild>
+                <IconButton variant="ghost" size="xs" aria-label="Remove file">
+                  <LuX />
+                </IconButton>
+              </ChakraFileUpload.ItemDeleteTrigger>
+            </ChakraFileUpload.Item>
+          ) : (
+            <ChakraFileUpload.Item key={file.name} file={file} w="auto" boxSize="40" p="2">
+              <ChakraFileUpload.ItemPreviewImage width="100%" height="100%" objectFit="cover" />
+              <Float placement="top-end">
+                <ChakraFileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid">
+                  <LuX />
+                </ChakraFileUpload.ItemDeleteTrigger>
+              </Float>
+            </ChakraFileUpload.Item>
+          )
+        ))}
+      </ChakraFileUpload.ItemGroup>
+    </ChakraFileUpload.RootProvider>
+  );
 }
 
 export const FileUpload = forwardRef(function FileUpload({ type, label, currentUrl, onUpload, onFileSelect, deferred = false }, imperativeRef) {
@@ -199,13 +265,13 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
   // One-time initialization: parse the pre-existing file path from currentUrl on first render.
   if (currentUrl && priorPath.current === null && uploadedPath.current === null) {
     try {
-      priorPath.current = pathFromDownloadUrl(currentUrl);
+      priorPath.current = pathFromStorageUrl(currentUrl);
     } catch {
       // Ignore unparseable URLs
     }
   }
 
-  // Handle file selection or removal
+  // Handle file selection, removal, and Zag-level rejections (wrong type / too large).
   const handleFileChange = async ({ acceptedFiles }) => {
     const file = acceptedFiles[0]; // Limit only to 1 file
     const user = auth.currentUser; // Get current user for permission checks and path construction
@@ -275,70 +341,21 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
     }
   };
 
-  // Handle file rejections (size/type) with user-friendly toasts.
-  const handleFileReject = ({ files }) => {
-    const tooLarge = files.some(({ errors }) => errors.some(e => e.type === 'FILE_TOO_LARGE'));
-    const badType = files.some(({ errors }) => errors.some(e => e.type === 'FILE_INVALID_TYPE'));
-    if (tooLarge) toaster.create({ title: 'File too large', description: `Maximum size is ${config.maxSize / (1024 * 1024)} MB.`, type: 'error', closable: true });
-    if (badType) toaster.create({ title: 'Unsupported file type', description: 'Please upload an accepted file type.', type: 'error', closable: true });
-    setRejectionKey(k => k + 1); // Remount the root so the same file can be rejected again
+  // Show a generic rejection toast for cases where Zag's internal validation rejects the file before it reaches handleFileChange.
+  const handleFileReject = () => {
+    toaster.create({ title: 'Unsupported file type', description: `Please upload a ${config.label}.`, type: 'error', closable: true });
+    setRejectionKey(k => k + 1);
   };
 
   return (
-    <ChakraFileUpload.Root
+    <FileUploadRoot
       key={rejectionKey}
-      maxFiles={1}
-      accept={config.accept}
-      maxFileSize={config.maxSize}
+      config={config}
+      label={label}
+      uploading={uploading}
       onFileChange={handleFileChange}
       onFileReject={handleFileReject}
-    >
-      <ChakraFileUpload.HiddenInput />
-      {label && (
-        <ChakraFileUpload.Label display="flex" alignItems="center" gap="1">
-          {label}
-          <Tooltip content={getTooltipContent(config)}>
-            <IconButton variant="ghost" size="2xs" aria-label="File requirements">
-              <LuInfo />
-            </IconButton>
-          </Tooltip>
-        </ChakraFileUpload.Label>
-      )}
-      <ChakraFileUpload.Trigger asChild>
-        <Button type="button" variant="outline" loading={uploading}>
-          <LuUpload /> Upload {config.label}
-        </Button>
-      </ChakraFileUpload.Trigger>
-      {/* Images use a thumbnail list; audio uses a filename list */}
-      <ChakraFileUpload.ItemGroup>
-        <ChakraFileUpload.Context>
-          {({ acceptedFiles }) =>
-            acceptedFiles.map(file => (
-              config.accept === ACCEPTED_IMAGE_TYPES ? (
-                <ChakraFileUpload.Item key={file.name} file={file} w="auto" boxSize="20" p="2">
-                  <ChakraFileUpload.ItemPreviewImage />
-                  <Float placement="top-end">
-                    <ChakraFileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid">
-                      <LuX />
-                    </ChakraFileUpload.ItemDeleteTrigger>
-                  </Float>
-                </ChakraFileUpload.Item>
-              ) : (
-                <ChakraFileUpload.Item key={file.name} file={file}>
-                  <ChakraFileUpload.ItemPreview />
-                  <ChakraFileUpload.ItemName />
-                  <ChakraFileUpload.ItemDeleteTrigger asChild>
-                    <IconButton variant="ghost" size="xs" aria-label="Remove file">
-                      <LuX />
-                    </IconButton>
-                  </ChakraFileUpload.ItemDeleteTrigger>
-                </ChakraFileUpload.Item>
-              )
-            ))
-          }
-        </ChakraFileUpload.Context>
-      </ChakraFileUpload.ItemGroup>
-    </ChakraFileUpload.Root>
+    />
   );
 });
 

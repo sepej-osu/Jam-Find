@@ -2,15 +2,12 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image, Text, IconButton } from '@chakra-ui/react';
-import { FileUpload } from './components/ui/file-upload';
-import { FileUpload as ChakraFileUpload } from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image, Text, IconButton, FileUpload as ChakraFileUpload } from '@chakra-ui/react';
+import { FileUpload, ACCEPTED_AUDIO_RECORD, MUSIC_TOOLTIP_CONTENT } from './components/ui/file-upload';
 import { toaster } from './components/ui/toaster';
-import { ACCEPTED_AUDIO_TYPES, MIME_TO_EXT, MUSIC_TOOLTIP_CONTENT } from './components/ui/file-upload';
-import { ref as storageRef, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
-import { pathFromStorageUrl, createMusicSampleHandlers } from './utils/helpers';
-import { v4 as uuidv4 } from 'uuid';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
+import { pathFromStorageUrl, createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected } from './utils/helpers';
 import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
 import { Tooltip } from './components/ui/tooltip';
 import ReactPlayer from 'react-player';
@@ -83,11 +80,7 @@ const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
 
-  if (musicSamples.some(s => !s.title.trim())) {
-    toaster.create({ title: 'Missing title', description: 'Please add a title for each music sample.', type: 'error', closable: true });
-    setLoading(false);
-    return;
-  }
+  if (!validateMusicSampleTitles(musicSamples)) { setLoading(false); return; }
 
   try {
     const originalUrl = profile?.profilePicUrl || null;
@@ -115,11 +108,7 @@ const handleSubmit = async (e) => {
       finalUrl = newUrl;
     }
 
-    // convert selectedInstruments object to array of { name, skillLevel } for the API
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
-      name,
-      skillLevel
-    }));
+    const instruments = instrumentsFromSelected(formData.selectedInstruments);
 
     // Delete removed music samples from storage
     for (const url of musicUrlsToDelete) {
@@ -129,24 +118,7 @@ const handleSubmit = async (e) => {
       } catch (err) { console.warn('Could not delete music sample:', err); }
     }
 
-    // Upload any pending music samples
-    const uploadedSamples = [];
-    for (const sample of musicSamples) {
-      if (sample.type === 'pending') {
-        const ext = MIME_TO_EXT[sample.file.type] ?? 'mp3';
-        const path = `users/${currentUser.uid}/music/${uuidv4()}.${ext}`;
-        console.log('[MusicUpload] Uploading to path:', path, 'file:', sample.file.name, sample.file.type, sample.file.size);
-        await uploadBytes(storageRef(storage, path), sample.file);
-        const url = await getDownloadURL(storageRef(storage, path));
-        console.log('[MusicUpload] Upload succeeded, url:', url);
-        uploadedSamples.push({ url, title: sample.title });
-      }
-    }
-
-    const finalMusicSamples = [
-      ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url, title: s.title })),
-      ...uploadedSamples,
-    ];
+    const finalMusicSamples = await uploadMusicSamples(currentUser.uid, musicSamples);
 
     const payload = {
       firstName: formData.firstName,
@@ -314,25 +286,14 @@ return (
                       required
                     />
                     <HStack gap={2}>
-                    {sample.type === 'existing' ? (
-                      <Box flex={1} minWidth={0}>
+                    <Box flex={1} minWidth={0}>
                         <ReactPlayer
-                          src={sample.url}
+                          src={sample.type === 'existing' ? sample.url : sample.objectUrl}
                           controls
                           width="100%"
-                          height="auto"
+                          height="50px"
                         />
                       </Box>
-                    ) : (
-                      <Box flex={1} minWidth={0}>
-                        <ReactPlayer
-                          src={sample.objectUrl}
-                          controls
-                          width="100%"
-                          height="auto"
-                        />
-                      </Box>
-                    )}
                     <IconButton
                       size="md"
                       variant="solid"
@@ -349,11 +310,16 @@ return (
                   <ChakraFileUpload.Root
                     key={musicRejectionKey}
                     maxFiles={1}
+                    accept={ACCEPTED_AUDIO_RECORD}
                     onFileChange={async ({ acceptedFiles }) => {
                       if (acceptedFiles[0]) {
                         await handleMusicFileAdd(acceptedFiles[0], musicSamples.length);
                         setMusicRejectionKey(k => k + 1);
                       }
+                    }}
+                    onFileReject={() => {
+                      toaster.create({ title: 'Unsupported file type', description: 'Please upload an audio file (MP3, WAV, etc.).', type: 'error', closable: true });
+                      setMusicRejectionKey(k => k + 1);
                     }}
                   >
                     <ChakraFileUpload.HiddenInput />

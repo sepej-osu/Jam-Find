@@ -250,6 +250,7 @@ function Profile() {
                 width="100%"
                 height="auto"
                 volume
+                style={{ background: 'var(--chakra-colors-jam-bg)' }}
               />
               {profile.musicSamples.length > 1 && (
                 <Flex justify="center" align="center" gap={4} mt={2}>

@@ -30,8 +30,11 @@ export function getRelativeTime(dateStr) {
 // Shared logic for adding/removing/renaming music samples across
 // Register, CreateProfile, and UpdateProfile pages.
 
-import { ACCEPTED_AUDIO_TYPES, checkAudioDuration } from '../components/ui/file-upload';
+import { ACCEPTED_AUDIO_TYPES, checkAudioDuration, safeExt } from '../components/ui/file-upload';
 import { toaster } from '../components/ui/toaster';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024; // 10 MB
 
@@ -52,11 +55,14 @@ export function createMusicSampleHandlers(setMusicSamples, maxSamples, { onRemov
     }
     // Validate audio duration (max 10 minutes)
     const valid = await checkAudioDuration(file, 600); // 600 seconds = 10 minutes
+    if (valid === null) {
+      toaster.create({ title: 'Invalid audio file', description: 'This file could not be read as audio. Please upload a valid audio file.', type: 'error', closable: true });
+      return;
+    }
     if (valid === false) {
       toaster.create({ title: 'Audio too long', description: 'Maximum duration is 10 minutes.', type: 'error', closable: true });
       return;
     }
-    if (!valid) return;
     const defaultTitle = file.name.replace(/\.[^/.]+$/, ''); // Use filename without extension as default title
     const objectUrl = URL.createObjectURL(file) + `#${file.name}`; // Append filename as hash for easier identification when removing
 
@@ -88,6 +94,43 @@ export function createMusicSampleHandlers(setMusicSamples, maxSamples, { onRemov
 
   // Return the handlers for use in components
   return { handleMusicFileAdd, handleMusicSampleTitleChange, removeMusicSample };
+}
+
+// ─── Music sample upload helper ───────────────────────────────────────────────
+// Uploads all pending music samples to Firebase Storage and returns the
+// final array of { url, title } objects, preserving any existing samples.
+// Used by Register, CreateProfile, and UpdateProfile.
+export async function uploadMusicSamples(uid, musicSamples) {
+  const uploaded = [];
+  for (const sample of musicSamples) {
+    if (sample.type === 'pending') {
+      const ext = safeExt(sample.file);
+      const path = `users/${uid}/music/${uuidv4()}.${ext}`;
+      await uploadBytes(storageRef(storage, path), sample.file);
+      const url = await getDownloadURL(storageRef(storage, path));
+      uploaded.push({ url, title: sample.title });
+    }
+  }
+  return [
+    ...musicSamples.filter(s => s.type === 'existing').map(s => ({ url: s.url, title: s.title })),
+    ...uploaded,
+  ];
+}
+
+// Validates that all music samples have non-empty titles.
+// Shows an error toast and returns false if any are missing; returns true if all are valid.
+export function validateMusicSampleTitles(musicSamples) {
+  if (musicSamples.some(s => !s.title.trim())) {
+    toaster.create({ title: 'Missing title', description: 'Please add a title for each music sample.', type: 'error', closable: true });
+    return false;
+  }
+  return true;
+}
+
+// Converts the selectedInstruments form object ({ Guitar: 3, Drums: 5 })
+// into the array format expected by the API ([{ name, skillLevel }]).
+export function instrumentsFromSelected(selectedInstruments) {
+  return Object.entries(selectedInstruments).map(([name, skillLevel]) => ({ name, skillLevel }));
 }
 
 // ─── Storage path helper ─────────────────────────────────────────────────────
