@@ -60,7 +60,6 @@ export function createMusicSampleHandlers(setMusicSamples, maxSamples, { onRemov
       return;
     }
     if (valid === false) {
-      toaster.create({ title: 'Audio too long', description: 'Maximum duration is 10 minutes.', type: 'error', closable: true });
       return;
     }
     const defaultTitle = file.name.replace(/\.[^/.]+$/, ''); // Use filename without extension as default title
