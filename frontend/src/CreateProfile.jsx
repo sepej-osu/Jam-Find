@@ -1,20 +1,36 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
-import { Box, Center, Button, Heading, VStack, Field, Input} from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Text, IconButton} from '@chakra-ui/react';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 import { toaster } from "./components/ui/toaster";
 import { FileUpload } from './components/ui/file-upload';
+import { FileUpload as ChakraFileUpload } from '@chakra-ui/react';
+import { ACCEPTED_AUDIO_TYPES, MIME_TO_EXT, MUSIC_TOOLTIP_CONTENT } from './components/ui/file-upload';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from './firebase';
+import { v4 as uuidv4 } from 'uuid';
+import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
+import { Tooltip } from './components/ui/tooltip';
+import ReactPlayer from 'react-player';
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
+import { createMusicSampleHandlers } from './utils/helpers';
+
+const MAX_MUSIC_SAMPLES = 3;
 
 
 function CreateProfile() {
   const navigate = useNavigate(); // For navigation after profile creation
   const { currentUser, refreshProfile } = useAuth(); // Get current user and refreshProfile function from AuthContext
   const [loading, setLoading] = useState(false);
+  const [musicSamples, setMusicSamples] = useState([]);
+  const [musicRejectionKey, setMusicRejectionKey] = useState(0);
+
+  const { handleMusicFileAdd, handleMusicSampleTitleChange, removeMusicSample } =
+    createMusicSampleHandlers(setMusicSamples, MAX_MUSIC_SAMPLES);
 
 
   // All form data in one state object
@@ -55,6 +71,12 @@ const handleSubmit = async (e) => {
       throw new Error('No user logged in');
     }
     const token = await user.getIdToken();
+
+    if (musicSamples.some(s => !s.title.trim())) {
+      toaster.create({ title: 'Missing title', description: 'Please add a title for each music sample.', type: 'error', closable: true });
+      setLoading(false);
+      return;
+    }
     
     // convert selectedInstruments object to array of { name, skillLevel } for the API
     const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
@@ -76,6 +98,17 @@ const handleSubmit = async (e) => {
       genres: formData.selectedGenres,
       profilePicUrl: formData.profilePicUrl || null,
     };
+
+    // Upload any pending music samples
+    const uploadedSamples = [];
+    for (const sample of musicSamples) {
+      const ext = MIME_TO_EXT[sample.file.type] ?? 'mp3';
+      const path = `users/${user.uid}/music/${uuidv4()}.${ext}`;
+      await uploadBytes(storageRef(storage, path), sample.file);
+      const url = await getDownloadURL(storageRef(storage, path));
+      uploadedSamples.push({ url, title: sample.title });
+    }
+    if (uploadedSamples.length > 0) payload.musicSamples = uploadedSamples;
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles`, {
@@ -221,6 +254,66 @@ return (
                 onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
                 label="Select Your Preferred Genres"
               />  
+
+              <Box>
+                <Text fontWeight="medium" mb={2}>
+                  Music Samples ({musicSamples.length}/{MAX_MUSIC_SAMPLES})
+                </Text>
+                <VStack align="stretch" gap={2}>
+                  {musicSamples.map((sample, index) => (
+                    <VStack key={index} gap={1} p={2} align="stretch">
+                      <Text fontSize="sm" color="jam.accent">Sample {index + 1}</Text>
+                      <Input
+                        placeholder="Title/Description (required)"
+                        size="sm"
+                        value={sample.title}
+                        onChange={e => handleMusicSampleTitleChange(index, e.target.value)}
+                        required
+                      />
+                      <HStack gap={2}>
+                        <Box flex={1} minWidth={0}>
+                          <ReactPlayer src={sample.objectUrl} controls width="100%" height="auto" />
+                        </Box>
+                        <IconButton
+                          size="md"
+                          variant="solid"
+                          colorPalette="red"
+                          aria-label="Remove sample"
+                          onClick={() => removeMusicSample(index, musicSamples)}
+                        >
+                          <LuX />
+                        </IconButton>
+                      </HStack>
+                    </VStack>
+                  ))}
+                  {musicSamples.length < MAX_MUSIC_SAMPLES && (
+                    <ChakraFileUpload.Root
+                      key={musicRejectionKey}
+                      maxFiles={1}
+                      onFileChange={async ({ acceptedFiles }) => {
+                        if (acceptedFiles[0]) {
+                          await handleMusicFileAdd(acceptedFiles[0], musicSamples.length);
+                          setMusicRejectionKey(k => k + 1);
+                        }
+                      }}
+                    >
+                      <ChakraFileUpload.HiddenInput />
+                      <HStack gap={1}>
+                        <ChakraFileUpload.Trigger asChild>
+                          <Button type="button" variant="outline" size="sm">
+                            <LuUpload /> Add Sample
+                          </Button>
+                        </ChakraFileUpload.Trigger>
+                        <Tooltip content={MUSIC_TOOLTIP_CONTENT}>
+                          <IconButton variant="ghost" size="2xs" aria-label="Music sample requirements">
+                            <LuInfo />
+                          </IconButton>
+                        </Tooltip>
+                      </HStack>
+                    </ChakraFileUpload.Root>
+                  )}
+                </VStack>
+              </Box>
               
               <Button
                 type="submit"

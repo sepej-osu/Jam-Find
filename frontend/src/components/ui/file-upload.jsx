@@ -9,7 +9,7 @@ import { toaster } from './toaster';
 import { pathFromStorageUrl } from '../../utils/helpers';
 
 const ACCEPTED_IMAGE_TYPES = 'image/jpeg,image/png,image/gif,image/webp,image/avif';
-export const ACCEPTED_AUDIO_TYPES = 'audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/aac,audio/x-m4a';
+export const ACCEPTED_AUDIO_TYPES = 'audio/mpeg,audio/mp4,audio/ogg,audio/wav,audio/webm,audio/aac,audio/x-m4a,audio/flac';
 
 const TYPE_CONFIG = {
   'profile-image': { accept: ACCEPTED_IMAGE_TYPES, label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
@@ -22,7 +22,7 @@ export const MIME_TO_EXT = {
   'image/webp': 'webp', 'image/avif': 'avif',
   'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/ogg': 'ogg',
   'audio/wav': 'wav', 'audio/webm': 'webm',
-  'audio/aac': 'aac', 'audio/x-m4a': 'm4a',
+  'audio/aac': 'aac', 'audio/x-m4a': 'm4a', 'audio/flac': 'flac',
 }; // Common MIME types to extensions mapping for safer extension derivation
 
 // Generates user-friendly tooltip content based on the TYPE_CONFIG
@@ -34,6 +34,8 @@ function getTooltipContent(config) {
   if (config.maxSize) parts.push(`Max ${config.maxSize / (1024 * 1024)} MB`);
   return parts.join(' · ');
 }
+
+export const MUSIC_TOOLTIP_CONTENT = getTooltipContent(TYPE_CONFIG.music);
 
 // Checks that an audio file does not exceed the maximum duration (in seconds).
 // Returns a Promise resolving to true if valid, false otherwise (with a toast shown).
@@ -230,6 +232,11 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
     }
 
     // Validate file size and MIME type; reject early if invalid.
+    if (config.maxSize && file.size > config.maxSize) {
+      toaster.create({ title: 'File too large', description: `Maximum size is ${config.maxSize / (1024 * 1024)} MB.`, type: 'error', closable: true });
+      setRejectionKey(k => k + 1);
+      return;
+    }
     if (!validateFile(file, config)) { setRejectionKey(k => k + 1); return; }
     if (!await checkImageDimensions(file, config)) { setRejectionKey(k => k + 1); return; }
     if (config.maxDurationSeconds && !await checkAudioDuration(file, config.maxDurationSeconds)) { setRejectionKey(k => k + 1); return; }
@@ -270,8 +277,8 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
 
   // Handle file rejections (size/type) with user-friendly toasts.
   const handleFileReject = ({ files }) => {
-    const tooLarge = files.some(({ errors }) => errors.includes('FILE_TOO_LARGE'));
-    const badType = files.some(({ errors }) => errors.includes('FILE_INVALID_TYPE'));
+    const tooLarge = files.some(({ errors }) => errors.some(e => e.type === 'FILE_TOO_LARGE'));
+    const badType = files.some(({ errors }) => errors.some(e => e.type === 'FILE_INVALID_TYPE'));
     if (tooLarge) toaster.create({ title: 'File too large', description: `Maximum size is ${config.maxSize / (1024 * 1024)} MB.`, type: 'error', closable: true });
     if (badType) toaster.create({ title: 'Unsupported file type', description: 'Please upload an accepted file type.', type: 'error', closable: true });
     setRejectionKey(k => k + 1); // Remount the root so the same file can be rejected again

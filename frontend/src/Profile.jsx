@@ -14,11 +14,13 @@ import {
   Wrap,
   WrapItem,
   Spinner,
-  Alert
+  Alert,
+  IconButton
 } from '@chakra-ui/react';
 import InstrumentCard from './components/ui/InstrumentCard';
 import ReactPlayer from 'react-player';
 import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
+import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { CgProfile } from "react-icons/cg";import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './contexts/AuthContext';
@@ -36,6 +38,7 @@ function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [messageLoading, setMessageLoading] = useState(false);
+  const [sampleIndex, setSampleIndex] = useState(0);
 
   // Use the userId from URL params, or fall back to current user's ID
   const profileUserId = userId || currentUser?.uid;
@@ -234,21 +237,42 @@ function Profile() {
         <Box>
           <Text fontSize="lg" fontWeight="semibold" mb={2}>Music Samples:</Text>
           {profile?.musicSamples?.length > 0 ? (
-            <VStack align="stretch" gap={3}>
-              {profile.musicSamples.map((sample, index) => (
-                <Box key={index} p={2} borderWidth="1px" borderRadius="md">
-                  {sample.title && (
-                    <Text fontSize="sm" fontWeight="medium" mb={1}>{sample.title}</Text>
-                  )}
-                  <ReactPlayer
-                    src={sample.url}
-                    controls
-                    width="100%"
-                    height="auto"
-                  />
-                </Box>
-              ))}
-            </VStack>
+            <Box>
+              {profile.musicSamples[sampleIndex]?.title && (
+                <Text fontSize="sm" fontWeight="medium" mb={1}>
+                  {profile.musicSamples[sampleIndex].title}
+                </Text>
+              )}
+              <ReactPlayer
+                key={sampleIndex}
+                src={profile.musicSamples[sampleIndex]?.url}
+                controls
+                width="100%"
+                height="auto"
+                volume
+              />
+              {profile.musicSamples.length > 1 && (
+                <Flex justify="center" align="center" gap={4} mt={2}>
+                  <IconButton
+                    size="xs"
+                    variant="jam"
+                    onClick={() => setSampleIndex(i => (i - 1 + profile.musicSamples.length) % profile.musicSamples.length)}
+                  >
+                    <LuChevronLeft />
+                  </IconButton>
+                  <Text fontSize="md" color="jam.accent" fontWeight="semibold">
+                    {sampleIndex + 1} / {profile.musicSamples.length}
+                  </Text>
+                  <IconButton
+                    size="xs"
+                    variant="jam"
+                    onClick={() => setSampleIndex(i => (i + 1) % profile.musicSamples.length)}
+                  >
+                    <LuChevronRight />
+                  </IconButton>
+                </Flex>
+              )}
+            </Box>
           ) : (
             <Text fontSize="md" color="gray.600">No music samples uploaded</Text>
           )}

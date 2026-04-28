@@ -4,18 +4,20 @@ import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
 import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image, Text, IconButton } from '@chakra-ui/react';
 import { FileUpload } from './components/ui/file-upload';
-import { ACCEPTED_AUDIO_TYPES, MIME_TO_EXT, checkAudioDuration } from './components/ui/file-upload';
+import { FileUpload as ChakraFileUpload } from '@chakra-ui/react';
+import { toaster } from './components/ui/toaster';
+import { ACCEPTED_AUDIO_TYPES, MIME_TO_EXT, MUSIC_TOOLTIP_CONTENT } from './components/ui/file-upload';
 import { ref as storageRef, deleteObject, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from './firebase';
-import { pathFromStorageUrl } from './utils/helpers';
+import { pathFromStorageUrl, createMusicSampleHandlers } from './utils/helpers';
 import { v4 as uuidv4 } from 'uuid';
-import { LuX, LuUpload } from 'react-icons/lu';
+import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
+import { Tooltip } from './components/ui/tooltip';
 import ReactPlayer from 'react-player';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-import { toaster } from "./components/ui/toaster";
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
 
 const MAX_MUSIC_SAMPLES = 3;
@@ -30,47 +32,21 @@ function UpdateProfile() {
   const fileUploadRef = useRef(null);
 
   // Each item is either { type: 'existing', url, title } or { type: 'pending', file, title }
+  // We keep pending samples in state to allow for title editing and playback before upload, and to manage the limit of 3 samples.
   const [musicSamples, setMusicSamples] = useState(
     (profile?.musicSamples || []).slice(0, MAX_MUSIC_SAMPLES).map(s => ({ type: 'existing', url: s.url, title: s.title || '' }))
   );
   const [musicUrlsToDelete, setMusicUrlsToDelete] = useState([]);
-  const musicFileInputRef = useRef(null);
+  const [musicRejectionKey, setMusicRejectionKey] = useState(0);
+
+  const { handleMusicFileAdd, handleMusicSampleTitleChange, removeMusicSample } =
+    createMusicSampleHandlers(setMusicSamples, MAX_MUSIC_SAMPLES, {
+      onRemoveExisting: (url) => setMusicUrlsToDelete(prev => [...prev, url]),
+    });
+
 
   // Mark the existing photo for removal without touching storage — deletion happens on submit.
   const handleDeleteProfilePic = () => setPhotoRemoved(true);
-
-  const handleMusicFileSelect = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // Reset so the same file can be re-selected after removal
-    if (!file) return;
-    if (musicSamples.length >= MAX_MUSIC_SAMPLES) return;
-    const allowed = ACCEPTED_AUDIO_TYPES.split(',');
-    if (!allowed.includes(file.type)) {
-      toaster.create({ title: 'Unsupported file type', description: 'Please upload an audio file (MP3, etc.).', type: 'error', closable: true });
-      return;
-    }
-    const valid = await checkAudioDuration(file, 600);
-    if (!valid) return;
-    const defaultTitle = file.name.replace(/\.[^/.]+$/, '');
-    const objectUrl = URL.createObjectURL(file) + `#${file.name}`;
-    setMusicSamples(prev => [...prev, { type: 'pending', file, title: defaultTitle, objectUrl }]);
-  };
-
-  const handleMusicSampleTitleChange = (index, value) => {
-    setMusicSamples(prev => prev.map((s, i) => i === index ? { ...s, title: value } : s));
-  };
-
-  const removeMusicSample = (index) => {
-    const sample = musicSamples[index];
-    if (sample.type === 'existing') {
-      setMusicUrlsToDelete(prev => [...prev, sample.url]);
-    }
-    if (sample.type === 'pending' && sample.objectUrl) {
-      URL.revokeObjectURL(sample.objectUrl.split('#')[0]);
-    }
-    setMusicSamples(prev => prev.filter((_, i) => i !== index));
-  };
-
 
   const [formData, setFormData] = useState({
     // Profile fields
@@ -322,16 +298,16 @@ return (
               label="Select Your Preferred Genres"
             />
 
-            {/* Music Samples (up to 3, up to 10 min each) */}
             <Box>
               <Text fontWeight="medium" mb={2}>
                 Music Samples ({musicSamples.length}/{MAX_MUSIC_SAMPLES})
               </Text>
               <VStack align="stretch" gap={2}>
                 {musicSamples.map((sample, index) => (
-                  <VStack key={index} gap={1} p={2} borderWidth="1px" borderRadius="md" align="stretch">
+                  <VStack key={index} gap={1} p={2} align="stretch">
+                    <Text fontSize="sm" color="jam.accent">Sample {index + 1}</Text>
                     <Input
-                      placeholder="Title (required)"
+                      placeholder="Title/Description (required)"
                       size="sm"
                       value={sample.title}
                       onChange={e => handleMusicSampleTitleChange(index, e.target.value)}
@@ -358,11 +334,11 @@ return (
                       </Box>
                     )}
                     <IconButton
-                      size="xs"
-                      variant="ghost"
+                      size="md"
+                      variant="solid"
                       colorPalette="red"
                       aria-label="Remove sample"
-                      onClick={() => removeMusicSample(index)}
+                      onClick={() => removeMusicSample(index, musicSamples)}
                     >
                       <LuX />
                     </IconButton>
@@ -370,23 +346,30 @@ return (
                   </VStack>
                 ))}
                 {musicSamples.length < MAX_MUSIC_SAMPLES && (
-                  <>
-                    <input
-                      ref={musicFileInputRef}
-                      type="file"
-                      accept={ACCEPTED_AUDIO_TYPES}
-                      style={{ display: 'none' }}
-                      onChange={handleMusicFileSelect}
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => musicFileInputRef.current?.click()}
-                    >
-                      <LuUpload /> Add Sample
-                    </Button>
-                  </>
+                  <ChakraFileUpload.Root
+                    key={musicRejectionKey}
+                    maxFiles={1}
+                    onFileChange={async ({ acceptedFiles }) => {
+                      if (acceptedFiles[0]) {
+                        await handleMusicFileAdd(acceptedFiles[0], musicSamples.length);
+                        setMusicRejectionKey(k => k + 1);
+                      }
+                    }}
+                  >
+                    <ChakraFileUpload.HiddenInput />
+                    <HStack gap={1}>
+                      <ChakraFileUpload.Trigger asChild>
+                        <Button type="button" variant="outline" size="sm">
+                          <LuUpload /> Add Sample
+                        </Button>
+                      </ChakraFileUpload.Trigger>
+                      <Tooltip content={MUSIC_TOOLTIP_CONTENT}>
+                        <IconButton variant="ghost" size="2xs" aria-label="Music sample requirements">
+                          <LuInfo />
+                        </IconButton>
+                      </Tooltip>
+                    </HStack>
+                  </ChakraFileUpload.Root>
                 )}
               </VStack>
             </Box>  
