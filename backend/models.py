@@ -370,3 +370,33 @@ class PaginatedConversationsResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name = True
     )
+
+
+# ─── Reviews ─────────────────────────────────────────────────────────────────
+
+class ReviewCreate(BaseModel):
+    """Model for creating a new review of another user."""
+    rating: int = Field(..., ge=1, le=5, alias="rating", description="Star rating from 1 to 5")
+    text: Optional[str] = Field(default=None, max_length=300, alias="text", description="Optional text review")
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class ReviewResponse(BaseModel):
+    """Response model for a single review."""
+    review_id: str = Field(..., alias="reviewId", description="Unique identifier for the review")
+    reviewer_id: str = Field(..., alias="reviewerId", description="Firebase UID of the reviewer")
+    reviewed_user_id: str = Field(..., alias="reviewedUserId", description="Firebase UID of the reviewed user")
+    rating: int = Field(..., alias="rating", description="Star rating from 1 to 5")
+    text: Optional[str] = Field(default=None, alias="text", description="Optional text review")
+    reviewer_first_name: str = Field(..., alias="reviewerFirstName", description="Reviewer's first name")
+    reviewer_last_name: str = Field(..., alias="reviewerLastName", description="Reviewer's last name")
+    reviewer_profile_pic_url: Optional[str] = Field(default=None, alias="reviewerProfilePicUrl", description="Reviewer's profile picture URL")
+    created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the review was created")
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+
+class PaginatedReviewsResponse(BaseModel):
+    """Response model for paginated list of reviews."""
+    reviews: List[ReviewResponse] = Field(..., alias="reviews", description="List of reviews")
+    next_page_token: Optional[str] = Field(default=None, alias="nextPageToken", description="Pagination token")
+    model_config = ConfigDict(populate_by_name=True)
