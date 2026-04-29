@@ -269,7 +269,7 @@ function Profile() {
                 src={profile.musicSamples[sampleIndex]?.url}
                 controls
                 width="100%"
-                height="auto"
+                height="60px"
                 volume={playerVolume}
                 style={{ background: 'var(--chakra-colors-jam-bg)' }}
               />
