@@ -104,6 +104,8 @@ class ProfileBase(_MusicSamplesValidatorMixin):
     instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default_factory=list, alias="genres", description="List of music genres associated with the profile")
     music_samples: Optional[List[MusicSample]] = Field(default_factory=list, alias="musicSamples", description=f"Up to {MAX_MUSIC_SAMPLES} audio sample URLs for the profile")
+    average_rating: Optional[float] = Field(default=None, alias="averageRating", description="Average star rating from reviews (1–5)")
+    review_count: int = Field(default=0, alias="reviewCount", description="Total number of reviews received")
 
     model_config = ConfigDict(
         populate_by_name = True,
@@ -370,9 +372,6 @@ class PaginatedConversationsResponse(BaseModel):
     model_config = ConfigDict(
         populate_by_name = True
     )
-
-
-# ─── Reviews ─────────────────────────────────────────────────────────────────
 
 class ReviewCreate(BaseModel):
     """Model for creating a new review of another user."""
