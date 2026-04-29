@@ -122,7 +122,7 @@ function ConversationDetail() {
         <Heading size="md" cursor="pointer" onClick={() => navigate(`/profile/${otherParticipantId}`)}>{otherParticipantName}</Heading>
       </HStack>
 
-      <Box layerStyle="card">
+      <Box layerStyle="card" height="800px" display="flex" flexDirection="column">
         {loading && (
           <Center py={8}>
             <Spinner />
@@ -132,7 +132,7 @@ function ConversationDetail() {
         {error && <Text color="red.500" mb={3}>{error}</Text>}
         
         {!loading && (
-          <VStack align="stretch" gap={3} mb={4}>
+          <VStack align="stretch" gap={3} mb={4} flex="1" overflowY="auto">
             {messages.length === 0 && <Text color="jam.textMuted">No messages yet.</Text>}
             {/* Here we map through the messages array to display each conversation message.
             We change the alignment and color based on whether the message is sent by the current user. */}
