@@ -15,7 +15,9 @@ import {
   WrapItem,
   Spinner,
   Alert,
-  IconButton
+  Textarea,
+  Separator,
+  Avatar,
 } from '@chakra-ui/react';
 import InstrumentCard from './components/ui/InstrumentCard';
 import ReactPlayer from 'react-player';
@@ -26,6 +28,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import profileService from './services/profileService';
+import reviewService from './services/reviewService';
 import conversationService from './services/conversationService';
 import { toaster } from './components/ui/toaster';
 import { GENRE_DISPLAY_NAMES, GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
@@ -60,6 +63,16 @@ function Profile() {
     return () => container.removeEventListener('volumechange', handleVolumeChange, true);
   });
 
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [myReview, setMyReview] = useState(undefined); // undefined = not yet loaded, null = no review
+  const [reviewRating, setReviewRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewText, setReviewText] = useState('');
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewDeleting, setReviewDeleting] = useState(false);
+
   // Use the userId from URL params, or fall back to current user's ID
   const profileUserId = userId || currentUser?.uid;
 
@@ -82,7 +95,104 @@ function Profile() {
     }
   }, [profileUserId]);
 
+  useEffect(() => {
+    if (!profileUserId) return;
+
+    const fetchReviews = async () => {
+      setReviewsLoading(true);
+      try {
+        const data = await reviewService.getReviews(profileUserId, { limit: 10 });
+        setReviews(data.reviews || []);
+      } catch {
+        // non-critical; silently fail
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    const fetchMyReview = async () => {
+      if (!canMessageUser) {
+        setMyReview(null);
+        return;
+      }
+      try {
+        const data = await reviewService.getMyReview(profileUserId);
+        setMyReview(data); // ReviewResponse or null
+      } catch {
+        setMyReview(null);
+      }
+    };
+
+    fetchReviews();
+    fetchMyReview();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileUserId]);
+
   const canMessageUser = !!currentUser?.uid && !!profileUserId && currentUser.uid !== profileUserId;
+
+  const handleSubmitReview = async () => {
+    if (reviewRating === 0 || reviewSubmitting) return;
+    setReviewSubmitting(true);
+    try {
+      const created = await reviewService.createReview(profileUserId, {
+        rating: reviewRating,
+        text: reviewText.trim() || null,
+      });
+      setMyReview(created);
+      setReviews((prev) => [created, ...prev]);
+      setProfile((prev) => ({
+        ...prev,
+        reviewCount: (prev.reviewCount || 0) + 1,
+        averageRating:
+          prev.reviewCount > 0
+            ? Math.round(((prev.averageRating * prev.reviewCount) + reviewRating) / (prev.reviewCount + 1) * 100) / 100
+            : reviewRating,
+      }));
+    } catch (err) {
+      toaster.create({
+        title: 'Could not submit review',
+        description: err.message || 'Please try again',
+        type: 'error',
+        duration: 4000,
+      });
+    } finally {
+      setReviewSubmitting(false);
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!myReview || reviewDeleting) return;
+    setReviewDeleting(true);
+    try {
+      await reviewService.deleteReview(profileUserId, myReview.reviewId);
+      setReviews((prev) => prev.filter((r) => r.reviewId !== myReview.reviewId));
+      setProfile((prev) => {
+        const newCount = Math.max((prev.reviewCount || 1) - 1, 0);
+        return {
+          ...prev,
+          reviewCount: newCount,
+          averageRating:
+            newCount === 0
+              ? null
+              : Math.round(
+                  ((prev.averageRating * prev.reviewCount) - myReview.rating) / newCount * 100
+                ) / 100,
+        };
+      });
+      setMyReview(null);
+      setReviewRating(0);
+      setReviewText('');
+    } catch (err) {
+      toaster.create({
+        title: 'Could not delete review',
+        description: err.message || 'Please try again',
+        type: 'error',
+        duration: 4000,
+      });
+    } finally {
+      setReviewDeleting(false);
+    }
+  };
 
   const handleMessageUser = async () => {
     if (!canMessageUser || messageLoading) return;
@@ -153,7 +263,27 @@ function Profile() {
       <GridItem colSpan={3} textAlign="left">
         <Box mb={4}>
           <Flex align="center" justify="space-between" pr={4}>
-            <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
+            <Box>
+              <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
+              {profile?.reviewCount > 0 && (
+                <Flex align="center" gap={1} mt={1}>
+                  <Flex>
+                    {[1,2,3,4,5].map((s) => (
+                      <Icon
+                        key={s}
+                        as={LuStar}
+                        boxSize="14px"
+                        color={s <= Math.round(profile.averageRating) ? 'yellow.400' : 'gray.300'}
+                        fill={s <= Math.round(profile.averageRating) ? 'currentColor' : 'none'}
+                      />
+                    ))}
+                  </Flex>
+                  <Text fontSize="sm" color="gray.600">
+                    {profile.averageRating?.toFixed(1)} ({profile.reviewCount} {profile.reviewCount === 1 ? 'review' : 'reviews'})
+                  </Text>
+                </Flex>
+              )}
+            </Box>
             {canMessageUser && (
               <Button
                 size="sm"
@@ -300,6 +430,141 @@ function Profile() {
             <Text fontSize="md" color="gray.600">No music samples uploaded</Text>
           )}
         </Box>
+      </GridItem>
+
+      {/* ---- Reviews Section ---- */}
+      <GridItem colSpan={5} mt={6}>
+        <Separator mb={4} />
+        <Heading size="md" mb={4}>Reviews</Heading>
+
+        {/* Submit / existing review (only visible when viewing another user's profile) */}
+        {canMessageUser && myReview !== undefined && (
+          <Box mb={6} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
+            {myReview ? (
+              // User already left a review — show it with a delete option
+              <Box>
+                <Flex justify="space-between" align="start">
+                  <Box>
+                    <Text fontWeight="semibold" mb={1}>Your review</Text>
+                    <Flex mb={1}>
+                      {[1,2,3,4,5].map((s) => (
+                        <Icon
+                          key={s}
+                          as={LuStar}
+                          boxSize="18px"
+                          color={s <= myReview.rating ? 'yellow.400' : 'gray.300'}
+                          fill={s <= myReview.rating ? 'currentColor' : 'none'}
+                        />
+                      ))}
+                    </Flex>
+                    {myReview.text && <Text color="gray.700">{myReview.text}</Text>}
+                  </Box>
+                  <Button
+                    size="sm"
+                    colorScheme="red"
+                    variant="ghost"
+                    onClick={handleDeleteReview}
+                    loading={reviewDeleting}
+                  >
+                    Delete
+                  </Button>
+                </Flex>
+              </Box>
+            ) : (
+              // No review yet — show the submission form
+              <Box>
+                <Text fontWeight="semibold" mb={2}>Leave a review</Text>
+                <Flex gap={1} mb={3}>
+                  {[1,2,3,4,5].map((s) => (
+                    <Box
+                      key={s}
+                      as="button"
+                      type="button"
+                      onClick={() => setReviewRating(s)}
+                      onMouseEnter={() => setHoverRating(s)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      aria-label={`Rate ${s} star${s > 1 ? 's' : ''}`}
+                    >
+                      <Icon
+                        as={LuStar}
+                        boxSize="24px"
+                        color={s <= (hoverRating || reviewRating) ? 'yellow.400' : 'gray.300'}
+                        fill={s <= (hoverRating || reviewRating) ? 'currentColor' : 'none'}
+                        transition="color 0.1s"
+                      />
+                    </Box>
+                  ))}
+                </Flex>
+                <Textarea
+                  placeholder="Share your experience (optional, max 300 characters)"
+                  value={reviewText}
+                  onChange={(e) => setReviewText(e.target.value.slice(0, 300))}
+                  rows={3}
+                  mb={2}
+                />
+                <Flex justify="space-between" align="center">
+                  <Text fontSize="xs" color="gray.500">{reviewText.length}/300</Text>
+                  <Button
+                    size="sm"
+                    variant="jam"
+                    onClick={handleSubmitReview}
+                    disabled={reviewRating === 0}
+                    loading={reviewSubmitting}
+                  >
+                    Submit Review
+                  </Button>
+                </Flex>
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {/* Reviews list */}
+        {reviewsLoading ? (
+          <Flex justify="center" py={4}><Spinner size="sm" /></Flex>
+        ) : reviews.length === 0 ? (
+          <Text color="gray.500">No reviews yet.</Text>
+        ) : (
+          <VStack gap={4} align="stretch">
+            {reviews.map((review) => (
+              <Box key={review.reviewId} p={4} borderWidth="1px" borderRadius="md">
+                <Flex gap={3} align="start">
+                  {review.reviewerProfilePicUrl ? (
+                    <Avatar.Root size="sm">
+                      <Avatar.Image src={review.reviewerProfilePicUrl} />
+                    </Avatar.Root>
+                  ) : (
+                    <Avatar.Root size="sm">
+                      <Avatar.Fallback>{review.reviewerFirstName?.[0]}{review.reviewerLastName?.[0]}</Avatar.Fallback>
+                    </Avatar.Root>
+                  )}
+                  <Box flex="1">
+                    <Flex justify="space-between" align="center" mb={1}>
+                      <Text fontWeight="semibold">
+                        {review.reviewerFirstName} {review.reviewerLastName}
+                      </Text>
+                      <Text fontSize="xs" color="gray.500">
+                        {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
+                      </Text>
+                    </Flex>
+                    <Flex mb={1}>
+                      {[1,2,3,4,5].map((s) => (
+                        <Icon
+                          key={s}
+                          as={LuStar}
+                          boxSize="14px"
+                          color={s <= review.rating ? 'yellow.400' : 'gray.300'}
+                          fill={s <= review.rating ? 'currentColor' : 'none'}
+                        />
+                      ))}
+                    </Flex>
+                    {review.text && <Text color="gray.700">{review.text}</Text>}
+                  </Box>
+                </Flex>
+              </Box>
+            ))}
+          </VStack>
+        )}
       </GridItem>
     </Grid>
   );
