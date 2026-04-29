@@ -11,9 +11,9 @@ COLLECTION_NAME = "conversations"
 def _build_profile_snapshot(profile_data: dict) -> dict:
     """Normalize profile fields for denormalized conversation snapshots."""
     return {
-        "first_name": profile_data.get("firstName"),
-        "last_name": profile_data.get("lastName"),
-        "profile_pic_url": profile_data.get("profilePicUrl")
+        "firstName": profile_data.get("firstName"),
+        "lastName": profile_data.get("lastName"),
+        "profilePicUrl": profile_data.get("profilePicUrl")
     }
 
 
@@ -58,8 +58,8 @@ async def create_conversation(conversation: ConversationCreate, current_user_id:
             
         # No existing conversation, create a new one
         conversation_data = {
-            "created_at": now,
-            "updated_at": now,
+            "createdAt": now,
+            "updatedAt": now,
             "participant_ids": [current_user_id, recipient_id],
             "last_message_preview": None,
             "last_message_sent_at": None,

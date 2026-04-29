@@ -23,7 +23,7 @@ async def send_message(conversation_id: str, sender_id: str, message_create: Mes
         message_data = {
             "sender_id": sender_id,
             "content": message_create.content,
-            "created_at": now
+            "createdAt": now
         }
         
         # create the document reference for the new message in the subcollection
@@ -37,7 +37,7 @@ async def send_message(conversation_id: str, sender_id: str, message_create: Mes
             "last_message_preview": message_create.content[:100],
             "last_message_sent_at": now,
             "last_message_sender_id": sender_id,
-            "updated_at": now
+            "updatedAt": now
         })
         
         return MessageResponse(
@@ -45,7 +45,7 @@ async def send_message(conversation_id: str, sender_id: str, message_create: Mes
             conversation_id=conversation_id,
             sender_id=sender_id,
             content=message_create.content,
-            created_at=now
+            createdAt=now
         )
         
     except HTTPException:
@@ -64,10 +64,10 @@ async def list_messages(conversation_id: str, current_user_id: str, limit: int =
         await conversation_service.get_conversation_by_id(conversation_id, current_user_id)
         
         db = get_db()
-        # We query the messages subcollection for the conversation, ordering by created_at descending for pagination.
+        # We query the messages subcollection for the conversation, ordering by createdAt descending for pagination.
         query = db.collection("conversations").document(conversation_id)\
             .collection("messages")\
-            .order_by("created_at", direction=firestore.Query.DESCENDING)
+            .order_by("createdAt", direction=firestore.Query.DESCENDING)
         # If last_doc_id is provided, we use it as the starting point for the next page of results.
         if last_doc_id:
             last_doc = db.collection("conversations").document(conversation_id)\

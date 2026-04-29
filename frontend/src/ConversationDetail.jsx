@@ -18,33 +18,70 @@ function ConversationDetail() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // we define this function will handle the loading of conversation details and messages. 
-    const load = async () => {
-      setLoading(true);
-      setError(null);
+    if (!conversationId) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-      // Fetch the conversation details and the first page of messages in parallel
-      // so the screen loads faster than awaiting them one after the other.
-      // Promise.all runs the two requests in parallel and waits for both to finish before proceeding.
-        const [conversation, messagesData] = await Promise.all([
-          conversationService.getConversation(conversationId),
-          conversationService.getConversationMessages(conversationId, { limit: 20 }),
-        ]);
+    // reset loading and error state every time we enter a new conversation thread
+    setLoading(true);
+    setError(null);
 
-        setConversation(conversation);
-        // Here we create a shallow copy of the messages array and reverse it so the
-        // most recent messages are at the bottom of the screen.
-        setMessages(Array.from(messagesData.messages).reverse());
-      } catch (err) {
-        setError(err.message || 'Failed to load conversation');
-      } finally {
+    // we wait for both listeners (conversation metadata + messages) before hiding the spinner
+    let conversationLoaded = false;
+    let messagesLoaded = false;
+
+    const markLoaded = () => {
+      if (conversationLoaded && messagesLoaded) {
         setLoading(false);
       }
     };
-    // reload the conversation details when the component mounts and whenever
-    // the conversationId changes (e.g. when navigating to a different conversation)
-    load();
+
+    // callback functions for the conversation listener
+    const handleConversationSnapshot = (conversationData) => {
+      setConversation(conversationData);
+      conversationLoaded = true;
+      markLoaded();
+    };
+
+    const handleConversationError = (listenerError) => {
+      setError(listenerError.message || 'Failed to load conversation');
+      setLoading(false);
+    };
+
+    // callback functions for the messages listener
+    const handleMessagesSnapshot = (messageItems) => {
+      setMessages(messageItems);
+      messagesLoaded = true;
+      markLoaded();
+    };
+
+    const handleMessagesError = (listenerError) => {
+      setError(listenerError.message || 'Failed to load messages');
+      setLoading(false);
+    };
+
+    // start both realtime listeners in parallel so the page can update the header and chat together
+    const unsubscribeConversation = conversationService.subscribeConversation({
+      conversationId,
+      onData: handleConversationSnapshot,
+      onError: handleConversationError,
+    });
+
+    const unsubscribeMessages = conversationService.subscribeConversationMessages({
+      conversationId,
+      onData: handleMessagesSnapshot,
+      onError: handleMessagesError,
+      limit: 300,
+    });
+
+    // cleanup both listeners when leaving the page or switching to a different conversation
+    // each returns an unsubscribe function that we call here to stop listening for updates
+    // from Firestore when the component unmounts or the conversation ID changes
+    return () => {
+      unsubscribeConversation();
+      unsubscribeMessages();
+    };
   }, [conversationId]);
 
   // we find the ID of the other participant in the conversation by looking at the participantIds array
@@ -66,8 +103,7 @@ function ConversationDetail() {
     setSending(true);
     try {
       //we call the sendMessage method from the conversationService to send the message to the backend.
-      const newMessage = await conversationService.sendMessage(conversationId, draft);
-      setMessages((prev) => [...prev, newMessage]);
+      await conversationService.sendMessage(conversationId, draft);
       setDraft(''); // clear the input field after sending the message
 
     } catch (err) {
@@ -86,7 +122,7 @@ function ConversationDetail() {
         <Heading size="md" cursor="pointer" onClick={() => navigate(`/profile/${otherParticipantId}`)}>{otherParticipantName}</Heading>
       </HStack>
 
-      <Box layerStyle="card">
+      <Box layerStyle="card" height="800px" display="flex" flexDirection="column">
         {loading && (
           <Center py={8}>
             <Spinner />
@@ -96,7 +132,7 @@ function ConversationDetail() {
         {error && <Text color="red.500" mb={3}>{error}</Text>}
         
         {!loading && (
-          <VStack align="stretch" gap={3} mb={4}>
+          <VStack align="stretch" gap={3} mb={4} flex="1" overflowY="auto">
             {messages.length === 0 && <Text color="jam.textMuted">No messages yet.</Text>}
             {/* Here we map through the messages array to display each conversation message.
             We change the alignment and color based on whether the message is sent by the current user. */}

@@ -172,6 +172,9 @@ async def update_profile(
         
         # Update the document in Firestore
         profiles_ref.document(user_id).update(update_data)
+
+    #TODO: update lazy update to conversation snapshots whnever a user updates
+    #  their name or profile picture.
         
         # Merge data for the response
         existing_data.update(update_data)
