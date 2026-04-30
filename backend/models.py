@@ -1,7 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAttr, model_validator
+from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAttr, model_validator, field_validator
 from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
+
+MAX_MUSIC_SAMPLES = 3
 
 class Gender(str, Enum):
     """To validate gender field."""
@@ -64,6 +66,21 @@ class GenreType(str, Enum):
     EXPERIMENTAL = "experimental"
     OTHER = "other"
 
+class MusicSample(BaseModel):
+    """Model for a music audio sample attached to a profile."""
+    url: str = Field(..., alias="url", description="Firebase Storage download URL for the audio sample")
+    title: str = Field(..., min_length=1, max_length=100, alias="title", description="Display title for the sample")
+    model_config = ConfigDict(populate_by_name=True)
+
+class _MusicSamplesValidatorMixin(BaseModel):
+    """Mixin that enforces the MAX_MUSIC_SAMPLES limit on music_samples fields."""
+    @field_validator('music_samples', check_fields=False)
+    @classmethod
+    def max_num_samples(cls, v):
+        if v and len(v) > MAX_MUSIC_SAMPLES:
+            raise ValueError(f'A profile may have at most {MAX_MUSIC_SAMPLES} music samples')
+        return v
+
 class Location(BaseModel):
     """Model for location data, used in both profiles and posts. Includes geocoding fields."""
     place_id: Optional[str] = Field(default=None, alias="placeId", description="Google Place ID for the location, used for geocoding and reverse geocoding")
@@ -74,7 +91,7 @@ class Location(BaseModel):
     zip_code: Optional[str] = Field(default=None, alias="zipCode", description="Zip code for the location, used for resolving location from zip code")
     model_config = ConfigDict(populate_by_name = True)
 
-class ProfileBase(BaseModel):
+class ProfileBase(_MusicSamplesValidatorMixin):
     """Base model for user profiles, used for both creation and response. Includes common fields and validation."""
     first_name: str = Field(..., alias="firstName", description="User's first name")
     last_name: str = Field(..., alias="lastName", description="User's last name")
@@ -86,6 +103,8 @@ class ProfileBase(BaseModel):
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
     instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default_factory=list, alias="genres", description="List of music genres associated with the profile")
+    music_samples: Optional[List[MusicSample]] = Field(default_factory=list, alias="musicSamples", description=f"Up to {MAX_MUSIC_SAMPLES} audio sample URLs for the profile")
+
     model_config = ConfigDict(
         populate_by_name = True,
         from_attributes = True,
@@ -98,7 +117,7 @@ class ProfileCreate(ProfileBase):
     email: EmailStr = Field(..., alias="email", description="User's email address")
 
 
-class ProfileUpdate(BaseModel):
+class ProfileUpdate(_MusicSamplesValidatorMixin):
     """Model for updating a profile. All fields are optional to allow partial updates."""
     email: Optional[EmailStr] = Field(default=None, alias="email", description="User's email address")
     first_name: Optional[str] = Field(default=None, alias="firstName", description="User's first name")
@@ -110,6 +129,8 @@ class ProfileUpdate(BaseModel):
     profile_pic_url: Optional[str] = Field(default=None, alias="profilePicUrl", description="URL to the user's profile picture")
     instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments", description="List of instruments with skill level")
     genres: Optional[List[str]] = Field(default=None, alias="genres", description="List of music genres associated with the profile")
+    music_samples: Optional[List[MusicSample]] = Field(default=None, alias="musicSamples", description=f"Up to {MAX_MUSIC_SAMPLES} audio sample URLs for the profile")
+
     model_config = ConfigDict(populate_by_name = True)
 
 

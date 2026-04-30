@@ -2,17 +2,22 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import profileService from './services/profileService';
-import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image } from '@chakra-ui/react';
-import { FileUpload } from './components/ui/file-upload';
-import { ref as storageRef, deleteObject } from 'firebase/storage';
+import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Image, Text, IconButton, FileUpload as ChakraFileUpload } from '@chakra-ui/react';
+import { FileUpload, ACCEPTED_AUDIO_RECORD, MUSIC_TOOLTIP_CONTENT } from './components/ui/file-upload';
+import { toaster } from './components/ui/toaster';
 import { storage } from './firebase';
-import { pathFromStorageUrl } from './utils/helpers';
+import { ref as storageRef, deleteObject } from 'firebase/storage';
+import { pathFromStorageUrl, createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected, deleteStoragePaths } from './utils/helpers';
+import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
+import { Tooltip } from './components/ui/tooltip';
+import ReactPlayer from 'react-player';
 
 import InputField from './components/InputField';
 import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
-import { toaster } from "./components/ui/toaster";
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
+
+const MAX_MUSIC_SAMPLES = 3;
 
 
 function UpdateProfile() {
@@ -23,9 +28,22 @@ function UpdateProfile() {
   const [hasPendingFile, setHasPendingFile] = useState(false); // True when user has selected a new file.
   const fileUploadRef = useRef(null);
 
+  // Each item is either { type: 'existing', url, title } or { type: 'pending', file, title }
+  // We keep pending samples in state to allow for title editing and playback before upload, and to manage the limit of 3 samples.
+  const [musicSamples, setMusicSamples] = useState(
+    (profile?.musicSamples || []).slice(0, MAX_MUSIC_SAMPLES).map(s => ({ type: 'existing', url: s.url, title: s.title || '' }))
+  );
+  const [musicUrlsToDelete, setMusicUrlsToDelete] = useState([]);
+  const [musicRejectionKey, setMusicRejectionKey] = useState(0);
+
+  const { handleMusicFileAdd, handleMusicSampleTitleChange, removeMusicSample } =
+    createMusicSampleHandlers(setMusicSamples, MAX_MUSIC_SAMPLES, {
+      onRemoveExisting: (url) => setMusicUrlsToDelete(prev => [...prev, url]),
+    });
+
+
   // Mark the existing photo for removal without touching storage — deletion happens on submit.
   const handleDeleteProfilePic = () => setPhotoRemoved(true);
-
 
   const [formData, setFormData] = useState({
     // Profile fields
@@ -62,6 +80,10 @@ const handleSubmit = async (e) => {
   e.preventDefault();
   setLoading(true);
 
+  if (!validateMusicSampleTitles(musicSamples)) { setLoading(false); return; }
+
+  let uploadedPaths = [];
+
   try {
     const originalUrl = profile?.profilePicUrl || null;
     let finalUrl = originalUrl;
@@ -88,11 +110,18 @@ const handleSubmit = async (e) => {
       finalUrl = newUrl;
     }
 
-    // convert selectedInstruments object to array of { name, skillLevel } for the API
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
-      name,
-      skillLevel
-    }));
+    const instruments = instrumentsFromSelected(formData.selectedInstruments);
+
+    // Delete removed music samples from storage
+    for (const url of musicUrlsToDelete) {
+      try {
+        const path = pathFromStorageUrl(url);
+        if (path?.startsWith(`users/${currentUser.uid}/`)) await deleteObject(storageRef(storage, path));
+      } catch (err) { console.warn('Could not delete music sample:', err); }
+    }
+
+    const { samples: finalMusicSamples, uploadedPaths: newPaths } = await uploadMusicSamples(currentUser.uid, musicSamples);
+    uploadedPaths = newPaths;
 
     const payload = {
       firstName: formData.firstName,
@@ -104,7 +133,8 @@ const handleSubmit = async (e) => {
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres,
-      profilePicUrl: finalUrl
+      profilePicUrl: finalUrl,
+      musicSamples: finalMusicSamples,
     };
 
     // Use the profileService.updateProfile method instead of direct fetch
@@ -123,6 +153,7 @@ const handleSubmit = async (e) => {
     navigate('/'); // Redirect to home or profile page after successful update
     
   } catch (err) {
+    await deleteStoragePaths(currentUser?.uid, uploadedPaths);
     toaster.create({
       title: 'Error updating profile',
       description: err.message,
@@ -241,7 +272,77 @@ return (
               value ={formData.selectedGenres}
               onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
               label="Select Your Preferred Genres"
-            />  
+            />
+
+            <Box>
+              <Text fontWeight="medium" mb={2}>
+                Music Samples ({musicSamples.length}/{MAX_MUSIC_SAMPLES})
+              </Text>
+              <VStack align="stretch" gap={2}>
+                {musicSamples.map((sample, index) => (
+                  <VStack key={index} gap={1} p={2} align="stretch">
+                    <Text fontSize="sm" color="jam.accent">Sample {index + 1}</Text>
+                    <Input
+                      placeholder="Title/Description (required)"
+                      size="sm"
+                      value={sample.title}
+                      onChange={e => handleMusicSampleTitleChange(index, e.target.value)}
+                      required
+                    />
+                    <HStack gap={2}>
+                    <Box flex={1} minWidth={0}>
+                        <ReactPlayer
+                          src={sample.type === 'existing' ? sample.url : sample.objectUrl}
+                          controls
+                          width="100%"
+                          height="50px"
+                        />
+                      </Box>
+                    <IconButton
+                      size="md"
+                      variant="solid"
+                      colorPalette="red"
+                      aria-label="Remove sample"
+                      onClick={() => removeMusicSample(index, musicSamples)}
+                    >
+                      <LuX />
+                    </IconButton>
+                    </HStack>
+                  </VStack>
+                ))}
+                {musicSamples.length < MAX_MUSIC_SAMPLES && (
+                  <ChakraFileUpload.Root
+                    key={musicRejectionKey}
+                    maxFiles={1}
+                    accept={ACCEPTED_AUDIO_RECORD}
+                    onFileChange={async ({ acceptedFiles }) => {
+                      if (acceptedFiles[0]) {
+                        await handleMusicFileAdd(acceptedFiles[0], musicSamples.length);
+                        setMusicRejectionKey(k => k + 1);
+                      }
+                    }}
+                    onFileReject={() => {
+                      toaster.create({ title: 'Unsupported file type', description: 'Please upload an audio file (MP3, WAV, etc.).', type: 'error', closable: true });
+                      setMusicRejectionKey(k => k + 1);
+                    }}
+                  >
+                    <ChakraFileUpload.HiddenInput />
+                    <HStack gap={1}>
+                      <ChakraFileUpload.Trigger asChild>
+                        <Button type="button" variant="outline" size="sm">
+                          <LuUpload /> Add Sample
+                        </Button>
+                      </ChakraFileUpload.Trigger>
+                      <Tooltip content={MUSIC_TOOLTIP_CONTENT}>
+                        <IconButton variant="ghost" size="2xs" aria-label="Music sample requirements">
+                          <LuInfo />
+                        </IconButton>
+                      </Tooltip>
+                    </HStack>
+                  </ChakraFileUpload.Root>
+                )}
+              </VStack>
+            </Box>  
             
             <HStack gap={3} pr={3}>
               <Button

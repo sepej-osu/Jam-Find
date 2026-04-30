@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from './firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth } from './contexts/AuthContext';
-import { Box, Center, Button, Heading, VStack, Progress, Text, Input, Field} from '@chakra-ui/react';
+import { Box, Center, Button, Heading, VStack, HStack, Progress, Text, Input, Field, IconButton, FileUpload as ChakraFileUpload } from '@chakra-ui/react';
 import { toaster } from "./components/ui/toaster"
-import { FileUpload } from './components/ui/file-upload';
+import { FileUpload, ACCEPTED_AUDIO_RECORD, MUSIC_TOOLTIP_CONTENT } from './components/ui/file-upload';
+import { LuX, LuUpload, LuInfo } from 'react-icons/lu';
+import { Tooltip } from './components/ui/tooltip';
+import ReactPlayer from 'react-player';
 
 import { Link as ChakraLink } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -15,6 +18,9 @@ import InstrumentSelector from './components/InstrumentSelector';
 import GenreSelector from './components/GenreSelector';
 
 import { GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
+import { createMusicSampleHandlers, uploadMusicSamples, validateMusicSampleTitles, instrumentsFromSelected, deleteStoragePaths } from './utils/helpers';
+
+const MAX_MUSIC_SAMPLES = 3;
 
 function Register() {
   const navigate = useNavigate();
@@ -24,6 +30,11 @@ function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const fileUploadRef = useRef(null);
+  const [musicSamples, setMusicSamples] = useState([]);
+  const [musicRejectionKey, setMusicRejectionKey] = useState(0);
+
+  const { handleMusicFileAdd, handleMusicSampleTitleChange, removeMusicSample } =
+    createMusicSampleHandlers(setMusicSamples, MAX_MUSIC_SAMPLES);
 
   // All form data in one state object
   const [formData, setFormData] = useState({
@@ -141,7 +152,12 @@ const handleStep2Submit = async (e) => {
   e.preventDefault();
   setLoading(true);
 
-  try {
+    if (!validateMusicSampleTitles(musicSamples)) { setLoading(false); return; }
+
+    let uploadedPaths = [];
+    let uploadUid = null;
+
+    try {
     // Create Firebase account
     const userCredential = await createUserWithEmailAndPassword(
       auth, 
@@ -152,16 +168,15 @@ const handleStep2Submit = async (e) => {
     console.log('Firebase account created!');
     
     const user = userCredential.user;
+    uploadUid = user.uid;
     const token = await user.getIdToken();
 
     // Upload profile picture now that the account exists and we have a UID
     const profilePicUrl = await fileUploadRef.current?.upload(user.uid) ?? null;
-    
-    // convert selectedInstruments object to array of { name, skillLevel } for the API
-    const instruments = Object.entries(formData.selectedInstruments).map(([name, skillLevel]) => ({
-      name,
-      skillLevel
-    }));
+
+      const { samples: uploadedSamples, uploadedPaths: newPaths } = await uploadMusicSamples(user.uid, musicSamples);
+      uploadedPaths = newPaths;
+    const instruments = instrumentsFromSelected(formData.selectedInstruments);
 
     const payload = {
       userId: user.uid,
@@ -175,7 +190,8 @@ const handleStep2Submit = async (e) => {
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres,
-      profilePicUrl: profilePicUrl
+      profilePicUrl: profilePicUrl,
+      musicSamples: uploadedSamples,
     };
 
     // Send profile data to backend API
@@ -221,6 +237,7 @@ const handleStep2Submit = async (e) => {
     
   } catch (err) {
     console.error('Registration error:', err);
+    await deleteStoragePaths(uploadUid, uploadedPaths);
     toaster.create({
       title: 'Error creating account',
       description: err.message,
@@ -389,7 +406,71 @@ const handleStep2Submit = async (e) => {
                   onChange={(genres) => setFormData({ ...formData, selectedGenres: genres })}
                   label="Select Your Preferred Genres"
                 />  
-                
+
+                <Box>
+                  <Text fontWeight="medium" mb={2}>
+                    Music Samples ({musicSamples.length}/{MAX_MUSIC_SAMPLES})
+                  </Text>
+                  <VStack align="stretch" gap={2}>
+                    {musicSamples.map((sample, index) => (
+                      <VStack key={index} gap={1} p={2} align="stretch">
+                        <Text fontSize="sm" color="jam.accent">Sample {index + 1}</Text>
+                        <Input
+                          placeholder="Title/Description (required)"
+                          size="sm"
+                          value={sample.title}
+                          onChange={e => handleMusicSampleTitleChange(index, e.target.value)}
+                          required
+                        />
+                        <HStack gap={2}>
+                          <Box flex={1} minWidth={0}>
+                            <ReactPlayer src={sample.objectUrl} controls width="100%" height="50px" />
+                          </Box>
+                          <IconButton
+                            size="md"
+                            variant="solid"
+                            colorPalette="red"
+                            aria-label="Remove sample"
+                            onClick={() => removeMusicSample(index, musicSamples)}
+                          >
+                            <LuX />
+                          </IconButton>
+                        </HStack>
+                      </VStack>
+                    ))}
+                    {musicSamples.length < MAX_MUSIC_SAMPLES && (
+                      <ChakraFileUpload.Root
+                        key={musicRejectionKey}
+                        maxFiles={1}
+                        accept={ACCEPTED_AUDIO_RECORD}
+                        onFileChange={async ({ acceptedFiles }) => {
+                          if (acceptedFiles[0]) {
+                            await handleMusicFileAdd(acceptedFiles[0], musicSamples.length);
+                            setMusicRejectionKey(k => k + 1);
+                          }
+                        }}
+                        onFileReject={() => {
+                          toaster.create({ title: 'Unsupported file type', description: 'Please upload an audio file (MP3, WAV, etc.).', type: 'error', closable: true });
+                          setMusicRejectionKey(k => k + 1);
+                        }}
+                      >
+                        <ChakraFileUpload.HiddenInput />
+                        <HStack gap={1}>
+                          <ChakraFileUpload.Trigger asChild>
+                            <Button type="button" variant="outline" size="sm">
+                              <LuUpload /> Add Sample
+                            </Button>
+                          </ChakraFileUpload.Trigger>
+                          <Tooltip content={MUSIC_TOOLTIP_CONTENT}>
+                            <IconButton variant="ghost" size="2xs" aria-label="Music sample requirements">
+                              <LuInfo />
+                            </IconButton>
+                          </Tooltip>
+                        </HStack>
+                      </ChakraFileUpload.Root>
+                    )}
+                  </VStack>
+                </Box>
 
                 <Button
                   type="submit"

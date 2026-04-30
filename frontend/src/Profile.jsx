@@ -1,35 +1,34 @@
 
 import {
-  Steps,
   Box,
   Heading,
   Text,
   Image,
   Grid,
   GridItem,
-  IconButton,
   Button,
   Flex,
   Badge,
   Icon,
-  Progress,
   VStack,
   Wrap,
   WrapItem,
   Spinner,
-  Alert
+  Alert,
+  IconButton
 } from '@chakra-ui/react';
 import InstrumentCard from './components/ui/InstrumentCard';
-import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
+import ReactPlayer from 'react-player';
 import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
-import { CgPlayButtonO, CgProfile } from "react-icons/cg";
+import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
+import { CgProfile } from 'react-icons/cg';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './contexts/AuthContext';
 import profileService from './services/profileService';
 import conversationService from './services/conversationService';
 import { toaster } from './components/ui/toaster';
-import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
+import { GENRE_DISPLAY_NAMES, GENDER_DISPLAY_NAMES } from './utils/displayNameMappings';
 import { getDistanceMiles } from './utils/helpers';
 
 function Profile() {
@@ -39,9 +38,27 @@ function Profile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const items = Array.from({ length: 5 });
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [messageLoading, setMessageLoading] = useState(false);
+  const [sampleIndex, setSampleIndex] = useState(0);
+  const [playerVolume, setPlayerVolume] = useState(() => {
+    const saved = localStorage.getItem('playerVolume');
+    return saved !== null ? parseFloat(saved) : 1;
+  });
+  const playerContainerRef = useRef(null);
+
+  useEffect(() => {
+    const container = playerContainerRef.current;
+    if (!container) return;
+    const handleVolumeChange = () => {
+      const audio = container.querySelector('audio');
+      if (audio) {
+        localStorage.setItem('playerVolume', audio.volume);
+        setPlayerVolume(audio.volume);
+      }
+    };
+    container.addEventListener('volumechange', handleVolumeChange, true);
+    return () => container.removeEventListener('volumechange', handleVolumeChange, true);
+  });
 
   // Use the userId from URL params, or fall back to current user's ID
   const profileUserId = userId || currentUser?.uid;
@@ -95,14 +112,6 @@ function Profile() {
     profile?.location?.lat != null && profile?.location?.lng != null
       ? getDistanceMiles(userLat, userLng, profile.location.lat, profile.location.lng)
       : null;
-
-  const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % items.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + items.length) % items.length);
-  };
 
   if (loading) {
     return (
@@ -246,51 +255,50 @@ function Profile() {
       </GridItem>
       <GridItem colSpan={3} pr={4}>
         <Box>
-          <Text fontSize="lg" fontWeight="semibold" mb={2}>Media:</Text>
-          <Box maxW="100%" position="relative">
-            <Box overflow="hidden" borderRadius="lg">
-              <Box
-                display="flex"
-                transform={`translateX(-${currentSlide * 100}%)`}
-                transition="transform 0.3s ease"
-              >
-                {items.map((_, index) => (
-                  <Box
-                    key={index}
-                    minW="100%"
-                    h="100px"
-                    bg="gray.100"
-                    display="flex"
-                    alignItems="center"
-                    justifyContent="center"
-                    fontSize="2.5rem"
+          <Text fontSize="lg" fontWeight="semibold" mb={2}>Music Samples:</Text>
+          {profile?.musicSamples?.length > 0 ? (
+            <Box>
+              {profile.musicSamples[sampleIndex]?.title && (
+                <Text fontSize="sm" fontWeight="medium" mb={1}>
+                  {profile.musicSamples[sampleIndex].title}
+                </Text>
+              )}
+              <div ref={playerContainerRef}>
+              <ReactPlayer
+                key={sampleIndex}
+                src={profile.musicSamples[sampleIndex]?.url}
+                controls
+                width="100%"
+                height="60px"
+                volume={playerVolume}
+                style={{ background: 'var(--chakra-colors-jam-bg)' }}
+              />
+              </div>
+              {profile.musicSamples.length > 1 && (
+                <Flex justify="center" align="center" gap={4} mt={2}>
+                  <IconButton
+                    size="xs"
+                    variant="jam"
+                    onClick={() => setSampleIndex(i => (i - 1 + profile.musicSamples.length) % profile.musicSamples.length)}
                   >
-                    <Icon as={CgPlayButtonO} color="blue.500" />
-                  </Box>
-                ))}
-              </Box>
+                    <LuChevronLeft />
+                  </IconButton>
+                  <Text fontSize="md" color="jam.accent" fontWeight="semibold">
+                    {sampleIndex + 1} / {profile.musicSamples.length}
+                  </Text>
+                  <IconButton
+                    size="xs"
+                    variant="jam"
+                    onClick={() => setSampleIndex(i => (i + 1) % profile.musicSamples.length)}
+                  >
+                    <LuChevronRight />
+                  </IconButton>
+                </Flex>
+              )}
             </Box>
-            <Flex justifyContent="center" alignItems="center" gap={4} mt={4}>
-              <IconButton size="xs" variant="ghost" onClick={prevSlide} aria-label="Previous Slide"><LuChevronLeft /></IconButton>
-              <Flex gap={2}>
-                {items.map((_, index) => (
-                  <Box
-                    as="button"
-                    type="button"
-                    key={index}
-                    w="8px"
-                    h="8px"
-                    borderRadius="full"
-                    bg={currentSlide === index ? "blue.500" : "gray.300"}
-                    cursor="pointer"
-                    aria-label={`Go to slide ${index + 1}`}
-                    aria-current={currentSlide === index ? "true" : undefined}
-                  />
-                ))}
-              </Flex>
-              <IconButton size="xs" variant="ghost" onClick={nextSlide} aria-label="Next Slide"><LuChevronRight /></IconButton>
-            </Flex>
-          </Box>
+          ) : (
+            <Text fontSize="md" color="gray.600">No music samples uploaded</Text>
+          )}
         </Box>
       </GridItem>
     </Grid>
