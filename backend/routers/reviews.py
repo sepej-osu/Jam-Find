@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import Optional
 from datetime import datetime, timezone
-from uuid import uuid4
 from models import ReviewCreate, ReviewResponse, PaginatedReviewsResponse
 from firebase_config import get_db
-from google.cloud import exceptions as gcp_exceptions
+from google.cloud import exceptions as gcp_exceptions, firestore as firestore_client
+from google.api_core import exceptions as api_exceptions
 from google.cloud.firestore_v1.base_query import FieldFilter
 from auth import get_current_user
 
@@ -15,20 +15,27 @@ PROFILES_COLLECTION = "profiles"
 
 
 def _recalculate_and_update_aggregates(db, reviewed_user_id: str):
-    """Recompute averageRating and reviewCount from scratch and write them to the profile doc.
-    Called inside a transaction after any create or delete so the cached values stay accurate."""
+    """Recompute averageRating and reviewCount from scratch inside a Firestore transaction.
+    Using a transaction ensures the read and write are atomic, preventing inconsistent
+    aggregates under concurrent create/delete operations."""
+    profile_ref = db.collection(PROFILES_COLLECTION).document(reviewed_user_id)
     reviews_query = (
         db.collection(REVIEWS_COLLECTION)
         .where(filter=FieldFilter("reviewedUserId", "==", reviewed_user_id))
-        .stream()
     )
-    ratings = [doc.to_dict().get("rating", 0) for doc in reviews_query]
-    count = len(ratings)
-    average = round(sum(ratings) / count, 2) if count > 0 else None
-    db.collection(PROFILES_COLLECTION).document(reviewed_user_id).update({
-        "reviewCount": count,
-        "averageRating": average,
-    })
+
+    # Firestore transactions require a callback function that takes the transaction as an argument
+    @firestore_client.transactional
+    def _txn(transaction):
+        ratings = [doc.to_dict().get("rating", 0) for doc in transaction.get(reviews_query)]
+        count = len(ratings)
+        average = round(sum(ratings) / count, 2) if count > 0 else None
+        transaction.update(profile_ref, {
+            "reviewCount": count,
+            "averageRating": average,
+        })
+
+    _txn(db.transaction())
 
 
 @router.post(
@@ -69,22 +76,9 @@ async def create_review(
             )
         reviewer_data = reviewer_doc.to_dict()
 
-        # Enforce one review per reviewer per reviewed user
-        existing = (
-            db.collection(REVIEWS_COLLECTION)
-            .where(filter=FieldFilter("reviewerId", "==", current_user_id))
-            .where(filter=FieldFilter("reviewedUserId", "==", user_id))
-            .limit(1)
-            .get()
-        )
-        if list(existing):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="You have already submitted a review for this user.",
-            )
-
+        # Deterministic document ID enforces one review per reviewer per reviewed user.
+        review_id = f"{current_user_id}_{user_id}"
         now = datetime.now(timezone.utc)
-        review_id = str(uuid4())
         review_data = {
             "reviewId": review_id,
             "reviewerId": current_user_id,
@@ -97,7 +91,13 @@ async def create_review(
             "createdAt": now,
         }
 
-        db.collection(REVIEWS_COLLECTION).document(review_id).set(review_data)
+        try:
+            db.collection(REVIEWS_COLLECTION).document(review_id).create(review_data)
+        except api_exceptions.AlreadyExists:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="You have already submitted a review for this user.",
+            )
         _recalculate_and_update_aggregates(db, user_id)
 
         return ReviewResponse(**review_data)
@@ -171,17 +171,18 @@ async def get_my_review(
     """Get the current user's own review for a specific user, or null if none exists."""
     try:
         db = get_db()
-        docs = (
-            db.collection(REVIEWS_COLLECTION)
-            .where(filter=FieldFilter("reviewerId", "==", current_user_id))
-            .where(filter=FieldFilter("reviewedUserId", "==", user_id))
-            .limit(1)
-            .get()
-        )
-        docs = list(docs)
-        if not docs:
+
+        if not db.collection(PROFILES_COLLECTION).document(user_id).get().exists:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Profile not found for userId: {user_id}",
+            )
+
+        review_id = f"{current_user_id}_{user_id}"
+        doc = db.collection(REVIEWS_COLLECTION).document(review_id).get()
+        if not doc.exists:
             return None
-        return ReviewResponse(**docs[0].to_dict())
+        return ReviewResponse(**doc.to_dict())
 
     except HTTPException:
         raise
