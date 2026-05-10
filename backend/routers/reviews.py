@@ -14,25 +14,37 @@ REVIEWS_COLLECTION = "reviews"
 PROFILES_COLLECTION = "profiles"
 
 
-def _recalculate_and_update_aggregates(db, reviewed_user_id: str):
-    """Recompute averageRating and reviewCount from scratch inside a Firestore transaction.
-    Using a transaction ensures the read and write are atomic, preventing inconsistent
-    aggregates under concurrent create/delete operations."""
-    profile_ref = db.collection(PROFILES_COLLECTION).document(reviewed_user_id)
-    reviews_query = (
-        db.collection(REVIEWS_COLLECTION)
-        .where(filter=FieldFilter("reviewedUserId", "==", reviewed_user_id))
-    )
-
-    # Firestore transactions require a callback function that takes the transaction as an argument
+def _increment_aggregates(db, profile_ref, rating: int):
+    """Atomically increment reviewCount and ratingSum by the given rating, then derive averageRating.
+    O(1): reads only the profile document regardless of how many reviews exist."""
     @firestore_client.transactional
     def _txn(transaction):
-        ratings = [doc.to_dict().get("rating", 0) for doc in transaction.get(reviews_query)]
-        count = len(ratings)
-        average = round(sum(ratings) / count, 2) if count > 0 else None
+        snap = profile_ref.get(transaction=transaction)
+        data = snap.to_dict() or {}
+        new_count = (data.get("reviewCount") or 0) + 1
+        new_sum = (data.get("ratingSum") or 0) + rating
         transaction.update(profile_ref, {
-            "reviewCount": count,
-            "averageRating": average,
+            "reviewCount": new_count,
+            "ratingSum": new_sum,
+            "averageRating": round(new_sum / new_count, 2),
+        })
+
+    _txn(db.transaction())
+
+
+def _decrement_aggregates(db, profile_ref, rating: int):
+    """Atomically decrement reviewCount and ratingSum by the given rating, then derive averageRating.
+    O(1): reads only the profile document regardless of how many reviews exist."""
+    @firestore_client.transactional
+    def _txn(transaction):
+        snap = profile_ref.get(transaction=transaction)
+        data = snap.to_dict() or {}
+        new_count = max((data.get("reviewCount") or 1) - 1, 0)
+        new_sum = max((data.get("ratingSum") or rating) - rating, 0)
+        transaction.update(profile_ref, {
+            "reviewCount": new_count,
+            "ratingSum": new_sum,
+            "averageRating": round(new_sum / new_count, 2) if new_count > 0 else None,
         })
 
     _txn(db.transaction())
@@ -98,7 +110,7 @@ async def create_review(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="You have already submitted a review for this user.",
             )
-        _recalculate_and_update_aggregates(db, user_id)
+        _increment_aggregates(db, db.collection(PROFILES_COLLECTION).document(user_id), review.rating)
 
         return ReviewResponse(**review_data)
 
@@ -225,7 +237,7 @@ async def delete_review(
             )
 
         db.collection(REVIEWS_COLLECTION).document(review_id).delete()
-        _recalculate_and_update_aggregates(db, user_id)
+        _decrement_aggregates(db, db.collection(PROFILES_COLLECTION).document(user_id), review_data["rating"])
         return None
 
     except HTTPException:

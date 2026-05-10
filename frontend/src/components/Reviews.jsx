@@ -9,8 +9,6 @@ import {
   Textarea,
   VStack,
   Avatar,
-  Pagination,
-  ButtonGroup,
 } from '@chakra-ui/react';
 import { LuChevronLeft, LuChevronRight, LuStar } from 'react-icons/lu';
 import { useNavigate } from 'react-router-dom';
@@ -18,41 +16,51 @@ import { useState, useEffect } from 'react';
 import reviewService from '../services/reviewService';
 import { toaster } from './ui/toaster';
 
-const PAGE_SIZE = 3; // number of reviews to show per page
+const PAGE_SIZE = 3; // number of reviews to fetch per server request
 
 function Reviews({ profileUserId, canReview, onProfileUpdate }) {
-  const navigate = useNavigate(); // for navigating to reviewer profiles
-  const [reviews, setReviews] = useState([]); // all reviews for this profile
-  const [reviewsLoading, setReviewsLoading] = useState(false); // separate loading state for reviews list
-  const [reviewsPage, setReviewsPage] = useState(1); // pagination state
-  const [myReview, setMyReview] = useState(undefined); // undefined = not yet loaded, null = no review
-  const [reviewRating, setReviewRating] = useState(0); // for new review submission
-  const [hoverRating, setHoverRating] = useState(0); // for star hover effect
+  const navigate = useNavigate();
+  const [pages, setPages] = useState([[]]); // cached pages: pages[i] = array of reviews for page i
+  const [cursors, setCursors] = useState([null]); // cursors[i] = lastDocId to fetch page i (null = first page)
+  const [nextTokens, setNextTokens] = useState([null]); // nextTokens[i] = token returned after fetching page i
+  const [currentPage, setCurrentPage] = useState(0); // 0-based page index
+  const [hasMore, setHasMore] = useState(false); // true if there's a next page beyond the last fetched
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const [myReview, setMyReview] = useState(undefined);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
-  const [reviewSubmitting, setReviewSubmitting] = useState(false); // to prevent multiple submissions
-  const [reviewDeleting, setReviewDeleting] = useState(false); // to prevent multiple deletions
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewDeleting, setReviewDeleting] = useState(false);
+
+  const fetchPage = async (profileId, lastDocId = null) => {
+    setReviewsLoading(true);
+    try {
+      const data = await reviewService.getReviews(profileId, { limit: PAGE_SIZE, lastDocId });
+      return { reviews: data.reviews || [], nextToken: data.nextPageToken ?? null };
+    } catch {
+      return { reviews: [], nextToken: null };
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  const resetAndFetch = async (profileId) => {
+    setCurrentPage(0);
+    const { reviews, nextToken } = await fetchPage(profileId, null);
+    setPages([reviews]);
+    setCursors([null]);
+    setNextTokens([nextToken]);
+    setHasMore(nextToken !== null);
+  };
 
   useEffect(() => {
     if (!profileUserId) return;
 
-    const fetchReviews = async () => {
-      setReviewsLoading(true);
-      setReviewsPage(1); // reset to first page when fetching new reviews
-      try {
-        const data = await reviewService.getReviews(profileUserId, { limit: 50 }); // fetch more than needed for pagination to minimize future requests
-        const sorted = (data.reviews || []).slice().sort( // create a copy before sorting
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt) // sort newest first
-        );
-        setReviews(sorted);
-      } catch {
-        // non-critical; silently fail
-      } finally {
-        setReviewsLoading(false);
-      }
-    };
+    resetAndFetch(profileUserId);
 
     // fetch the current user's review separately
-    // it's needed for the submission form and may not be included in the first page of reviews
+    // it's needed for the submission form and may not be in the current page
     const fetchMyReview = async () => {
       if (!canReview) {
         setMyReview(null);
@@ -66,9 +74,33 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
       }
     };
 
-    fetchReviews();
     fetchMyReview();
   }, [profileUserId, canReview]);
+
+  const handleNextPage = async () => {
+    const nextPageIndex = currentPage + 1;
+    if (pages[nextPageIndex]) {
+      // already fetched — use cache
+      setCurrentPage(nextPageIndex);
+      setHasMore(nextTokens[nextPageIndex] !== null);
+    } else {
+      const lastDocId = nextTokens[currentPage];
+      if (!lastDocId) return;
+      const { reviews, nextToken } = await fetchPage(profileUserId, lastDocId);
+      setPages((prev) => [...prev, reviews]);
+      setCursors((prev) => [...prev, lastDocId]);
+      setNextTokens((prev) => [...prev, nextToken]);
+      setCurrentPage(nextPageIndex);
+      setHasMore(nextToken !== null);
+    }
+  };
+
+  const handlePrevPage = () => {
+    if (currentPage === 0) return;
+    const prevPageIndex = currentPage - 1;
+    setCurrentPage(prevPageIndex);
+    setHasMore(nextTokens[prevPageIndex] !== null || pages[currentPage]?.length > 0);
+  };
 
   const handleSubmitReview = async () => {
     if (reviewRating === 0 || reviewSubmitting) return; // basic validation and prevent multiple submissions
@@ -79,10 +111,6 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
         text: reviewText.trim() || null,
       });
       setMyReview(created);
-      setReviews((prev) =>
-        [created, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // add new review to the top of the list
-      );
-      setReviewsPage(1); // reset to first page to show the new review
       onProfileUpdate?.((prev) => ({
         ...prev,
         reviewCount: (prev.reviewCount || 0) + 1,
@@ -91,6 +119,8 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
             ? Math.round(((prev.averageRating * prev.reviewCount) + reviewRating) / (prev.reviewCount + 1) * 100) / 100
             : reviewRating,
       }));
+      // Reset to page 1 to show the new review (API returns newest first)
+      await resetAndFetch(profileUserId);
     } catch (err) {
       toaster.create({
         title: 'Could not submit review',
@@ -108,8 +138,6 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
     setReviewDeleting(true);
     try {
       await reviewService.deleteReview(profileUserId, myReview.reviewId);
-      setReviews((prev) => prev.filter((r) => r.reviewId !== myReview.reviewId));
-      setReviewsPage(1); // reset to first page after deletion
       onProfileUpdate?.((prev) => {
         const newCount = Math.max((prev.reviewCount || 1) - 1, 0);
         return {
@@ -119,13 +147,14 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
             newCount === 0
               ? null
               : Math.round(
-                  ((prev.averageRating * prev.reviewCount) - myReview.rating) / newCount * 100 // recalculate average rating after removing the review
+                  ((prev.averageRating * prev.reviewCount) - myReview.rating) / newCount * 100
                 ) / 100,
         };
       });
       setMyReview(null);
       setReviewRating(0);
       setReviewText('');
+      await resetAndFetch(profileUserId);
     } catch (err) {
       toaster.create({
         title: 'Could not delete review',
@@ -145,12 +174,12 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
       {/* Reviews list */}
       {reviewsLoading ? (
         <Flex justify="center" py={4}><Spinner size="sm" /></Flex>
-      ) : reviews.length === 0 ? (
+      ) : pages[currentPage]?.length === 0 && currentPage === 0 ? (
         <Text color="jam.text">No reviews yet.</Text>
       ) : (
         <>
           <VStack gap={4} align="stretch">
-            {reviews.slice((reviewsPage - 1) * PAGE_SIZE, reviewsPage * PAGE_SIZE).map((review) => (
+            {(pages[currentPage] || []).map((review) => (
               <Box key={review.reviewId} pl={5} layerStyle="card">
                 <Flex gap={3} align="start">
                   <Box
@@ -203,34 +232,28 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
               </Box>
             ))}
           </VStack>
-          {reviews.length > PAGE_SIZE && (
-            <Pagination.Root
-              count={reviews.length}
-              pageSize={PAGE_SIZE}
-              page={reviewsPage}
-              onPageChange={(e) => setReviewsPage(e.page)}
-              mt={4}
-            >
-              <ButtonGroup variant="ghost" size="sm" display="flex" justifyContent="center" width="100%">
-                <Pagination.PrevTrigger asChild>
-                  <IconButton aria-label="Previous page">
-                    <LuChevronLeft />
-                  </IconButton>
-                </Pagination.PrevTrigger>
-                <Pagination.Items
-                  render={(page) => (
-                    <IconButton variant={{ base: 'ghost', _selected: 'outline' }} aria-label={`Page ${page.value}`}>
-                      {page.value}
-                    </IconButton>
-                  )}
-                />
-                <Pagination.NextTrigger asChild>
-                  <IconButton aria-label="Next page">
-                    <LuChevronRight />
-                  </IconButton>
-                </Pagination.NextTrigger>
-              </ButtonGroup>
-            </Pagination.Root>
+          {(currentPage > 0 || hasMore) && (
+            <Flex justify="center" gap={2} mt={4}>
+              <IconButton
+                aria-label="Previous page"
+                variant="ghost"
+                size="sm"
+                onClick={handlePrevPage}
+                disabled={currentPage === 0 || reviewsLoading}
+              >
+                <LuChevronLeft />
+              </IconButton>
+              <Text alignSelf="center" fontSize="sm">Page {currentPage + 1}</Text>
+              <IconButton
+                aria-label="Next page"
+                variant="ghost"
+                size="sm"
+                onClick={handleNextPage}
+                disabled={!hasMore || reviewsLoading}
+              >
+                <LuChevronRight />
+              </IconButton>
+            </Flex>
           )}
         </>
       )}

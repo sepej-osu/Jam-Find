@@ -83,6 +83,7 @@ def setup_test_profiles():
     for doc in db.collection("test_reviews").stream():
         doc.reference.delete()
     db.collection("test_profiles").document(REVIEWED_USER_ID).delete()
+    db.collection("test_profiles").document(REVIEWER_ID).delete()
 
 
 # ---------------------------------------------------------------------------
