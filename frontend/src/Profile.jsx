@@ -12,7 +12,6 @@ import {
   Badge,
   Icon,
   VStack,
-  Progress,
   Wrap,
   WrapItem,
   Spinner,
