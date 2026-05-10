@@ -11,8 +11,6 @@ import {
   Avatar,
   Pagination,
   ButtonGroup,
-  Heading,
-  Separator,
 } from '@chakra-ui/react';
 import { LuChevronLeft, LuChevronRight, LuStar } from 'react-icons/lu';
 import { useNavigate } from 'react-router-dom';
