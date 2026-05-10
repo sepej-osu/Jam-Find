@@ -20,31 +20,30 @@ import { useState, useEffect } from 'react';
 import reviewService from '../services/reviewService';
 import { toaster } from './ui/toaster';
 
-const PAGE_SIZE = 3;
+const PAGE_SIZE = 3; // number of reviews to show per page
 
 function Reviews({ profileUserId, canReview, onProfileUpdate }) {
-  const navigate = useNavigate();
-
-  const [reviews, setReviews] = useState([]);
-  const [reviewsLoading, setReviewsLoading] = useState(false);
-  const [reviewsPage, setReviewsPage] = useState(1);
+  const navigate = useNavigate(); // for navigating to reviewer profiles
+  const [reviews, setReviews] = useState([]); // all reviews for this profile
+  const [reviewsLoading, setReviewsLoading] = useState(false); // separate loading state for reviews list
+  const [reviewsPage, setReviewsPage] = useState(1); // pagination state
   const [myReview, setMyReview] = useState(undefined); // undefined = not yet loaded, null = no review
-  const [reviewRating, setReviewRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewRating, setReviewRating] = useState(0); // for new review submission
+  const [hoverRating, setHoverRating] = useState(0); // for star hover effect
   const [reviewText, setReviewText] = useState('');
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [reviewDeleting, setReviewDeleting] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false); // to prevent multiple submissions
+  const [reviewDeleting, setReviewDeleting] = useState(false); // to prevent multiple deletions
 
   useEffect(() => {
     if (!profileUserId) return;
 
     const fetchReviews = async () => {
       setReviewsLoading(true);
-      setReviewsPage(1);
+      setReviewsPage(1); // reset to first page when fetching new reviews
       try {
-        const data = await reviewService.getReviews(profileUserId, { limit: 50 });
-        const sorted = (data.reviews || []).slice().sort(
-          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        const data = await reviewService.getReviews(profileUserId, { limit: 50 }); // fetch more than needed for pagination to minimize future requests
+        const sorted = (data.reviews || []).slice().sort( // create a copy before sorting
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt) // sort newest first
         );
         setReviews(sorted);
       } catch {
@@ -54,6 +53,8 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
       }
     };
 
+    // fetch the current user's review separately
+    // it's needed for the submission form and may not be included in the first page of reviews
     const fetchMyReview = async () => {
       if (!canReview) {
         setMyReview(null);
@@ -72,7 +73,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
   }, [profileUserId, canReview]);
 
   const handleSubmitReview = async () => {
-    if (reviewRating === 0 || reviewSubmitting) return;
+    if (reviewRating === 0 || reviewSubmitting) return; // basic validation and prevent multiple submissions
     setReviewSubmitting(true);
     try {
       const created = await reviewService.createReview(profileUserId, {
@@ -81,9 +82,9 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
       });
       setMyReview(created);
       setReviews((prev) =>
-        [created, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        [created, ...prev].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)) // add new review to the top of the list
       );
-      setReviewsPage(1);
+      setReviewsPage(1); // reset to first page to show the new review
       onProfileUpdate?.((prev) => ({
         ...prev,
         reviewCount: (prev.reviewCount || 0) + 1,
@@ -105,12 +106,12 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
   };
 
   const handleDeleteReview = async () => {
-    if (!myReview || reviewDeleting) return;
+    if (!myReview || reviewDeleting) return; // basic validation and prevent multiple deletions
     setReviewDeleting(true);
     try {
       await reviewService.deleteReview(profileUserId, myReview.reviewId);
       setReviews((prev) => prev.filter((r) => r.reviewId !== myReview.reviewId));
-      setReviewsPage(1);
+      setReviewsPage(1); // reset to first page after deletion
       onProfileUpdate?.((prev) => {
         const newCount = Math.max((prev.reviewCount || 1) - 1, 0);
         return {
@@ -120,7 +121,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
             newCount === 0
               ? null
               : Math.round(
-                  ((prev.averageRating * prev.reviewCount) - myReview.rating) / newCount * 100
+                  ((prev.averageRating * prev.reviewCount) - myReview.rating) / newCount * 100 // recalculate average rating after removing the review
                 ) / 100,
         };
       });
@@ -141,32 +142,31 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
 
   return (
     <Box>
-      <Text fontSize="lg" fontWeight="semibold" mb={2}>Reviews:</Text>
+      <Text fontSize="lg" fontWeight="semibold" mb={1}>Reviews:</Text>
 
       {/* Reviews list */}
       {reviewsLoading ? (
         <Flex justify="center" py={4}><Spinner size="sm" /></Flex>
       ) : reviews.length === 0 ? (
-        <Text color="gray.500">No reviews yet.</Text>
+        <Text color="jam.text">No reviews yet.</Text>
       ) : (
         <>
           <VStack gap={4} align="stretch">
             {reviews.slice((reviewsPage - 1) * PAGE_SIZE, reviewsPage * PAGE_SIZE).map((review) => (
-              <Box key={review.reviewId} p={4} borderWidth="1px" borderRadius="md">
+              <Box key={review.reviewId} pl={5} layerStyle="card">
                 <Flex gap={3} align="start">
                   <Box
                     as="button"
                     type="button"
                     onClick={() => navigate(`/profile/${review.reviewerId}`)}
                     cursor="pointer"
-                    borderRadius="full"
                   >
                     {review.reviewerProfilePicUrl ? (
-                      <Avatar.Root size="sm">
+                      <Avatar.Root size="sm" shape="rounded">
                         <Avatar.Image src={review.reviewerProfilePicUrl} />
                       </Avatar.Root>
                     ) : (
-                      <Avatar.Root size="sm">
+                      <Avatar.Root size="sm" shape="rounded">
                         <Avatar.Fallback>{review.reviewerFirstName?.[0]}{review.reviewerLastName?.[0]}</Avatar.Fallback>
                       </Avatar.Root>
                     )}
@@ -174,6 +174,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
                   <Box flex="1">
                     <Flex justify="space-between" align="center" mb={1}>
                       <Text
+                        color="jam.text"
                         as="button"
                         type="button"
                         fontWeight="semibold"
@@ -183,7 +184,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
                       >
                         {review.reviewerFirstName} {review.reviewerLastName}
                       </Text>
-                      <Text fontSize="xs" color="gray.500">
+                      <Text fontSize="xs" color="jam.textMuted">
                         {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}
                       </Text>
                     </Flex>
@@ -193,12 +194,12 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
                           key={s}
                           as={LuStar}
                           boxSize="14px"
-                          color={s <= review.rating ? 'yellow.400' : 'gray.300'}
+                          color={s <= review.rating ? 'jam.400' : 'jam.50'}
                           fill={s <= review.rating ? 'currentColor' : 'none'}
                         />
                       ))}
                     </Flex>
-                    {review.text && <Text color="gray.700">{review.text}</Text>}
+                    {review.text && <Text color="jam.text">{review.text}</Text>}
                   </Box>
                 </Flex>
               </Box>
@@ -238,7 +239,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
 
       {/* Submit / existing review (only visible when viewing another user's profile) */}
       {canReview && myReview !== undefined && (
-        <Box mt={6} p={4} borderWidth="1px" borderRadius="md" bg="gray.50">
+        <Box mt={6} p={4}>
           {myReview ? (
             <Box>
               <Flex justify="space-between" align="start">
@@ -250,12 +251,12 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
                         key={s}
                         as={LuStar}
                         boxSize="18px"
-                        color={s <= myReview.rating ? 'yellow.400' : 'gray.300'}
+                        color={s <= myReview.rating ? 'jam.400' : 'jam.50'}
                         fill={s <= myReview.rating ? 'currentColor' : 'none'}
                       />
                     ))}
                   </Flex>
-                  {myReview.text && <Text color="gray.700">{myReview.text}</Text>}
+                  {myReview.text && <Text color="jam.text">{myReview.text}</Text>}
                 </Box>
                 <Button
                   size="sm"
@@ -285,7 +286,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
                     <Icon
                       as={LuStar}
                       boxSize="24px"
-                      color={s <= (hoverRating || reviewRating) ? 'yellow.400' : 'gray.300'}
+                      color={s <= (hoverRating || reviewRating) ? 'jam.400' : 'jam.50'}
                       fill={s <= (hoverRating || reviewRating) ? 'currentColor' : 'none'}
                       transition="color 0.1s"
                     />
@@ -300,7 +301,7 @@ function Reviews({ profileUserId, canReview, onProfileUpdate }) {
                 mb={2}
               />
               <Flex justify="space-between" align="center">
-                <Text fontSize="xs" color="gray.500">{reviewText.length}/300</Text>
+                <Text fontSize="xs" color="jam.textMuted">{reviewText.length}/300</Text>
                 <Button
                   size="sm"
                   variant="jam"

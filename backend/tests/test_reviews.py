@@ -1,10 +1,16 @@
+# AI Generated Tests - Reviewed by sepej-osu 2026-05-10
+# All tests are passing as of 2026-05-10
+
 import os
+import sys
 from pathlib import Path
 import pytest
 
-# Set working directory to backend folder
+# Set working directory to backend folder and add it to sys.path
 backend_dir = Path(__file__).parent.parent
 os.chdir(backend_dir)
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
 
 # Clear the settings cache BEFORE importing main
 from config import get_settings

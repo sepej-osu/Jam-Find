@@ -7,6 +7,7 @@ import {
   Grid,
   GridItem,
   Button,
+  IconButton,
   Flex,
   Badge,
   Icon,
@@ -164,7 +165,7 @@ function Profile() {
                         key={s}
                         as={LuStar}
                         boxSize="14px"
-                        color={s <= Math.round(profile.averageRating) ? 'yellow.400' : 'gray.300'}
+                        color={s <= Math.round(profile.averageRating) ? 'jam.400' : 'jam.50'}
                         fill={s <= Math.round(profile.averageRating) ? 'currentColor' : 'none'}
                       />
                     ))}
@@ -215,7 +216,7 @@ function Profile() {
                 </WrapItem>
               ))
             ) : (
-              <Text fontSize="md" color="gray.600">No instruments listed</Text>
+              <Text fontSize="md" color="jam.textMuted">No instruments listed</Text>
             )}
           </Wrap>
         </Box>
@@ -229,7 +230,7 @@ function Profile() {
                 </Badge>
               ))
             ) : (
-              <Text fontSize="md" color="gray.600">No genres listed</Text>
+              <Text fontSize="md" color="jam.textMuted">No genres listed</Text>
             )}
           </Flex>
         </Box>
@@ -318,7 +319,7 @@ function Profile() {
               )}
             </Box>
           ) : (
-            <Text fontSize="md" color="gray.600">No music samples uploaded</Text>
+            <Text fontSize="md" color="jam.textMuted">No music samples uploaded</Text>
           )}
         </Box>
       </GridItem>

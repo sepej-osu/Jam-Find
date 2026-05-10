@@ -59,7 +59,7 @@ const config = defineConfig({
           p: "15px",
           borderWidth: "1px",
           borderRadius: "10px",
-          shadow: "lg",
+          shadow: "xs",
           bg: "jam.bg",
         },
       },

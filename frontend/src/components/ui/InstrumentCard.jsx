@@ -6,12 +6,9 @@ function InstrumentCard({ instrument, w }) {
   return (
     <Box
       p={3}
-      borderWidth="1px"
-      borderRadius="md"
-      bg="white"
       minW="200px"
       w={w}
-      boxShadow="sm"
+      layerStyle="card"
     >
       <Flex align="center" mb={2}>
         <Icon as={getInstrumentIcon(instrument.name)} boxSize={5} mr={2} color="black" />
