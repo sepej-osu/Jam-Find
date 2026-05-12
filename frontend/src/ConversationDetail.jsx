@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Box, Button, Center, Heading, HStack, Spinner, Text, VStack } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
@@ -19,15 +19,8 @@ function ConversationDetail() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
 
-  // callback ref for the last message element to efficiently scroll into view
-  const lastMessageRef = (el) => {
-    if (!el) return;
-    try {
-      el.scrollIntoView({ behavior: 'auto', block: 'end' });
-    } catch (e) {
-      /* ignore */
-    }
-  };
+  // ref for the last message element
+  const lastMessageRef = useRef(null);
 
   // chat height grows from 50vh up to 75vh as message count increases
   const chatHeight = `${Math.min(75, 50 + messages.length * 0.5)}vh`;
@@ -98,6 +91,17 @@ function ConversationDetail() {
       unsubscribeMessages();
     };
   }, [conversationId]);
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (lastMessageRef.current && messages.length > 0) {
+      try {
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }, [messages]);
 
   // we find the ID of the other participant in the conversation by looking at the participantIds array
   const otherParticipantId = conversation?.participantIds?.find(
