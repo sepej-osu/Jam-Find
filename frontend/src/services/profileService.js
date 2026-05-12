@@ -71,7 +71,30 @@ const profileService = {
 
 
   deleteProfile: async (userId) => {
-    // TODO: Implement the delete profile logic using the API endpoint for deleting profiles.
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('No user logged in');
+      }
+      const token = await user.getIdToken();
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles/${userId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+
+      // 204 No Content responses don't have a body, so don't try to parse JSON
+      return null;
+    } catch (error) {
+      console.error('Failed to delete profile:', error);
+      throw new Error('Failed to delete profile');
+    }
   }
 };
 

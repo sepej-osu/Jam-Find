@@ -5,6 +5,7 @@ from models import ProfileCreate, ProfileUpdate, ProfileResponse
 from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
+from firebase_admin import auth
 from auth import get_current_user, verify_user_access
 from utils.location import resolve_location_from_zip
 
@@ -213,7 +214,37 @@ async def delete_profile(
                 detail=f"Profile not found for userId: {user_id}"
             )
         
+        # Mark all reviews written by this user as deleted (preserve ratings but show "Deleted User")
+        reviews_ref = db.collection("reviews")
+        user_reviews = reviews_ref.where(
+            filter=FieldFilter("reviewerId", "==", user_id)
+        ).stream()
+        
+        for review_doc in user_reviews:
+            review_doc.reference.update({
+                "isReviewerDeleted": True,
+                "reviewerFirstName": "Deleted",
+                "reviewerLastName": "User",
+                "reviewerProfilePicUrl": None,
+            })
+        
+        # Delete profile picture from storage if it exists
+        from firebase_admin import storage
+        bucket = storage.bucket()
+        profile_pic_path = f"profile_pictures/{user_id}"
+        try:
+            blob = bucket.blob(profile_pic_path)
+            if blob.exists():
+                blob.delete()
+        except Exception:
+            pass  # If storage delete fails, continue with profile deletion
+        
+        # Delete from Firestore
         profiles_ref.document(user_id).delete()
+        
+        # Delete Firebase Auth account
+        auth.delete_user(user_id)
+        
         return None 
     except HTTPException:
         raise
