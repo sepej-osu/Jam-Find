@@ -81,10 +81,12 @@ function Messages() {
                 layerStyle="card"
                 cursor="pointer"
                 _hover={{ bg: 'gray.50' }}
+                data-testid="conversation-card"
+                data-conversation-id={conversation.conversationId}
                 onClick={() => navigate(`/messages/${conversation.conversationId}`)}
               >
                 
-                <Text fontWeight="semibold" color="jam.text">
+                <Text fontWeight="semibold" color="jam.text" data-testid="conversation-name">
                   {getConversationDisplayName(conversation)}
                 </Text>
                 {/* we show a preview of the last message in the conversation. 
