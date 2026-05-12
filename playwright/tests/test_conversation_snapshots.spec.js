@@ -38,10 +38,11 @@ const openFirstConversation = async (page) => {
   const firstCard = page.locator('[data-testid="conversation-card"]').first();
   await expect(firstCard).toBeVisible();
   const name = (await firstCard.getByTestId('conversation-name').innerText()).trim();
-  await firstCard.click();
-  await page.waitForURL(/\/messages\/.+/);
+  // Read the conversation ID BEFORE clicking, since the element will be detached after navigation
   const conversationId = (await firstCard.getAttribute('data-conversation-id'))
     || page.url().split('/messages/')[1];
+  await firstCard.click();
+  await page.waitForURL(/\/messages\/.+/);
   return { conversationId, name };
 };
 
