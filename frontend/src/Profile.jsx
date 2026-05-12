@@ -7,6 +7,7 @@ import {
   Grid,
   GridItem,
   Button,
+  IconButton,
   Flex,
   Badge,
   Icon,
@@ -15,12 +16,12 @@ import {
   WrapItem,
   Spinner,
   Alert,
-  IconButton
 } from '@chakra-ui/react';
 import InstrumentCard from './components/ui/InstrumentCard';
 import ReactPlayer from 'react-player';
+import Reviews from './components/Reviews';
+import { LuChevronLeft, LuChevronRight, LuStar } from 'react-icons/lu';
 import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
-import { LuChevronLeft, LuChevronRight } from 'react-icons/lu';
 import { CgProfile } from 'react-icons/cg';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
@@ -153,7 +154,27 @@ function Profile() {
       <GridItem colSpan={3} textAlign="left">
         <Box mb={4}>
           <Flex align="center" justify="space-between" pr={4}>
-            <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
+            <Box>
+              <Heading size="2xl">{profile?.firstName} {profile?.lastName}</Heading>
+              {profile?.reviewCount > 0 && (
+                <Flex align="center" gap={1} mt={1}>
+                  <Flex>
+                    {[1,2,3,4,5].map((s) => (
+                      <Icon
+                        key={s}
+                        as={LuStar}
+                        boxSize="14px"
+                        color={s <= Math.round(profile.averageRating) ? 'jam.400' : 'jam.50'}
+                        fill={s <= Math.round(profile.averageRating) ? 'currentColor' : 'none'}
+                      />
+                    ))}
+                  </Flex>
+                  <Text fontSize="sm" color="gray.600">
+                    {profile.averageRating?.toFixed(1)} ({profile.reviewCount} {profile.reviewCount === 1 ? 'review' : 'reviews'})
+                  </Text>
+                </Flex>
+              )}
+            </Box>
             {canMessageUser && (
               <Button
                 size="sm"
@@ -194,7 +215,7 @@ function Profile() {
                 </WrapItem>
               ))
             ) : (
-              <Text fontSize="md" color="gray.600">No instruments listed</Text>
+              <Text fontSize="md" color="jam.textMuted">No instruments listed</Text>
             )}
           </Wrap>
         </Box>
@@ -208,7 +229,7 @@ function Profile() {
                 </Badge>
               ))
             ) : (
-              <Text fontSize="md" color="gray.600">No genres listed</Text>
+              <Text fontSize="md" color="jam.textMuted">No genres listed</Text>
             )}
           </Flex>
         </Box>
@@ -297,9 +318,17 @@ function Profile() {
               )}
             </Box>
           ) : (
-            <Text fontSize="md" color="gray.600">No music samples uploaded</Text>
+            <Text fontSize="md" color="jam.textMuted">No music samples uploaded</Text>
           )}
         </Box>
+      </GridItem>
+
+      <GridItem colSpan={5} mt={6}>
+        <Reviews
+          profileUserId={profileUserId}
+          canReview={canMessageUser}
+          onProfileUpdate={setProfile}
+        />
       </GridItem>
     </Grid>
   );
