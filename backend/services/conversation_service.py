@@ -149,4 +149,50 @@ async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> 
         raise
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+async def refresh_participant_snapshots(conversation_id: str, current_user_id: str) -> ConversationResponse:
+    """
+    This function takes a conversation Id and the current user ID and updates the participant snapshots for
+    all participants in the conversation by fetching their latest profile data. Returns the updated conversation
+    response model.
+    """
+    try:
+        db = get_db()
+        convo_ref = db.collection(COLLECTION_NAME).document(conversation_id)
+        doc = convo_ref.get()
+        if not doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+
+        data = doc.to_dict()
+        participant_ids = data.get("participant_ids", [])
+
+        if current_user_id not in participant_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a participant in this conversation")
+
+        # Rebuild snapshots from profiles
+        new_snapshots = {}
+        for pid in participant_ids:
+            profile_doc = db.collection("profiles").document(pid).get()
+            if profile_doc.exists:
+                new_snapshots[pid] = _build_profile_snapshot(profile_doc.to_dict())
+            # If a profile is missing, we set the values to None. This allows the frontend to handle
+            # deleted profiles gracefully
+            else:
+                new_snapshots[pid] = {"firstName": None, "lastName": None, "profilePicUrl": None}
+
+        now = datetime.now(timezone.utc)
+        convo_ref.update({
+            "participant_snapshots": new_snapshots,
+            "updatedAt": now
+        })
+
+        # Return updated conversation
+        updated_doc = convo_ref.get()
+        return ConversationResponse(**updated_doc.to_dict(), conversation_id=updated_doc.id)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     

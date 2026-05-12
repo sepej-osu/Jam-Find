@@ -55,21 +55,6 @@ function ConversationDetail() {
     // callback functions for the conversation listener
     const handleConversationSnapshot = (conversationData) => {
       setConversation(conversationData);
-      // lazy fetch the other participant's live profile for the detail view
-      (async () => {
-        try {
-          const otherId = conversationData?.participantIds?.find((id) => id !== currentUser?.uid);
-          if (!otherId) {
-            setOtherParticipantProfile(null);
-            return;
-          }
-          const p = await profileService.getProfile(otherId);
-          setOtherParticipantProfile(p);
-        } catch (e) {
-          // swallow errors — we can still show the denormalized snapshot
-          setOtherParticipantProfile(null);
-        }
-      })();
       conversationLoaded = true;
       markLoaded();
     };
@@ -122,6 +107,60 @@ function ConversationDetail() {
   const snapshot = otherParticipantId
     ? conversation?.participantSnapshots?.[otherParticipantId]
     : null;
+    
+
+  useEffect(() => {
+    // cancelled flag to prevent state updates on unmounted component if user
+    // navigates away before the profile fetch completes
+    let cancelled = false;
+
+    // this function gets the other users profile to verify the participant
+    // snapht data is up to date
+    const fetchOtherParticipantProfile = async () => {
+      if (!otherParticipantId) {
+        setOtherParticipantProfile(null);
+        return;
+      }
+
+      try {
+        // we get the other users profile to check their name and profile picture.
+        const p = await profileService.getProfile(otherParticipantId);
+        if (!cancelled) {
+          setOtherParticipantProfile(p);
+          // Compare actual snapshot-relevant fields. Sync only if they've changed.
+          const stored = conversation?.participantSnapshots?.[otherParticipantId];
+          const storedFirst = stored?.firstName || '';
+          const storedLast = stored?.lastName || '';
+          const storedPic = stored?.profilePicUrl || '';
+
+          const liveFirst = p?.firstName || '';
+          const liveLast = p?.lastName || '';
+          const livePic = p?.profilePicUrl || '';
+
+          if (
+            storedFirst !== liveFirst ||
+            storedLast !== liveLast ||
+            storedPic !== livePic
+          ) {
+            // call the syncing endpoint but don't wait for it to complete so that it can
+            // do its work in the background
+            void conversationService.syncSnapshots(conversationId);
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          // if the fetch fails, we can still just show the stale snapshot data
+          setOtherParticipantProfile(null);
+        }
+      }
+    };
+    fetchOtherParticipantProfile();
+
+    return () => {
+      cancelled = true; // set to true to prevent state updates after unmounting
+    };
+  }, [otherParticipantId]); // we only re-fetch the other participant's profile if their ID changes, which should be rare since most conversations will be with the same person
+
   // Prefer freshly-fetched profile for the detail view; fall back to denormalized snapshot.
   const otherParticipantName = (() => {
     if (otherParticipantProfile) {

@@ -308,6 +308,37 @@ createConversation: async (recipientId) => {
       throw error;
     }
   }
+,
+
+  // Trigger server-side snapshot rebuild for a conversation.
+  // used when the snapshot data is stale and needs to be updated
+  syncSnapshots: async (conversationId) => {
+    try {
+      const token = await getAuthToken();
+      // We send a PATCH request to the sync-snapshots endpoint for the conversation.
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations/${conversationId}/sync-snapshots`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to sync snapshots';
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) errorMsg = errorData.detail;
+        } catch {}
+        throw new Error(errorMsg);
+      }
+      // If the sync request is successful, we parse and return the response as JSON.
+      return await response.json();
+    } catch (error) {
+      console.error('Failed to sync snapshots:', error);
+      throw error;
+    }
+  }
 };
 
 export default conversationService;
