@@ -119,7 +119,7 @@ function ConversationDetail() {
     let cancelled = false;
 
     // this function gets the other users profile to verify the participant
-    // snapht data is up to date
+    // snapshot data is up to date
     const fetchOtherParticipantProfile = async () => {
       if (!otherParticipantId) {
         setOtherParticipantProfile(null);
@@ -148,7 +148,9 @@ function ConversationDetail() {
           ) {
             // call the syncing endpoint but don't wait for it to complete so that it can
             // do its work in the background
-            void conversationService.syncSnapshots(conversationId);
+            void conversationService.syncSnapshots(conversationId).catch((error) => {
+              console.error('Failed to sync conversation snapshots', error);
+            });
           }
         }
       } catch (e) {
