@@ -22,8 +22,7 @@ function ConversationDetail() {
   // ref for the last message element
   const lastMessageRef = useRef(null);
 
-  // chat height grows from 50vh up to 75vh as message count increases
-  const chatHeight = `${Math.min(75, 50 + messages.length * 0.5)}vh`;
+  const chatHeight = '75vh';
 
   useEffect(() => {
     if (!conversationId) {
