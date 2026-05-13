@@ -41,7 +41,8 @@ function ProfileMenu() {
     try {
       await profileService.deleteProfile(currentUser.uid);
       toaster.create({ title: 'Account deleted successfully', status: 'success', duration: 3000 });
-      navigate('/login');
+      // After deleting the profile, sign out the user
+      await signOut(auth);
     } catch (err) {
       console.error('Error deleting account:', err);
       toaster.create({ 

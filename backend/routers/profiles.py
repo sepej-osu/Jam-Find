@@ -215,35 +215,46 @@ async def delete_profile(
             )
         
         # Mark all reviews written by this user as deleted (preserve ratings but show "Deleted User")
-        reviews_ref = db.collection("reviews")
-        user_reviews = reviews_ref.where(
-            filter=FieldFilter("reviewerId", "==", user_id)
-        ).stream()
-        
-        for review_doc in user_reviews:
-            review_doc.reference.update({
-                "isReviewerDeleted": True,
-                "reviewerFirstName": "Deleted",
-                "reviewerLastName": "User",
-                "reviewerProfilePicUrl": None,
-            })
+        try:
+            reviews_ref = db.collection("reviews")
+            user_reviews = list(reviews_ref.where(
+                filter=FieldFilter("reviewerId", "==", user_id)
+            ).stream())
+            
+            batch = db.batch()
+            for review_doc in user_reviews:
+                batch.update(review_doc.reference, {
+                    "isReviewerDeleted": True,
+                    "reviewerFirstName": "Deleted",
+                    "reviewerLastName": "User",
+                    "reviewerProfilePicUrl": None,
+                })
+            batch.commit()
+        except Exception as e:
+            print(f"Warning: Failed to mark reviews as deleted for user {user_id}: {str(e)}")
+            # Continue with profile deletion even if review marking fails
         
         # Delete profile picture from storage if it exists
-        from firebase_admin import storage
-        bucket = storage.bucket()
-        profile_pic_path = f"profile_pictures/{user_id}"
         try:
+            from firebase_admin import storage
+            bucket = storage.bucket()
+            profile_pic_path = f"profile_pictures/{user_id}"
             blob = bucket.blob(profile_pic_path)
             if blob.exists():
                 blob.delete()
-        except Exception:
-            pass  # If storage delete fails, continue with profile deletion
+        except Exception as e:
+            print(f"Warning: Failed to delete profile picture for user {user_id}: {str(e)}")
+            # If storage delete fails, continue with profile deletion
         
         # Delete from Firestore
         profiles_ref.document(user_id).delete()
         
         # Delete Firebase Auth account
-        auth.delete_user(user_id)
+        try:
+            auth.delete_user(user_id)
+        except Exception as e:
+            print(f"Warning: Failed to delete Firebase Auth user {user_id}: {str(e)}")
+            # Even if auth deletion fails, profile is already deleted from Firestore
         
         return None 
     except HTTPException:
