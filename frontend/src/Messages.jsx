@@ -78,6 +78,7 @@ function Messages() {
             {conversations.map((conversation) => (
               <Box
                 key={conversation.conversationId}
+                name="conversation-card"
                 layerStyle="card"
                 cursor="pointer"
                 _hover={{ bg: 'gray.50' }}

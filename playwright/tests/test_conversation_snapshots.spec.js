@@ -10,6 +10,7 @@ const user1 = {
 const user2 = {
   email: process.env.TEST_USER_EMAIL_2,
   password: process.env.TEST_USER_PASSWORD_2,
+  id: process.env.TEST_USER_ID_2,
 };
 
 const requireEnv = (value, name) => {
@@ -33,25 +34,20 @@ const logout = async (page) => {
 };
 
 const openFirstConversation = async (page) => {
-  await page.getByRole('link', { name: 'Messages' }).click();
-  await expect(page.getByRole('heading', { name: 'Messages' })).toBeVisible();
-  const firstCard = page.locator('[data-testid="conversation-card"]').first();
-  await expect(firstCard).toBeVisible();
-  const name = (await firstCard.getByTestId('conversation-name').innerText()).trim();
-  // Read the conversation ID BEFORE clicking, since the element will be detached after navigation
-  const conversationId = (await firstCard.getAttribute('data-conversation-id'))
-    || page.url().split('/messages/')[1];
-  await firstCard.click();
-  await page.waitForURL(/\/messages\/.+/);
-  return { conversationId, name };
+    await page.goto(`${APP_URL}/profile/${user2.id}`);
+    await page.getByRole('button', { name: 'Message' }).click();
+    await page.waitForURL(/\/messages\/.+/);
+    const conversationId = page.url().split('/messages/')[1];
+    return { conversationId };
 };
+
 
 test('conversation snapshot refreshes after profile rename', async ({ page }) => {
   requireEnv(user1.email, 'TEST_USER_EMAIL_1');
   requireEnv(user1.password, 'TEST_USER_PASSWORD_1');
   requireEnv(user2.email, 'TEST_USER_EMAIL_2');
   requireEnv(user2.password, 'TEST_USER_PASSWORD_2');
-
+  requireEnv(user2.id, 'TEST_USER_ID_2');
   await login(page, user1);
   const { conversationId } = await openFirstConversation(page);
   await logout(page);
@@ -65,13 +61,19 @@ test('conversation snapshot refreshes after profile rename', async ({ page }) =>
   await page.getByLabel('First Name').fill(newFirst);
   await page.getByLabel('Last Name').fill(newLast);
   await page.getByRole('button', { name: 'Update' }).click();
+  await expect(page.getByText('Profile updated successfully!')).toBeVisible();
+  console.log('Updated profile name to:', newFullName);
   await logout(page);
 
   await login(page, user1);
   await page.goto(`${APP_URL}/messages/${conversationId}`);
-  await page.getByText(newFullName);
+  await page.waitForTimeout(1000); // wait for the snapshot to refresh in the UI
+  await page.getByRole('button', { name: 'Back' }).click();
+  await page.waitForTimeout(1000);
+  await expect(page.getByText(newFullName)).toBeVisible();
 
   await logout(page);
   
 
 });
+
