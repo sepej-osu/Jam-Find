@@ -28,7 +28,9 @@ def initialize_firebase():
                     f"Firebase credentials file not found at {settings.FIREBASE_CREDENTIALS_PATH}"
                 )
             cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
-            firebase_admin.initialize_app(cred)
+            firebase_admin.initialize_app(cred,{
+                    "storageBucket": settings.GOOGLE_STORAGE_BUCKET
+            })
     
     _db = firestore.client()
     return _db

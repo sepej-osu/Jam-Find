@@ -5,7 +5,7 @@ from models import ProfileCreate, ProfileUpdate, ProfileResponse
 from firebase_config import get_db
 from google.cloud.firestore_v1.base_query import FieldFilter
 from google.cloud import exceptions as gcp_exceptions
-from firebase_admin import auth
+from firebase_admin import auth, storage
 from auth import get_current_user, verify_user_access
 from utils.location import resolve_location_from_zip
 
@@ -174,8 +174,6 @@ async def update_profile(
         # Update the document in Firestore
         profiles_ref.document(user_id).update(update_data)
 
-    #TODO: update lazy update to conversation snapshots whnever a user updates
-    #  their name or profile picture.
         
         # Merge data for the response
         existing_data.update(update_data)
@@ -195,80 +193,87 @@ async def update_profile(
         )
 
 
+def _mark_reviews_deleted(db, user_id: str) -> None:
+    try:
+        reviews_ref = db.collection("reviews")
+        user_reviews = list(reviews_ref.where(
+            filter=FieldFilter("reviewerId", "==", user_id)
+        ).stream())
+        batch = db.batch()
+        for review_doc in user_reviews:
+            batch.update(review_doc.reference, {
+                "isReviewerDeleted": True,
+                "reviewerFirstName": "Deleted",
+                "reviewerLastName": "User",
+                "reviewerProfilePicUrl": None,
+            })
+        batch.commit()
+    except Exception as e:
+        print(f"Warning: Failed to mark reviews as deleted for user {user_id}: {str(e)}")
+
+
+def _delete_storage_files(user_id: str) -> None:
+    if not user_id:
+        return
+
+    try:
+        bucket = storage.bucket()
+        blobs = list(bucket.list_blobs(prefix=f"users/{user_id}/"))
+        
+        if not blobs:
+            return # Nothing to delete, save the effort
+
+        # Delete all blobs found under the prefix
+        bucket.delete_blobs(blobs) 
+        
+    except Exception as e:
+        print(f"Error: {e}")
+
+
 @router.delete("/profiles/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_profile(
     user_id: str,
     current_user_id: str = Depends(get_current_user)
 ):
-    # Verify user can only delete their own profile
     verify_user_access(current_user_id, user_id)
 
     try:
         db = get_db()
         profiles_ref = db.collection(COLLECTION_NAME)
 
-        profile_doc = profiles_ref.document(user_id).get()
-        if not profile_doc.exists:
+        if not profiles_ref.document(user_id).get().exists:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Profile not found for userId: {user_id}"
             )
-        
-        # Mark all reviews written by this user as deleted (preserve ratings but show "Deleted User")
-        try:
-            reviews_ref = db.collection("reviews")
-            user_reviews = list(reviews_ref.where(
-                filter=FieldFilter("reviewerId", "==", user_id)
-            ).stream())
-            
-            batch = db.batch()
-            for review_doc in user_reviews:
-                batch.update(review_doc.reference, {
-                    "isReviewerDeleted": True,
-                    "reviewerFirstName": "Deleted",
-                    "reviewerLastName": "User",
-                    "reviewerProfilePicUrl": None,
-                })
-            batch.commit()
-        except Exception as e:
-            print(f"Warning: Failed to mark reviews as deleted for user {user_id}: {str(e)}")
-            # Continue with profile deletion even if review marking fails
-        
-        # Delete profile picture from storage if it exists
-        try:
-            from firebase_admin import storage
-            bucket = storage.bucket()
-            profile_pic_path = f"profile_pictures/{user_id}"
-            blob = bucket.blob(profile_pic_path)
-            if blob.exists():
-                blob.delete()
-        except Exception as e:
-            print(f"Warning: Failed to delete profile picture for user {user_id}: {str(e)}")
-            # If storage delete fails, continue with profile deletion
-        
-        # Delete from Firestore
-        profiles_ref.document(user_id).delete()
-        
-        # Delete Firebase Auth account
+
+        # Best-effort cleanup (non-critical)
+        _mark_reviews_deleted(db, user_id)
+        _delete_storage_files(user_id)
+
+        # Critical deletions (order matters)
         try:
             auth.delete_user(user_id)
         except Exception as e:
-            print(f"Warning: Failed to delete Firebase Auth user {user_id}: {str(e)}")
-            # Even if auth deletion fails, profile is already deleted from Firestore
-        
-        return None 
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete auth account: {str(e)}"
+            )
+
+        try:
+            profiles_ref.document(user_id).delete()
+        except Exception as e:
+            print(f"CLEANUP NEEDED: Auth deleted but profile remains for {user_id}: {str(e)}")
+
+        return None
+
     except HTTPException:
         raise
     except gcp_exceptions.GoogleCloudError as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Database error: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database error: {str(e)}")
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"An error occurred while deleting profile: {str(e)}"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"An error occurred: {str(e)}")
+
 
 @router.get("/profiles", response_model=List[ProfileResponse])
 async def list_profiles(

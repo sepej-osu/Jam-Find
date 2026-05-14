@@ -35,14 +35,15 @@ function ProfileMenu() {
   };
 
   const handleDeleteAccount = async () => {
-    setDeleteDialogOpen(false);
-    setDeleting(true);
+    setDeleteDialogOpen(false); // Close the dialog immediately
+    setDeleting(true); // Show deleting state while processing the account deletion
     
     try {
       await profileService.deleteProfile(currentUser.uid);
       toaster.create({ title: 'Account deleted successfully', status: 'success', duration: 3000 });
       // After deleting the profile, sign out the user
       await signOut(auth);
+
     } catch (err) {
       console.error('Error deleting account:', err);
       toaster.create({ 
@@ -51,7 +52,7 @@ function ProfileMenu() {
         status: 'error', 
         duration: 5000 
       });
-      setDeleting(false);
+      setDeleting(false); // Reset deleting state if there was an error
     }
   };
 
@@ -96,6 +97,7 @@ function ProfileMenu() {
               <Menu.Item value="logout" onClick={handleLogout} color="red.500">
                 Logout
               </Menu.Item>
+              <Menu.Separator />
               <Menu.Item value="delete-account" onClick={() => setDeleteDialogOpen(true)} color="red.600">
                 Delete Account
               </Menu.Item>

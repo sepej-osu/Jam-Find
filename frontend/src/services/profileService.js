@@ -77,19 +77,19 @@ const profileService = {
         throw new Error('No user logged in');
       }
       const token = await user.getIdToken();
-
+      // we send the API request to delete the profile
       const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/profiles/${userId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
-
+      // If the profile doesn't exist, we can consider it "deleted" and return null.
       if (!response.ok) {
         throw new Error(`Error: ${response.status}`);
       }
 
-      // 204 No Content responses don't have a body, so don't try to parse JSON
+      // If the deletion is successful, we return null to indicate that the profile no longer exists.
       return null;
     } catch (error) {
       console.error('Failed to delete profile:', error);
