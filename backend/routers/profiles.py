@@ -12,6 +12,7 @@ from utils.location import resolve_location_from_zip
 router = APIRouter()
 
 COLLECTION_NAME = "profiles"
+REVIEWS_COLLECTION_NAME = "reviews"
 
 @router.post("/profiles", response_model=ProfileResponse, status_code=status.HTTP_201_CREATED)
 async def create_profile(
@@ -195,11 +196,12 @@ async def update_profile(
 
 def _mark_reviews_deleted(db, user_id: str) -> None:
     try:
-        reviews_ref = db.collection("reviews")
-        user_reviews = list(reviews_ref.where(
+        reviews_ref = db.collection(REVIEWS_COLLECTION_NAME)
+        user_reviews = reviews_ref.where(
             filter=FieldFilter("reviewerId", "==", user_id)
-        ).stream())
+        ).stream()
         batch = db.batch()
+        counter = 0
         for review_doc in user_reviews:
             batch.update(review_doc.reference, {
                 "isReviewerDeleted": True,
@@ -207,7 +209,14 @@ def _mark_reviews_deleted(db, user_id: str) -> None:
                 "reviewerLastName": "User",
                 "reviewerProfilePicUrl": None,
             })
-        batch.commit()
+            counter += 1
+            if counter % 500 == 0:
+                batch.commit()
+                batch = db.batch()
+                
+        if counter % 500 != 0:
+            batch.commit()
+        
     except Exception as e:
         print(f"Warning: Failed to mark reviews as deleted for user {user_id}: {str(e)}")
 
@@ -221,11 +230,11 @@ def _delete_storage_files(user_id: str) -> None:
         blobs = list(bucket.list_blobs(prefix=f"users/{user_id}/"))
         
         if not blobs:
-            return # Nothing to delete, save the effort
+            return 
 
         # Delete all blobs found under the prefix
         bucket.delete_blobs(blobs) 
-        
+    # we catch and alog issues but continue with deletion
     except Exception as e:
         print(f"Error: {e}")
 
@@ -247,11 +256,11 @@ async def delete_profile(
                 detail=f"Profile not found for userId: {user_id}"
             )
 
-        # Best-effort cleanup (non-critical)
+        # Best-effort cleanup 
         _mark_reviews_deleted(db, user_id)
         _delete_storage_files(user_id)
 
-        # Critical deletions (order matters)
+        # The order of the delete operations matter to prevent orphaned profiles.
         try:
             auth.delete_user(user_id)
         except Exception as e:
@@ -266,9 +275,10 @@ async def delete_profile(
             print(f"CLEANUP NEEDED: Auth deleted but profile remains for {user_id}: {str(e)}")
 
         return None
-
+    # Here we catch and re-raise HTTPExceptions to ensure they are returned as intended
     except HTTPException:
         raise
+    # For any other exceptions, we return a 503 to indicate a service issue, but we log the details for debugging
     except gcp_exceptions.GoogleCloudError as e:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=f"Database error: {str(e)}")
     except Exception as e:
