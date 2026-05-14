@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Box, Button, Center, Heading, HStack, Spinner, Text, VStack } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
 import conversationService from './services/conversationService';
+import profileService from './services/profileService';
 import InputField from './components/InputField';
 
 function ConversationDetail() {
@@ -12,10 +13,16 @@ function ConversationDetail() {
 
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [otherParticipantProfile, setOtherParticipantProfile] = useState(null);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+
+  // ref for the last message element
+  const lastMessageRef = useRef(null);
+
+  const chatHeight = '75vh';
 
   useEffect(() => {
     if (!conversationId) {
@@ -84,17 +91,88 @@ function ConversationDetail() {
     };
   }, [conversationId]);
 
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (lastMessageRef.current && messages.length > 0) {
+      try {
+        lastMessageRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }, [messages]);
+
   // we find the ID of the other participant in the conversation by looking at the participantIds array
-  const otherParticipantId = conversation?.participantIds.find(
+  const otherParticipantId = conversation?.participantIds?.find(
     (id) => id !== currentUser?.uid
   );
  // use the ID to get their snapshot object which has their denormalized name.
   const snapshot = otherParticipantId
     ? conversation?.participantSnapshots?.[otherParticipantId]
     : null;
-  // we construct the other participant's name by combining their first and last name from the snapshot.
-  const otherParticipantName =
-    `${snapshot?.firstName || ''} ${snapshot?.lastName || ''}`.trim() || 'Conversation';
+    
+
+  useEffect(() => {
+    // cancelled flag to prevent state updates on unmounted component if user
+    // navigates away before the profile fetch completes
+    let cancelled = false;
+
+    // this function gets the other users profile to verify the participant
+    // snapshot data is up to date
+    const fetchOtherParticipantProfile = async () => {
+      if (!otherParticipantId) {
+        setOtherParticipantProfile(null);
+        return;
+      }
+
+      try {
+        // we get the other users profile to check their name and profile picture.
+        const p = await profileService.getProfile(otherParticipantId);
+        if (!cancelled) {
+          setOtherParticipantProfile(p);
+          // Compare actual snapshot-relevant fields. Sync only if they've changed.
+          const stored = conversation?.participantSnapshots?.[otherParticipantId];
+          const storedFirst = stored?.firstName || '';
+          const storedLast = stored?.lastName || '';
+          const storedPic = stored?.profilePicUrl || '';
+
+          const liveFirst = p?.firstName || '';
+          const liveLast = p?.lastName || '';
+          const livePic = p?.profilePicUrl || '';
+
+          if (
+            storedFirst !== liveFirst ||
+            storedLast !== liveLast ||
+            storedPic !== livePic
+          ) {
+            // call the syncing endpoint but don't wait for it to complete so that it can
+            // do its work in the background
+            void conversationService.syncSnapshots(conversationId).catch((error) => {
+              console.error('Failed to sync conversation snapshots', error);
+            });
+          }
+        }
+      } catch (e) {
+        if (!cancelled) {
+          // if the fetch fails, we can still just show the stale snapshot data
+          setOtherParticipantProfile(null);
+        }
+      }
+    };
+    fetchOtherParticipantProfile();
+
+    return () => {
+      cancelled = true; // set to true to prevent state updates after unmounting
+    };
+  }, [otherParticipantId]); // we only re-fetch the other participant's profile if their ID changes, which should be rare since most conversations will be with the same person
+
+  // Prefer freshly-fetched profile for the detail view; fall back to denormalized snapshot.
+  const otherParticipantName = (() => {
+    if (otherParticipantProfile) {
+      return `${otherParticipantProfile.firstName || ''} ${otherParticipantProfile.lastName || ''}`.trim() || 'Conversation';
+    }
+    return `${snapshot?.firstName || ''} ${snapshot?.lastName || ''}`.trim() || 'Conversation';
+  })();
 
   const handleSend = async () => {
     // prevent sending empty or multiple messages at the same time
@@ -122,7 +200,7 @@ function ConversationDetail() {
         <Heading size="md" cursor="pointer" onClick={() => navigate(`/profile/${otherParticipantId}`)}>{otherParticipantName}</Heading>
       </HStack>
 
-      <Box layerStyle="card" height="800px" display="flex" flexDirection="column">
+      <Box layerStyle="card" height={chatHeight} display="flex" flexDirection="column">
         {loading && (
           <Center py={8}>
             <Spinner />
@@ -132,27 +210,31 @@ function ConversationDetail() {
         {error && <Text color="red.500" mb={3}>{error}</Text>}
         
         {!loading && (
-          <VStack align="stretch" gap={3} mb={4} flex="1" overflowY="auto">
-            {messages.length === 0 && <Text color="jam.textMuted">No messages yet.</Text>}
-            {/* Here we map through the messages array to display each conversation message.
-            We change the alignment and color based on whether the message is sent by the current user. */}
-            {messages.map((message) => {
-              const mine = message.senderId === currentUser?.uid;
-              return (
-                <Box
-                  key={message.messageId}
-                  alignSelf={mine ? 'flex-end' : 'flex-start'}
-                  bg={mine ? 'jam.50' : 'jam.400'}
-                  borderRadius="md"
-                  px={3}
-                  py={2}
-                  maxW="80%"
-                >
-                  <Text whiteSpace="break-spaces">{message.content}</Text>
-                </Box>
-              );
-            })}
-          </VStack>
+          <Box flex="1" mb={4} overflowY="auto">
+            <VStack align="stretch" gap={3} px={3} py={3}>
+              {messages.length === 0 && <Text color="jam.textMuted">No messages yet.</Text>}
+              {/* Here we map through the messages array to display each conversation message.
+              We change the alignment and color based on whether the message is sent by the current user. */}
+              {messages.map((message, idx) => {
+                const mine = message.senderId === currentUser?.uid;
+                const isLast = idx === messages.length - 1;
+                return (
+                  <Box
+                    key={message.messageId}
+                    ref={isLast ? lastMessageRef : undefined}
+                    alignSelf={mine ? 'flex-end' : 'flex-start'}
+                    bg={mine ? 'jam.50' : 'jam.400'}
+                    borderRadius="md"
+                    px={3}
+                    py={2}
+                    maxW="80%"
+                  >
+                    <Text whiteSpace="break-spaces">{message.content}</Text>
+                  </Box>
+                );
+              })}
+            </VStack>
+          </Box>
         )}
 
         <HStack>

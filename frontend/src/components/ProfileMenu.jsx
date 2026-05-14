@@ -78,6 +78,7 @@ function ProfileMenu() {
             py={0}
             my={2}
             w="100%"
+            data-testid="profile-menu-trigger"
           >
             <Box textAlign="center" fontWeight="semibold" color="jam.text" display={{ base: 'none', md: 'block' }} fontSize="lg">
               {fullName}
