@@ -193,6 +193,36 @@ async def update_profile(
             detail=f"An error occurred while updating profile: {str(e)}"
         )
 
+def _delete_targeted_reviews(db, user_id: str):
+
+    try:
+        reviews_ref = db.collection("reviews")
+        # Find all reviews where this user was the recipient/subject
+        query = reviews_ref.where(filter=FieldFilter("reviewedUserId", "==", user_id))
+        docs = query.stream()
+
+
+        batch = db.batch()
+        count = 0
+        
+        for doc in docs:
+            batch.delete(doc.reference)
+            count += 1
+            
+            # Firestore batches have a limit of 500 operations
+            if count >= 500:
+                batch.commit()
+                batch = db.batch()
+                count = 0
+
+        if count > 0:
+            batch.commit()
+            
+        print(f"Successfully deleted reviews targeting user: {user_id}")
+        
+    except Exception as e:
+        print(f"Error deleting targeted reviews: {str(e)}")
+
 
 def _mark_reviews_deleted(db, user_id: str) -> None:
     try:
@@ -258,6 +288,9 @@ async def delete_profile(
 
         # Best-effort cleanup 
         _mark_reviews_deleted(db, user_id)
+
+        _delete_targeted_reviews(db, user_id)
+
         _delete_storage_files(user_id)
 
         # The order of the delete operations matter to prevent orphaned profiles.

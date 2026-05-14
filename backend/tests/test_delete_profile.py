@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 import pytest
-from routers.profiles import _mark_reviews_deleted, _delete_storage_files
+from google.cloud.firestore_v1.base_query import FieldFilter
+from routers.profiles import _mark_reviews_deleted, _delete_storage_files, _delete_targeted_reviews
 
 # tests generated using Google Gemini AI
 
@@ -68,3 +69,48 @@ def test_storage_deletion_execution_and_payload(mock_bucket_func, mock_filenames
     else:
         # Verify that if 0 files were found, delete_blobs was NEVER called
         mock_bucket_instance.delete_blobs.assert_not_called()
+
+
+def test_delete_targeted_reviews_logic_with_mocks():
+    """
+    Verifies the logic for identifying and batch-deleting reviews.
+    Uses mocks to ensure no real network calls are made.
+    """
+    # 1. SETUP: Mock the Firestore DB and its components
+    mock_db = MagicMock()
+    mock_batch = MagicMock()
+    mock_db.batch.return_value = mock_batch
+    
+    # Mock the collection and query
+    mock_query = MagicMock()
+    mock_db.collection.return_value.where.return_value = mock_query
+    
+    # Create mock document snapshots to be "returned" by the stream
+    mock_doc1 = MagicMock()
+    mock_doc1.reference = "ref_to_doc_1"
+    mock_doc2 = MagicMock()
+    mock_doc2.reference = "ref_to_doc_2"
+    
+    mock_query.stream.return_value = [mock_doc1, mock_doc2]
+
+    # 2. EXECUTE
+    test_user_id = "test_user_999"
+    _delete_targeted_reviews(mock_db, test_user_id)
+
+    # 3. VERIFY
+    # Ensure it queried the correct collection with the right filter
+    mock_db.collection.assert_called_with("reviews")
+    where_call = mock_db.collection().where.call_args
+    assert where_call is not None
+    filter_arg = where_call.kwargs.get("filter")
+    assert isinstance(filter_arg, FieldFilter)
+    assert filter_arg.field_path == "reviewedUserId"
+    assert filter_arg.op_string == "=="
+    assert filter_arg.value == test_user_id
+
+    # Verify batch deletions were staged for the references returned
+    mock_batch.delete.assert_any_call("ref_to_doc_1")
+    mock_batch.delete.assert_any_call("ref_to_doc_2")
+    
+    # Verify the batch was committed
+    mock_batch.commit.assert_called()
