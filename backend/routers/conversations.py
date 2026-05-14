@@ -31,3 +31,13 @@ async def get_conversation(
 ):
     return await conversation_service.get_conversation_by_id(conversation_id, current_user_id)
 
+
+@router.patch("/conversations/{conversation_id}/sync-snapshots", response_model=ConversationResponse)
+async def sync_conversation_snapshots(
+    conversation_id: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    """Endpoint to rebuild participant snapshots from canonical profile documents.
+    Caller must be a participant. Returns the updated conversation."""
+    return await conversation_service.refresh_participant_snapshots(conversation_id, current_user_id)
+

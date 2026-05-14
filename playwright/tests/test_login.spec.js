@@ -7,8 +7,8 @@ test('test login and logout', async ({ page }) => {
 
   // Fill in the email and password fields, then click the login button
 
-  const email = process.env.TEST_USER_EMAIL;
-  const password = process.env.TEST_USER_PASSWORD;
+  const email = process.env.TEST_USER_EMAIL_1 || process.env.TEST_USER_EMAIL;
+  const password = process.env.TEST_USER_PASSWORD_1 || process.env.TEST_USER_PASSWORD;
 
   await page.locator('input[name="email"]').fill(email);
   await page.locator('input[name="password"]').fill(password);

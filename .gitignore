@@ -29,6 +29,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# ===== Playwright =====
+playwright-report/
+test-results/
+
 # Script generated files
 .backend.pid
 .frontend.pid
