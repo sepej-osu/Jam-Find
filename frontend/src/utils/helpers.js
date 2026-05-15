@@ -32,7 +32,7 @@ export function getRelativeTime(dateStr) {
 
 import { ACCEPTED_AUDIO_TYPES, checkAudioDuration, safeExt } from '../components/ui/file-upload';
 import { toaster } from '../components/ui/toaster';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../firebase';
 import { v4 as uuidv4 } from 'uuid';
 

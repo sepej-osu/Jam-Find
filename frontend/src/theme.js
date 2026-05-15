@@ -63,6 +63,13 @@ const config = defineConfig({
           bg: "jam.bg",
         },
       },
+      postImage: {
+        value: {
+          width: "150px",
+          height: "110px",
+          marginLeft: "auto",
+        },
+      },
     },
     tokens: {
       colors: {

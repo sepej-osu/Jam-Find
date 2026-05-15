@@ -35,7 +35,8 @@ export const ACCEPTED_AUDIO_TYPES = Object.keys(ACCEPTED_AUDIO_RECORD).join(',')
 
 const TYPE_CONFIG = {
   'profile-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
-  'post-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024 }, // 20 MB input cap
+  'post-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 5 * 1024 * 1024, resizeQuality: 0.95, thumbnailWidth: 150, thumbnailHeight: 110, thumbnailQuality: 0.80 }, // 5 MB cap
+  'post-song': { acceptRecord: ACCEPTED_AUDIO_RECORD, label: 'audio file', storagePath: 'post-songs', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
   'music': { acceptRecord: ACCEPTED_AUDIO_RECORD, label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
 };
 
@@ -50,6 +51,7 @@ function getTooltipContent(config) {
 }
 
 export const MUSIC_TOOLTIP_CONTENT = getTooltipContent(TYPE_CONFIG.music);
+export const POST_IMAGE_TOOLTIP_CONTENT = getTooltipContent(TYPE_CONFIG['post-image']);
 
 // Checks that an audio file does not exceed the maximum duration (in seconds).
 // Returns a Promise resolving to true if valid, false otherwise (with a toast shown).
@@ -80,8 +82,8 @@ export function safeExt(file) {
 }
 
 // Resize an image to fit within maxWidth x maxHeight using the Canvas API, preserving aspect ratio.
-// Always outputs JPEG regardless of input format — consistent compression, no transparency needed for profile pics.
-function resizeImage(file, maxWidth, maxHeight) {
+// Always outputs JPEG
+function resizeImage(file, maxWidth, maxHeight, quality = 0.95) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const objectUrl = URL.createObjectURL(file);
@@ -96,7 +98,7 @@ function resizeImage(file, maxWidth, maxHeight) {
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', 0.95);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Canvas toBlob failed')), 'image/jpeg', quality);
     };
     img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Failed to load image')); };
     img.src = objectUrl;
@@ -139,18 +141,29 @@ function checkImageDimensions(file, config) {
   });
 }
 
-// Resizes (if configured), uploads to Firebase Storage, and returns { url, path }.
+// Resizes (if configured), uploads to Firebase Storage, and returns { url, path, thumbUrl, thumbPath }.
 async function performUpload(uid, file, config) {
   let uploadBlob = file;
   let finalExt = safeExt(file);
   if (config.resizeWidth) {
-    uploadBlob = await resizeImage(file, config.resizeWidth, config.resizeHeight);
+    uploadBlob = await resizeImage(file, config.resizeWidth, config.resizeHeight, config.resizeQuality);
     finalExt = 'jpg'; // resizeImage always outputs JPEG
   }
-  const path = `users/${uid}/${config.storagePath}/${uuidv4()}.${finalExt}`;
+  const uuid = uuidv4();
+  const path = `users/${uid}/${config.storagePath}/${uuid}.${finalExt}`;
   await uploadBytes(ref(storage, path), uploadBlob);
   const url = await getDownloadURL(ref(storage, path));
-  return { url, path };
+
+  // If thumbnail config is present, generate and upload the thumbnail as well.
+  let thumbUrl = null, thumbPath = null;
+  if (config.thumbnailWidth) {
+    const thumbBlob = await resizeImage(file, config.thumbnailWidth, config.thumbnailHeight, config.thumbnailQuality);
+    thumbPath = `users/${uid}/${config.storagePath}/${uuid}_thumb.jpg`;
+    await uploadBytes(ref(storage, thumbPath), thumbBlob);
+    thumbUrl = await getDownloadURL(ref(storage, thumbPath));
+  }
+
+  return { url, path, thumbUrl, thumbPath };
 }
 
 // Inner component — keyed by rejectionKey so the useFileUpload hook fully remounts on rejection,
@@ -210,7 +223,7 @@ function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }
   );
 }
 
-export const FileUpload = forwardRef(function FileUpload({ type, label, currentUrl, onUpload, onFileSelect, deferred = false }, imperativeRef) {
+export const FileUpload = forwardRef(function FileUpload({ type, label, currentUrl, onUpload, onFileSelect, onUploadStart, onUploadEnd, deferred = false }, imperativeRef) {
   const config = TYPE_CONFIG[type];
   const [uploading, setUploading] = useState(false);
   // This rejectionKey is used to trigger the file rejection toast multiple times.
@@ -241,10 +254,10 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       if (config.maxDurationSeconds && !await checkAudioDuration(file, config.maxDurationSeconds)) { setRejectionKey(k => k + 1); return null; }
       setUploading(true);
       try {
-        const { url, path } = await performUpload(uid, file, config);
+        const { url, path, thumbUrl } = await performUpload(uid, file, config);
         uploadedPath.current = path;
         pendingFileRef.current = null;
-        onUpload?.(url);
+        onUpload?.(url, thumbUrl);
         toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
         return url;
       } catch (err) {
@@ -317,10 +330,11 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
     // Capture the path to delete before upload so the ref can't change underneath us.
     // Upload new file -> get download URL -> delete old file (if configured)
     //  -> update state with new URL -> call onUpload with new URL
-    setUploading(true);
+    setUploading(true); // Disable the input and show loading state during upload
+    onUploadStart?.(); // Notify parent that upload has started (to disable form submission)
     try {
       const pathToDelete = config.deleteOnReplace ? (uploadedPath.current ?? priorPath.current) : null;
-      const { url, path } = await performUpload(user.uid, file, config);
+      const { url, path, thumbUrl } = await performUpload(user.uid, file, config);
       // Upload succeeded, now delete old file if needed
       if (pathToDelete && pathToDelete !== path && pathToDelete.startsWith(`users/${user.uid}/`)) {
         try {
@@ -331,13 +345,14 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       }
       uploadedPath.current = path;
       priorPath.current = null;
-      onUpload?.(url);
+      onUpload?.(url, thumbUrl);
       toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
     } catch (err) {
       console.error('Upload failed:', err);
       toaster.create({ title: 'Upload failed', description: 'Something went wrong. Please try again.', type: 'error', closable: true });
     } finally {
-      setUploading(false);
+      setUploading(false); // Re-enable the input
+      onUploadEnd?.(); // Notify parent that upload has ended (to re-enable form submission)
     }
   };
 

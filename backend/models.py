@@ -155,7 +155,9 @@ class PostBase(BaseModel):
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, lng, and geohash")
     instruments: Optional[List[Instrument]] = Field(default_factory=list, alias="instruments", description="List of instruments associated with the post.")
     genres: Optional[List[str]] = Field(default_factory=list, alias="genres", description="List of music genres associated with the post")
-    media: Optional[List[HttpUrl]] = Field(default_factory=list, alias="media", description="List of media URLs (images, audio, video)")
+    photo_url: Optional[str] = Field(default=None, alias="photoUrl", description="Firebase Storage download URL for the post photo (one per post)")
+    photo_thumb_url: Optional[str] = Field(default=None, alias="photoThumbUrl", description="Firebase Storage download URL for the post photo thumbnail")
+    song_url: Optional[str] = Field(default=None, alias="songUrl", description="Firebase Storage download URL for the post audio sample (one per post)")
 
     model_config = ConfigDict(populate_by_name = True)
 
@@ -171,7 +173,9 @@ class PostUpdate(BaseModel):
     location: Optional[Location] = Field(default=None, alias="location", description="Location object with placeId, formattedAddress, lat, and lng")
     instruments: Optional[List[Instrument]] = Field(default=None, alias="instruments", description="List of instruments associated with the post.")
     genres: Optional[List[str]] = Field(default=None, alias="genres", description="List of music genres associated with the post")
-    media: Optional[List[HttpUrl]] = Field(default=None, alias="media", description="List of media URLs (images, audio, video)")
+    photo_url: Optional[str] = Field(default=None, alias="photoUrl", description="Firebase Storage download URL for the post photo (one per post)")
+    photo_thumb_url: Optional[str] = Field(default=None, alias="photoThumbUrl", description="Firebase Storage download URL for the post photo thumbnail")
+    song_url: Optional[str] = Field(default=None, alias="songUrl", description="Firebase Storage download URL for the post audio sample (one per post)")
     
     model_config = ConfigDict(
         populate_by_name = True
