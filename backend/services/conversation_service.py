@@ -151,6 +151,32 @@ async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> 
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+async def delete_conversation(conversation_id: str, current_user_id: str):
+    """
+    Deletes a conversation if the current user is a participant. Raises 404 if not found, 403 if user is not a participant.
+    """
+    try:
+        db = get_db()
+        convo_ref = db.collection(COLLECTION_NAME).document(conversation_id)
+        doc = convo_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        
+        data = doc.to_dict()
+        
+        if current_user_id not in data.get("participant_ids", []):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a participant in this conversation")
+        
+        convo_ref.delete()
+        return {"detail": "Conversation deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 async def refresh_participant_snapshots(conversation_id: str, current_user_id: str) -> ConversationResponse:
     """
     This function takes a conversation Id and the current user ID and updates the participant snapshots for
@@ -196,3 +222,4 @@ async def refresh_participant_snapshots(conversation_id: str, current_user_id: s
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     
+
