@@ -155,7 +155,12 @@ async def delete_conversation(conversation_id: str, current_user_id: str):
     """
     Deletes a conversation if the current user is a participant. Raises 404 if not found, 403 if user is not a participant.
     """
+
     try:
+
+        if (conversation_id is None) or (conversation_id.strip() == ""):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID")
+
         db = get_db()
         convo_ref = db.collection(COLLECTION_NAME).document(conversation_id)
         doc = convo_ref.get()
