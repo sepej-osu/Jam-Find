@@ -165,7 +165,14 @@ async def delete_conversation(conversation_id: str, current_user_id: str):
         
         if current_user_id not in data.get("participant_ids", []):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a participant in this conversation")
-        
+
+        if data.get("is_deleting"):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conversation is already being deleted")
+
+        convo_ref.update({
+            "is_deleting": True,
+            "updatedAt": datetime.now(timezone.utc)
+        })
         db.recursive_delete(convo_ref) 
         return {"detail": "Conversation deleted successfully"}
         
@@ -216,4 +223,3 @@ async def refresh_participant_snapshots(conversation_id: str, current_user_id: s
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
     
-
