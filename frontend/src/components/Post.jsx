@@ -16,6 +16,9 @@ import {
   Wrap,
   Image,
   Skeleton,
+  Dialog,
+  CloseButton,
+  Portal,
 } from '@chakra-ui/react';
 import { FaMapMarkerAlt, FaCommentAlt, FaTrash } from 'react-icons/fa';
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
@@ -44,19 +47,19 @@ function Post() {
   const { likesCount, isLiked, likingInProgress, handleLikeToggle } = useLike(postId, post?.likes || 0, post?.likedByCurrentUser || false);
   const { messagingInProgress, handleStartConversation } = useStartConversation();
   const [deletingInProgress, setDeletingInProgress] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Prompt user to confirm deletion, then delete post and associated media from storage, then navigate back to feed
-  // TODO: Make pretty later on. Currently just a confirm() dialog.
+  // Prompt user to confirm deletion, then delete the post, clean up associated media from storage, and navigate back to feed
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
+    setDeleteDialogOpen(false);
     // Disable the delete button and show loading state during deletion process
-    try { 
+    try {
       setDeletingInProgress(true);
+      await postService.deletePost(post.postId); // Delete the post from the database first
       const paths = [post.photoUrl, post.photoThumbUrl, post.songUrl]
         .map(pathFromStorageUrl) // Convert URLs to storage paths for deletion
         .filter(Boolean); // Filter out any nulls (if URL was invalid or not a storage URL)
-      await deleteStoragePaths(currentUser.uid, paths); // Clean up media files from storage before deleting the post
-      await postService.deletePost(post.postId); // Delete the post from the database
+      await deleteStoragePaths(currentUser.uid, paths); // Clean up media files from storage after the post is deleted
       navigate('/feed'); // Navigate back to the feed after deletion
     } catch (err) {
       toaster.create({
@@ -255,7 +258,7 @@ return (
             size="sm"
             colorPalette="red"
             variant="solid"
-            onClick={handleDelete}
+            onClick={() => setDeleteDialogOpen(true)}
             loading={deletingInProgress}
           >
             <Icon as={FaTrash} />
@@ -265,6 +268,30 @@ return (
       </Flex>
     </Box>
     <postImageDialog.Viewport />
+    <Dialog.Root open={deleteDialogOpen} onOpenChange={(e) => setDeleteDialogOpen(e.open)}>
+      <Portal>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Dialog.Title>Delete Post</Dialog.Title>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Text>Are you sure you want to delete this post? This action cannot be undone.</Text>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <Dialog.ActionTrigger asChild>
+                <Button variant="outline">Cancel</Button>
+              </Dialog.ActionTrigger>
+              <Button colorPalette="red" onClick={handleDelete} loading={deletingInProgress}>Delete</Button>
+            </Dialog.Footer>
+            <Dialog.CloseTrigger asChild>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Portal>
+    </Dialog.Root>
     </>
   );
 }
