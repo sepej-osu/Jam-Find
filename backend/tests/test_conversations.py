@@ -72,8 +72,8 @@ def test_delete_conversation_service_marks_deleting_before_recursive_delete():
     db.collection.return_value.document.return_value = convo_ref
 
     operations = []
-    convo_ref.update.side_effect = lambda *_args, **_kwargs: operations.append("update")
-    db.recursive_delete.side_effect = lambda *_args, **_kwargs: operations.append("recursive_delete")
+    convo_ref.update.side_effect = lambda *_, **__: operations.append("update")
+    db.recursive_delete.side_effect = lambda *_, **__: operations.append("recursive_delete")
 
     with patch("services.conversation_service.get_db", return_value=db):
         asyncio.run(conversation_service.delete_conversation("convo-123", settings.DEV_USER_ID))
@@ -85,7 +85,7 @@ def test_delete_conversation_service_marks_deleting_before_recursive_delete():
     db.recursive_delete.assert_called_once_with(convo_ref)
 
 
-def test_send_message_rejects_conversation_marked_deleting():
+def test_send_message_rejects_when_is_deleting_true():
     db = MagicMock()
     transaction = MagicMock()
     convo_ref = MagicMock()
