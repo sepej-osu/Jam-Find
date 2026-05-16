@@ -35,7 +35,7 @@ export const ACCEPTED_AUDIO_TYPES = Object.keys(ACCEPTED_AUDIO_RECORD).join(',')
 
 const TYPE_CONFIG = {
   'profile-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'profile-picture', resizeWidth: 400, resizeHeight: 800, minWidth: 400, minHeight: 400, maxSize: 20 * 1024 * 1024, deleteOnReplace: true }, // 20 MB input cap, resized to max 400x800px
-  'post-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 5 * 1024 * 1024, resizeQuality: 0.95, thumbnailWidth: 150, thumbnailHeight: 110, thumbnailQuality: 0.80 }, // 5 MB cap
+  'post-image': { acceptRecord: ACCEPTED_IMAGE_RECORD, label: 'image', storagePath: 'post-images', minWidth: 400, minHeight: 400, maxSize: 5 * 1024 * 1024, resizeQuality: 0.95, thumbnailWidth: 150, thumbnailHeight: 110, thumbnailQuality: 0.80, deleteOnReplace: true }, // 5 MB cap
   'post-song': { acceptRecord: ACCEPTED_AUDIO_RECORD, label: 'audio file', storagePath: 'post-songs', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
   'music': { acceptRecord: ACCEPTED_AUDIO_RECORD, label: 'audio file', storagePath: 'music', maxSize: 10 * 1024 * 1024, maxDurationSeconds: 600 }, // 10 MB input cap, 10-minute duration limit
 };
