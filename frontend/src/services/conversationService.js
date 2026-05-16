@@ -296,8 +296,13 @@ createConversation: async (recipientId) => {
         }
         throw new Error(errorMsg);
       }
+      // If the conversation is successfully deleted, we check for a 204 No Content response.
+      if (response.status === 204) {
+        return null;
+      }
 
-      return await response.json();
+      return null;
+
     } catch (error) {
       console.error('Failed to delete conversation:', error);
       throw error;

@@ -1,4 +1,4 @@
-import { IoMusicalNotes, IoSearch, IoClose } from 'react-icons/io5';
+import { IoMusicalNotes, IoSearch, IoClose, IoEllipsisHorizontalCircle } from 'react-icons/io5';
 import { FaGuitar, FaMapMarkerAlt } from 'react-icons/fa';
 import {
   GiGuitarHead,
@@ -43,3 +43,4 @@ const SKILL_COLOR_MAP = {
 export const getSkillColor = (level) => SKILL_COLOR_MAP[level] ?? 'gray';
 
 export const MapIcon = FaMapMarkerAlt;
+export const EllipsisIcon = IoEllipsisHorizontalCircle;
