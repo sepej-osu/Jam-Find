@@ -2,6 +2,23 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, ConfigDict, PrivateAtt
 from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
+from urllib.parse import urlparse
+
+_FIREBASE_STORAGE_HOSTS = {"firebasestorage.googleapis.com", "storage.googleapis.com"}
+
+def _validate_firebase_storage_url(v: Optional[str]) -> Optional[str]:
+    """Validate that a URL is HTTPS and points to Firebase Storage."""
+    if v is None:
+        return v
+    try:
+        parsed = urlparse(v)
+    except Exception:
+        raise ValueError("Invalid URL format")
+    if parsed.scheme != "https":
+        raise ValueError("Media URL must use HTTPS")
+    if parsed.netloc not in _FIREBASE_STORAGE_HOSTS:
+        raise ValueError("Media URL must point to Firebase Storage (firebasestorage.googleapis.com)")
+    return v
 
 MAX_MUSIC_SAMPLES = 3
 
@@ -159,6 +176,11 @@ class PostBase(BaseModel):
     photo_thumb_url: Optional[str] = Field(default=None, alias="photoThumbUrl", description="Firebase Storage download URL for the post photo thumbnail")
     song_url: Optional[str] = Field(default=None, alias="songUrl", description="Firebase Storage download URL for the post audio sample (one per post)")
 
+    @field_validator("photo_url", "photo_thumb_url", "song_url", mode="before")
+    @classmethod
+    def validate_media_urls(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_firebase_storage_url(v)
+
     model_config = ConfigDict(populate_by_name = True)
 
 class PostCreate(PostBase):
@@ -176,10 +198,11 @@ class PostUpdate(BaseModel):
     photo_url: Optional[str] = Field(default=None, alias="photoUrl", description="Firebase Storage download URL for the post photo (one per post)")
     photo_thumb_url: Optional[str] = Field(default=None, alias="photoThumbUrl", description="Firebase Storage download URL for the post photo thumbnail")
     song_url: Optional[str] = Field(default=None, alias="songUrl", description="Firebase Storage download URL for the post audio sample (one per post)")
-    
-    model_config = ConfigDict(
-        populate_by_name = True
-    )
+
+    @field_validator("photo_url", "photo_thumb_url", "song_url", mode="before")
+    @classmethod
+    def validate_media_urls(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_firebase_storage_url(v)
 
 class PostResponse(PostBase):
     """Response model for posts, includes additional fields like post_id, user_id, likes count, and timestamps."""
