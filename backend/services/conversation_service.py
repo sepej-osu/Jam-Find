@@ -126,11 +126,7 @@ async def list_conversations(
 
 
 async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> ConversationResponse:
-    """
-    Fetch a conversation and verify the current user is a participant.
-    Used internally by message routes to validate access before letting users interact
-    with messages. Raises 404 if not found, 403 if user is not a participant.
-    """
+    
     try:
         db = get_db()
         doc = db.collection(COLLECTION_NAME).document(conversation_id).get()
@@ -152,9 +148,6 @@ async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> 
 
 
 async def delete_conversation(conversation_id: str, current_user_id: str):
-    """
-    Deletes a conversation if the current user is a participant. Raises 404 if not found, 403 if user is not a participant.
-    """
 
     try:
 
@@ -173,7 +166,7 @@ async def delete_conversation(conversation_id: str, current_user_id: str):
         if current_user_id not in data.get("participant_ids", []):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a participant in this conversation")
         
-        convo_ref.delete()
+        db.recursive_delete(convo_ref) 
         return {"detail": "Conversation deleted successfully"}
         
     except HTTPException:
@@ -183,11 +176,7 @@ async def delete_conversation(conversation_id: str, current_user_id: str):
 
 
 async def refresh_participant_snapshots(conversation_id: str, current_user_id: str) -> ConversationResponse:
-    """
-    This function takes a conversation Id and the current user ID and updates the participant snapshots for
-    all participants in the conversation by fetching their latest profile data. Returns the updated conversation
-    response model.
-    """
+
     try:
         db = get_db()
         convo_ref = db.collection(COLLECTION_NAME).document(conversation_id)
@@ -210,7 +199,7 @@ async def refresh_participant_snapshots(conversation_id: str, current_user_id: s
             # If a profile is missing, we set the values to None. This allows the frontend to handle
             # deleted profiles gracefully
             else:
-                new_snapshots[pid] = {"firstName": None, "lastName": None, "profilePicUrl": None}
+                new_snapshots[pid] = {"firstName": "Deleted", "lastName": "User", "profilePicUrl": None}
 
         now = datetime.now(timezone.utc)
         convo_ref.update({
