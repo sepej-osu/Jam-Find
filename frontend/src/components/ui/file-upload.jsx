@@ -254,10 +254,10 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       if (config.maxDurationSeconds && !await checkAudioDuration(file, config.maxDurationSeconds)) { setRejectionKey(k => k + 1); return null; }
       setUploading(true);
       try {
-        const { url, path, thumbUrl } = await performUpload(uid, file, config);
+        const { url, path, thumbUrl, thumbPath } = await performUpload(uid, file, config);
         uploadedPath.current = path;
         pendingFileRef.current = null;
-        onUpload?.(url, thumbUrl);
+        onUpload?.(url, thumbUrl, path, thumbPath);
         toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
         return url;
       } catch (err) {
@@ -345,7 +345,7 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       }
       uploadedPath.current = path;
       priorPath.current = null;
-      onUpload?.(url, thumbUrl);
+      onUpload?.(url, thumbUrl, path, thumbPath);
       toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
     } catch (err) {
       console.error('Upload failed:', err);

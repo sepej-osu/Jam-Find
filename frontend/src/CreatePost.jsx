@@ -29,6 +29,8 @@ function CreatePost() {
   
   const [loading, setLoading] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoPath, setPhotoPath] = useState(null);
+  const [photoThumbPath, setPhotoThumbPath] = useState(null);
   const [songFile, setSongFile] = useState(null);
   const [songObjectUrl, setSongObjectUrl] = useState(null);
   const [songRejectionKey, setSongRejectionKey] = useState(0);
@@ -151,6 +153,12 @@ function CreatePost() {
         if (uploadedSongPath) {
           try { await deleteObject(storageRef(storage, uploadedSongPath)); } catch (_) {}
         }
+        if (photoPath) {
+          try { await deleteObject(storageRef(storage, photoPath)); } catch (_) {}
+        }
+        if (photoThumbPath) {
+          try { await deleteObject(storageRef(storage, photoThumbPath)); } catch (_) {}
+        }
         throw err;
       }
 
@@ -252,7 +260,11 @@ function CreatePost() {
                 </Field.Label>
                 <FileUpload
                   type="post-image"
-                  onUpload={(url, thumbUrl) => setFormData(prev => ({ ...prev, photoUrl: url, photoThumbUrl: thumbUrl || null }))}
+                  onUpload={(url, thumbUrl, path, thumbPath) => {
+                    setFormData(prev => ({ ...prev, photoUrl: url, photoThumbUrl: thumbUrl || null }));
+                    setPhotoPath(path || null);
+                    setPhotoThumbPath(thumbPath || null);
+                  }}
                   onUploadStart={() => setPhotoUploading(true)}
                   onUploadEnd={() => setPhotoUploading(false)}
                 />
