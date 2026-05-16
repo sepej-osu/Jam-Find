@@ -272,8 +272,45 @@ createConversation: async (recipientId) => {
       handleError
     );
   },
-// This function sends a new message in a specific conversation. It takes the conversation ID and message content as parameters,
-// and sends a POST request to the messages endpoint. If successful, it returns the newly created message data as JSON.
+
+  deleteConversation: async (conversationId) => {
+    try {
+      const token = await getAuthToken();
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/v1/conversations/${conversationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        let errorMsg = 'Failed to delete conversation';
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) {
+            errorMsg = errorData.detail;
+          }
+        } catch {
+          // Ignore JSON parsing errors
+        }
+        throw new Error(errorMsg);
+      }
+      // If the conversation is successfully deleted, we check for a 204 No Content response.
+      if (response.status === 204) {
+        return null;
+      }
+
+      return null;
+
+    } catch (error) {
+      console.error('Failed to delete conversation:', error);
+      throw error;
+    }
+  },
+
+  // This function sends a new message in a specific conversation. It takes the conversation ID and message content as parameters,
+  // and sends a POST request to the messages endpoint. If successful, it returns the newly created message data as JSON.
   sendMessage: async (conversationId, content) => {
     try {
       const token = await getAuthToken();
