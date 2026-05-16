@@ -7,7 +7,7 @@ export const postImageDialog = createOverlay((props) => {
       <Portal>
         <Dialog.Backdrop bg="blackAlpha.300" />
         <Dialog.Positioner onClick={() => props.onOpenChange?.({ open: false })}>
-          <Dialog.Content bg="transparent" shadow="none" maxW="90vw" maxH="90vh">
+          <Dialog.Content aria-label="Post photo" bg="transparent" shadow="none" maxW="90vw" maxH="90vh">
             <Dialog.Body p={0} display="flex" alignItems="center" justifyContent="center">
               <Image
                 src={photoUrl}
