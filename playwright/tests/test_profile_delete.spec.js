@@ -31,8 +31,6 @@ test('test', async ({ page }) => {
   await page.getByRole('textbox', { name: 'Bio' }).click();
   await page.getByRole('spinbutton', { name: 'Years of Experience' }).click();
   await page.getByRole('spinbutton', { name: 'Years of Experience' }).fill('2');
-  await page.locator('[id="checkbox:_r_k_:control"] svg').click();
-  await page.locator('[id="checkbox:_r_v_:control"] > .css-wuqtn7').click();
   await page.getByRole('button', { name: 'Complete' }).click();
   await page.waitForTimeout(500);
 
