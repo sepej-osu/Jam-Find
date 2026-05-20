@@ -390,6 +390,7 @@ class ReviewResponse(BaseModel):
     reviewer_first_name: str = Field(..., alias="reviewerFirstName", description="Reviewer's first name")
     reviewer_last_name: str = Field(..., alias="reviewerLastName", description="Reviewer's last name")
     reviewer_profile_pic_url: Optional[str] = Field(default=None, alias="reviewerProfilePicUrl", description="Reviewer's profile picture URL")
+    is_reviewer_deleted: bool = Field(default=False, alias="isReviewerDeleted", description="Whether the reviewer has deleted their account")
     created_at: datetime = Field(..., alias="createdAt", description="Timestamp of when the review was created")
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

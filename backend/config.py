@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     GOOGLE_MAPS_API_KEY: str = ""
     GOOGLE_MAPS_API_TIMEOUT: int = 5  # seconds
 
+    # Google Cloud Storage configuration
     GOOGLE_STORAGE_BUCKET: str = ""
     
     model_config = ConfigDict(
