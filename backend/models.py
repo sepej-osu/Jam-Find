@@ -189,6 +189,8 @@ class PostCreate(PostBase):
     
 class PostUpdate(BaseModel):
     """All fields are optional for updates. Only provided fields will be updated."""
+    model_config = ConfigDict(populate_by_name=True)
+
     title: Optional[str] = Field(default=None, max_length=100, alias="title", description="Title of the post")
     body: Optional[str] = Field(default=None, max_length=1000, alias="body", description="Content of the post")
     post_type: Optional[PostType] = Field(default=None, alias="postType", description="Type of post")

@@ -267,7 +267,6 @@ return (
         )}
       </Flex>
     </Box>
-    <postImageDialog.Viewport />
     <Dialog.Root open={deleteDialogOpen} onOpenChange={(e) => setDeleteDialogOpen(e.open)}>
       <Portal>
         <Dialog.Backdrop />

@@ -74,6 +74,8 @@ const handleSubmit = async (e) => {
     const instruments = instrumentsFromSelected(formData.selectedInstruments);
 
     const photoResult = await photoUploadRef.current?.upload(user.uid) ?? null;
+    if (photoResult?.path) uploadedPaths.push(photoResult.path);
+    if (photoResult?.thumbPath) uploadedPaths.push(photoResult.thumbPath);
 
     const payload = {
       userId: user.uid,
@@ -91,9 +93,7 @@ const handleSubmit = async (e) => {
     };
 
     const { samples: uploadedSamples, uploadedPaths: newPaths } = await uploadMusicSamples(user.uid, musicSamples);
-    uploadedPaths = newPaths;
-    if (photoResult?.path) uploadedPaths.push(photoResult.path);
-    if (photoResult?.thumbPath) uploadedPaths.push(photoResult.thumbPath);
+    uploadedPaths = [...uploadedPaths, ...newPaths];
     if (uploadedSamples.length > 0) payload.musicSamples = uploadedSamples;
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)

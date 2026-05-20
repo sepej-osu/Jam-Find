@@ -100,6 +100,8 @@ const handleSubmit = async (e) => {
     // Upload any pending file selection.
     const uploadResult = await photoUploadRef.current?.upload(currentUser.uid);
     if (uploadResult?.url) {
+      if (uploadResult.path) uploadedPaths.push(uploadResult.path);
+      if (uploadResult.thumbPath) uploadedPaths.push(uploadResult.thumbPath);
       // User picked a replacement without pressing Remove first: delete the old photo.
       if (originalUrl && !photoRemoved) {
         try {
@@ -121,7 +123,7 @@ const handleSubmit = async (e) => {
     }
 
     const { samples: finalMusicSamples, uploadedPaths: newPaths } = await uploadMusicSamples(currentUser.uid, musicSamples);
-    uploadedPaths = newPaths;
+    uploadedPaths = [...uploadedPaths, ...newPaths];
 
     const payload = {
       firstName: formData.firstName,

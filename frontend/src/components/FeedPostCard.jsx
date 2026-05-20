@@ -182,7 +182,6 @@ return (
           )}
         </Flex>
     </Box>
-    <postImageDialog.Viewport />
     </>
   );
 }

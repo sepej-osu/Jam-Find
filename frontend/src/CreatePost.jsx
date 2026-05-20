@@ -59,6 +59,13 @@ function CreatePost() {
     setSongObjectUrl(null);
   };
 
+  useEffect(() => {
+    if (!songObjectUrl) return;
+    return () => {
+      URL.revokeObjectURL(songObjectUrl);
+    };
+  }, [songObjectUrl]);
+
   // All form data in one state object
   const [formData, setFormData] = useState({
     title: '',
