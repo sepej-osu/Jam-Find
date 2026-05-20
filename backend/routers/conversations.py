@@ -41,3 +41,9 @@ async def sync_conversation_snapshots(
     Caller must be a participant. Returns the updated conversation."""
     return await conversation_service.refresh_participant_snapshots(conversation_id, current_user_id)
 
+@router.delete("/conversations/{conversation_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_conversation(
+    conversation_id: str,
+    current_user_id: str = Depends(get_current_user)
+):
+    await conversation_service.delete_conversation(conversation_id, current_user_id)

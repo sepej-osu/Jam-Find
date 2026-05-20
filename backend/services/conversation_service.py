@@ -126,11 +126,7 @@ async def list_conversations(
 
 
 async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> ConversationResponse:
-    """
-    Fetch a conversation and verify the current user is a participant.
-    Used internally by message routes to validate access before letting users interact
-    with messages. Raises 404 if not found, 403 if user is not a participant.
-    """
+    
     try:
         db = get_db()
         doc = db.collection(COLLECTION_NAME).document(conversation_id).get()
@@ -151,12 +147,43 @@ async def get_conversation_by_id(conversation_id: str, current_user_id: str) -> 
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+async def delete_conversation(conversation_id: str, current_user_id: str):
+
+    try:
+
+        if (conversation_id is None) or (conversation_id.strip() == ""):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid conversation ID")
+
+        db = get_db()
+        convo_ref = db.collection(COLLECTION_NAME).document(conversation_id)
+        doc = convo_ref.get()
+        
+        if not doc.exists:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Conversation not found")
+        
+        data = doc.to_dict()
+        
+        if current_user_id not in data.get("participant_ids", []):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not a participant in this conversation")
+
+        if data.get("is_deleting"):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Conversation is already being deleted")
+
+        convo_ref.update({
+            "is_deleting": True,
+            "updatedAt": datetime.now(timezone.utc)
+        })
+        db.recursive_delete(convo_ref) 
+        return {"detail": "Conversation deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 async def refresh_participant_snapshots(conversation_id: str, current_user_id: str) -> ConversationResponse:
-    """
-    This function takes a conversation Id and the current user ID and updates the participant snapshots for
-    all participants in the conversation by fetching their latest profile data. Returns the updated conversation
-    response model.
-    """
+
     try:
         db = get_db()
         convo_ref = db.collection(COLLECTION_NAME).document(conversation_id)
@@ -179,7 +206,7 @@ async def refresh_participant_snapshots(conversation_id: str, current_user_id: s
             # If a profile is missing, we set the values to None. This allows the frontend to handle
             # deleted profiles gracefully
             else:
-                new_snapshots[pid] = {"firstName": None, "lastName": None, "profilePicUrl": None}
+                new_snapshots[pid] = {"firstName": "Deleted", "lastName": "User", "profilePicUrl": None}
 
         now = datetime.now(timezone.utc)
         convo_ref.update({
