@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../firebase';
 import { toaster } from './toaster';
-import { pathFromStorageUrl } from '../../utils/helpers';
 
 // Record format (MIME type → extensions[]) is required by Chakra UI v3's useFileUpload / ChakraFileUpload.Root.
 // Browsers (especially on Linux/Chrome) ignore bare MIME types in the file picker and need the extensions too.
