@@ -3,7 +3,7 @@ import { LuUpload, LuX, LuInfo } from 'react-icons/lu';
 import { Tooltip } from './tooltip';
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../../firebase';
 import { toaster } from './toaster';
 
@@ -156,10 +156,16 @@ async function performUpload(uid, file, config) {
   // If thumbnail config is present, generate and upload the thumbnail as well.
   let thumbUrl = null, thumbPath = null;
   if (config.thumbnailWidth) {
-    const thumbBlob = await resizeImage(file, config.thumbnailWidth, config.thumbnailHeight, config.thumbnailQuality);
-    thumbPath = `users/${uid}/${config.storagePath}/${uuid}_thumb.jpg`;
-    await uploadBytes(ref(storage, thumbPath), thumbBlob);
-    thumbUrl = await getDownloadURL(ref(storage, thumbPath));
+    try {
+      const thumbBlob = await resizeImage(file, config.thumbnailWidth, config.thumbnailHeight, config.thumbnailQuality);
+      thumbPath = `users/${uid}/${config.storagePath}/${uuid}_thumb.jpg`;
+      await uploadBytes(ref(storage, thumbPath), thumbBlob);
+      thumbUrl = await getDownloadURL(ref(storage, thumbPath));
+    } catch (err) {
+      // Thumbnail failed — delete the already-uploaded original to avoid orphaned files.
+      try { await deleteObject(ref(storage, path)); } catch (_) {}
+      throw err;
+    }
   }
 
   return { url, path, thumbUrl, thumbPath };
