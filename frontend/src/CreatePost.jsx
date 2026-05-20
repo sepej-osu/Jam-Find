@@ -43,6 +43,10 @@ function CreatePost() {
       return;
     }
     const valid = await checkAudioDuration(file, 600);
+    if (valid === null) {
+      toaster.create({ title: 'Invalid audio file', description: 'The selected audio file could not be read. Please choose a different file.', type: 'error', closable: true });
+      return;
+    }
     if (!valid) return;
     if (songObjectUrl) URL.revokeObjectURL(songObjectUrl);
     setSongFile(file);
