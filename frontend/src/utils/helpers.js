@@ -156,20 +156,33 @@ export function instrumentsFromSelected(selectedInstruments) {
 // ─── Storage path helper ─────────────────────────────────────────────────────
 // Extracts the Firebase Storage object path from a download URL.
 // Returns a decoded path like users/uid/profile-picture/filename.jpg.
-// Firebase Storage URLs have the format https://firebasestorage.googleapis.com/v0/b/{bucket}/o/{path}?alt=media&token={token}
-// So we're taking the part after /o/ and decoding any URL-encoded characters.
-// Returns null when the value is empty, invalid, or not a Firebase Storage object URL.
+// Supports two URL formats:
+//   - firebasestorage.googleapis.com: /v0/b/{bucket}/o/{path}?alt=media&token={token}
+//   - storage.googleapis.com: /{bucket}/{path}
+// Returns null when the value is empty, invalid, or not a recognised Firebase Storage URL.
 export function pathFromStorageUrl(url) {
   if (typeof url !== 'string' || url.trim() === '') {
     return null;
   }
   try {
-    const { pathname } = new URL(url);
-    const encodedPath = pathname.split('/o/')[1];
-    if (!encodedPath) {
-      return null;
+    const { hostname, pathname } = new URL(url);
+    if (hostname === 'firebasestorage.googleapis.com') {
+      // Format: /v0/b/{bucket}/o/{encoded-path}?...
+      const encodedPath = pathname.split('/o/')[1];
+      if (!encodedPath) {
+        return null;
+      }
+      return decodeURIComponent(encodedPath);
     }
-    return decodeURIComponent(encodedPath);
+    if (hostname === 'storage.googleapis.com') {
+      // Format: /{bucket}/{path}
+      const segments = pathname.replace(/^\//, '').split('/');
+      if (segments.length < 2) {
+        return null;
+      }
+      return decodeURIComponent(segments.slice(1).join('/'));
+    }
+    return null;
   } catch {
     return null;
   }
