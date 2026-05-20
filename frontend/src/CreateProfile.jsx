@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth} from './contexts/AuthContext';
 import { Box, Center, Button, Heading, VStack, HStack, Field, Input, Text, IconButton, FileUpload as ChakraFileUpload } from '@chakra-ui/react';
@@ -23,6 +23,7 @@ function CreateProfile() {
   const [loading, setLoading] = useState(false);
   const [musicSamples, setMusicSamples] = useState([]);
   const [musicRejectionKey, setMusicRejectionKey] = useState(0);
+  const photoUploadRef = useRef(null);
 
   const { handleMusicFileAdd, handleMusicSampleTitleChange, removeMusicSample } =
     createMusicSampleHandlers(setMusicSamples, MAX_MUSIC_SAMPLES);
@@ -45,7 +46,7 @@ function CreateProfile() {
       formattedAddress: '',
       lat: 0,
       lng: 0
-    }, profilePicUrl: ''
+    },
   });
 
 
@@ -72,6 +73,8 @@ const handleSubmit = async (e) => {
     
     const instruments = instrumentsFromSelected(formData.selectedInstruments);
 
+    const photoResult = await photoUploadRef.current?.upload(user.uid) ?? null;
+
     const payload = {
       userId: user.uid,
       email: user.email,
@@ -84,11 +87,13 @@ const handleSubmit = async (e) => {
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres,
-      profilePicUrl: formData.profilePicUrl || null,
+      profilePicUrl: photoResult?.url ?? null,
     };
 
     const { samples: uploadedSamples, uploadedPaths: newPaths } = await uploadMusicSamples(user.uid, musicSamples);
     uploadedPaths = newPaths;
+    if (photoResult?.path) uploadedPaths.push(photoResult.path);
+    if (photoResult?.thumbPath) uploadedPaths.push(photoResult.thumbPath);
     if (uploadedSamples.length > 0) payload.musicSamples = uploadedSamples;
 
     // Call the backend API to create the profile (../backend/models/profile.js - createProfile function)
@@ -216,7 +221,12 @@ return (
                 maxLength={500}
               />
 
-              <FileUpload type="profile-image" label="Profile Picture" onUpload={(url) => setFormData(prev => ({ ...prev, profilePicUrl: url }))} />
+              <FileUpload
+                ref={photoUploadRef}
+                type="profile-image"
+                label="Profile Picture"
+                disabled={loading}
+              />
 
               <InputField
                 label="Years of Experience"
@@ -262,6 +272,7 @@ return (
                           colorPalette="red"
                           aria-label="Remove sample"
                           onClick={() => removeMusicSample(index, musicSamples)}
+                          disabled={loading}
                         >
                           <LuX />
                         </IconButton>
@@ -287,7 +298,7 @@ return (
                       <ChakraFileUpload.HiddenInput />
                       <HStack gap={1}>
                         <ChakraFileUpload.Trigger asChild>
-                          <Button type="button" variant="outline" size="sm">
+                          <Button type="button" variant="outline" size="sm" disabled={loading}>
                             <LuUpload /> Add Sample
                           </Button>
                         </ChakraFileUpload.Trigger>

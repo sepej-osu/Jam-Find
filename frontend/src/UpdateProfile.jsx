@@ -26,7 +26,7 @@ function UpdateProfile() {
   const [loading, setLoading] = useState(false);
   const [photoRemoved, setPhotoRemoved] = useState(false); // Marks existing photo for deletion on submit — no storage ops until then.
   const [hasPendingFile, setHasPendingFile] = useState(false); // True when user has selected a new file.
-  const fileUploadRef = useRef(null);
+  const photoUploadRef = useRef(null);
 
   // Each item is either { type: 'existing', url, title } or { type: 'pending', file, title }
   // We keep pending samples in state to allow for title editing and playback before upload, and to manage the limit of 3 samples.
@@ -98,8 +98,8 @@ const handleSubmit = async (e) => {
     }
 
     // Upload any pending file selection.
-    const newUrl = await fileUploadRef.current?.upload(currentUser.uid);
-    if (newUrl) {
+    const uploadResult = await photoUploadRef.current?.upload(currentUser.uid);
+    if (uploadResult?.url) {
       // User picked a replacement without pressing Remove first: delete the old photo.
       if (originalUrl && !photoRemoved) {
         try {
@@ -107,7 +107,7 @@ const handleSubmit = async (e) => {
           if (path.startsWith(`users/${currentUser.uid}/`)) await deleteObject(storageRef(storage, path));
         } catch (err) { console.warn('Could not delete previous photo:', err); }
       }
-      finalUrl = newUrl;
+      finalUrl = uploadResult.url;
     }
 
     const instruments = instrumentsFromSelected(formData.selectedInstruments);
@@ -227,11 +227,11 @@ return (
             
 
             <FileUpload
-              ref={fileUploadRef}
+              ref={photoUploadRef}
               type="profile-image"
               label="Profile Picture"
               currentUrl={profile?.profilePicUrl}
-              deferred
+              disabled={loading}
               onFileSelect={(file) => setHasPendingFile(!!file)}
             />
 
@@ -249,6 +249,7 @@ return (
                   variant="solid"
                   colorPalette="red"
                   onClick={handleDeleteProfilePic}
+                  disabled={loading}
                 >
                   Remove photo
                 </Button>
@@ -304,6 +305,7 @@ return (
                       colorPalette="red"
                       aria-label="Remove sample"
                       onClick={() => removeMusicSample(index, musicSamples)}
+                      disabled={loading}
                     >
                       <LuX />
                     </IconButton>
@@ -329,7 +331,7 @@ return (
                     <ChakraFileUpload.HiddenInput />
                     <HStack gap={1}>
                       <ChakraFileUpload.Trigger asChild>
-                        <Button type="button" variant="outline" size="sm">
+                        <Button type="button" variant="outline" size="sm" disabled={loading}>
                           <LuUpload /> Add Sample
                         </Button>
                       </ChakraFileUpload.Trigger>

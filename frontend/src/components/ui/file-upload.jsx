@@ -3,8 +3,8 @@ import { LuUpload, LuX, LuInfo } from 'react-icons/lu';
 import { Tooltip } from './tooltip';
 import { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage, auth } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../firebase';
 import { toaster } from './toaster';
 import { pathFromStorageUrl } from '../../utils/helpers';
 
@@ -168,7 +168,7 @@ async function performUpload(uid, file, config) {
 
 // Inner component — keyed by rejectionKey so the useFileUpload hook fully remounts on rejection,
 // which resets acceptedFiles and allows the same invalid file to be re-selected.
-function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }) {
+function FileUploadRoot({ config, label, uploading, disabled, onFileChange, onFileReject }) {
   const fileUpload = useFileUpload({
     maxFiles: 1,
     accept: config.acceptRecord,
@@ -190,7 +190,7 @@ function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }
         </ChakraFileUpload.Label>
       )}
       <ChakraFileUpload.Trigger asChild>
-        <Button type="button" variant="outline" loading={uploading}>
+        <Button type="button" variant="outline" loading={uploading} disabled={disabled}>
           <LuUpload /> Upload {config.label}
         </Button>
       </ChakraFileUpload.Trigger>
@@ -202,7 +202,7 @@ function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }
               <ChakraFileUpload.ItemPreview />
               <ChakraFileUpload.ItemName />
               <ChakraFileUpload.ItemDeleteTrigger asChild>
-                <IconButton variant="ghost" size="xs" aria-label="Remove file">
+                <IconButton variant="ghost" size="xs" aria-label="Remove file" disabled={disabled}>
                   <LuX />
                 </IconButton>
               </ChakraFileUpload.ItemDeleteTrigger>
@@ -211,7 +211,7 @@ function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }
             <ChakraFileUpload.Item key={file.name} file={file} w="auto" boxSize="40" p="2">
               <ChakraFileUpload.ItemPreviewImage width="100%" height="100%" objectFit="cover" />
               <Float placement="top-end">
-                <ChakraFileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid">
+                <ChakraFileUpload.ItemDeleteTrigger boxSize="4" layerStyle="fill.solid" disabled={disabled}>
                   <LuX />
                 </ChakraFileUpload.ItemDeleteTrigger>
               </Float>
@@ -223,28 +223,16 @@ function FileUploadRoot({ config, label, uploading, onFileChange, onFileReject }
   );
 }
 
-export const FileUpload = forwardRef(function FileUpload({ type, label, currentUrl, onUpload, onFileSelect, onUploadStart, onUploadEnd, deferred = false }, imperativeRef) {
+export const FileUpload = forwardRef(function FileUpload({ type, label, currentUrl, onUpload, onFileSelect, disabled = false }, imperativeRef) {
   const config = TYPE_CONFIG[type];
   const [uploading, setUploading] = useState(false);
   // This rejectionKey is used to trigger the file rejection toast multiple times.
   // For example, if you upload an image that doesn't meet requirements twice in a row.
   const [rejectionKey, setRejectionKey] = useState(0);
-  // uploadedPath: set only after a successful upload in this session.
-  // Cleared when the user removes the file or a new upload replaces it.
-  const uploadedPath = useRef(null);
-  // priorPath: parsed from currentUrl on first render (the server-side existing file).
-  // Consumed (deleted + cleared) when a new upload replaces it.
-  const priorPath = useRef(null);
-  
-  
-  // pendingFile: stores a file selected before the user is authenticated (Only used during registration).
-  // Call upload(uid) imperatively after auth is established to complete the upload.
+  // pendingFile: stores the file selected by the user until upload(uid) is called on submit.
   const pendingFileRef = useRef(null);
 
-  // Defers the upload
-  // The File object is stored in pendingFileRef.
-  // Call upload(uid) once the user is authenticated or the form is submitted.
-  // Then performs the upload and calls onUpload(url) to notify the parent.
+  // Upload the pending file. Call upload(uid) on form submit to perform the actual upload.
   useImperativeHandle(imperativeRef, () => ({
     upload: async (uid) => {
       if (!pendingFileRef.current || !config) return null;
@@ -255,13 +243,11 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       setUploading(true);
       try {
         const { url, path, thumbUrl, thumbPath } = await performUpload(uid, file, config);
-        uploadedPath.current = path;
         pendingFileRef.current = null;
         onUpload?.(url, thumbUrl, path, thumbPath);
-        toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
-        return url;
+        return { url, thumbUrl, path, thumbPath };
       } catch (err) {
-        console.error('Deferred upload failed:', err);
+        console.error('Upload failed:', err);
         toaster.create({ title: 'Upload failed', description: 'Something went wrong. Please try again.', type: 'error', closable: true });
         return null;
       } finally {
@@ -275,38 +261,12 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
     return null;
   }
 
-  // One-time initialization: parse the pre-existing file path from currentUrl on first render.
-  if (currentUrl && priorPath.current === null && uploadedPath.current === null) {
-    try {
-      priorPath.current = pathFromStorageUrl(currentUrl);
-    } catch {
-      // Ignore unparseable URLs
-    }
-  }
-
-  // Handle file selection, removal, and Zag-level rejections (wrong type / too large).
+  // Handle file selection and removal. Files are stored locally until upload(uid) is called.
   const handleFileChange = async ({ acceptedFiles }) => {
-    const file = acceptedFiles[0]; // Limit only to 1 file
-    const user = auth.currentUser; // Get current user for permission checks and path construction
+    const file = acceptedFiles[0];
     if (!file) {
-      // User removed the selected file.
-      if (deferred) {
-        // In deferred mode, no storage ops — just clear the pending file.
-        pendingFileRef.current = null;
-        onFileSelect?.(null);
-        return;
-      }
-      if (config.deleteOnReplace && uploadedPath.current) {
-        if (user && uploadedPath.current.startsWith(`users/${user.uid}/`)) {
-          try {
-            await deleteObject(ref(storage, uploadedPath.current));
-          } catch (err) {
-            console.warn('Could not delete previous file:', err);
-          }
-        }
-        uploadedPath.current = null;
-      }
-      onUpload?.(null); // Notify parent of file removal with null URL
+      pendingFileRef.current = null;
+      onFileSelect?.(null);
       return;
     }
 
@@ -320,40 +280,8 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
     if (!await checkImageDimensions(file, config)) { setRejectionKey(k => k + 1); return; }
     if (config.maxDurationSeconds && !await checkAudioDuration(file, config.maxDurationSeconds)) { setRejectionKey(k => k + 1); return; }
 
-    // If no user yet (e.g. during registration) or deferred mode, store the file for later upload via upload(uid).
-    if (!user || deferred) {
-      pendingFileRef.current = file;
-      if (deferred) onFileSelect?.(file);
-      return;
-    }
-
-    // Capture the path to delete before upload so the ref can't change underneath us.
-    // Upload new file -> get download URL -> delete old file (if configured)
-    //  -> update state with new URL -> call onUpload with new URL
-    setUploading(true); // Disable the input and show loading state during upload
-    onUploadStart?.(); // Notify parent that upload has started (to disable form submission)
-    try {
-      const pathToDelete = config.deleteOnReplace ? (uploadedPath.current ?? priorPath.current) : null;
-      const { url, path, thumbUrl } = await performUpload(user.uid, file, config);
-      // Upload succeeded, now delete old file if needed
-      if (pathToDelete && pathToDelete !== path && pathToDelete.startsWith(`users/${user.uid}/`)) {
-        try {
-          await deleteObject(ref(storage, pathToDelete));
-        } catch (err) {
-          console.warn('Could not delete previous file:', err);
-        }
-      }
-      uploadedPath.current = path;
-      priorPath.current = null;
-      onUpload?.(url, thumbUrl, path, thumbPath);
-      toaster.create({ title: 'Upload successful!', type: 'success', closable: true });
-    } catch (err) {
-      console.error('Upload failed:', err);
-      toaster.create({ title: 'Upload failed', description: 'Something went wrong. Please try again.', type: 'error', closable: true });
-    } finally {
-      setUploading(false); // Re-enable the input
-      onUploadEnd?.(); // Notify parent that upload has ended (to re-enable form submission)
-    }
+    pendingFileRef.current = file;
+    onFileSelect?.(file);
   };
 
   // Show a generic rejection toast for cases where Zag's internal validation rejects the file before it reaches handleFileChange.
@@ -368,6 +296,7 @@ export const FileUpload = forwardRef(function FileUpload({ type, label, currentU
       config={config}
       label={label}
       uploading={uploading}
+      disabled={disabled}
       onFileChange={handleFileChange}
       onFileReject={handleFileReject}
     />

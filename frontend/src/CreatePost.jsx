@@ -1,7 +1,7 @@
 // CreatePost.jsx
 // Form for creating a new post (looking for band/musicians, jam session, or sharing music)
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Flex, Button, Heading, VStack, HStack, Input, Field, Text, IconButton, FileUpload as ChakraFileUpload } from '@chakra-ui/react';
 
@@ -27,13 +27,11 @@ function CreatePost() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
   
-  const [loading, setLoading] = useState(false);
-  const [photoUploading, setPhotoUploading] = useState(false);
-  const [photoPath, setPhotoPath] = useState(null);
-  const [photoThumbPath, setPhotoThumbPath] = useState(null);
-  const [songFile, setSongFile] = useState(null);
-  const [songObjectUrl, setSongObjectUrl] = useState(null);
-  const [songRejectionKey, setSongRejectionKey] = useState(0);
+  const [loading, setLoading] = useState(false); // Loading state for form submission
+  const [songFile, setSongFile] = useState(null); // File object for the uploaded song, stored in state to manage upload and preview
+  const [songObjectUrl, setSongObjectUrl] = useState(null); // Object URL for previewing the uploaded song
+  const [songRejectionKey, setSongRejectionKey] = useState(0); // Key to reset file input on rejection
+  const photoUploadRef = useRef(null); // Ref for the FileUpload component to trigger upload and get results
 
   const handleSongFileAdd = async (file) => {
     if (file.size > 10 * 1024 * 1024) {
@@ -65,8 +63,6 @@ function CreatePost() {
     location: null,
     selectedInstruments: {},
     selectedGenres: [],
-    photoUrl: null,
-    photoThumbUrl: null,
   });
 
   // Grab instruments/genres when post type is looking_to_jam or looking_for_band
@@ -135,6 +131,8 @@ function CreatePost() {
         uploadedSongPath = path;
       }
 
+      const photoResult = await photoUploadRef.current?.upload(currentUser.uid) ?? null;
+
       const payload = {
         title: formData.title,
         body: formData.body,
@@ -142,8 +140,8 @@ function CreatePost() {
         location: formData.location?.zipCode ? { zipCode: formData.location.zipCode } : null,
         instruments,
         genres: formData.selectedGenres,
-        photoUrl: formData.photoUrl || null,
-        photoThumbUrl: formData.photoThumbUrl || null,
+        photoUrl: photoResult?.url ?? null,
+        photoThumbUrl: photoResult?.thumbUrl ?? null,
         songUrl,
       };
 
@@ -153,11 +151,11 @@ function CreatePost() {
         if (uploadedSongPath) {
           try { await deleteObject(storageRef(storage, uploadedSongPath)); } catch (_) {}
         }
-        if (photoPath) {
-          try { await deleteObject(storageRef(storage, photoPath)); } catch (_) {}
+        if (photoResult?.path) {
+          try { await deleteObject(storageRef(storage, photoResult.path)); } catch (_) {}
         }
-        if (photoThumbPath) {
-          try { await deleteObject(storageRef(storage, photoThumbPath)); } catch (_) {}
+        if (photoResult?.thumbPath) {
+          try { await deleteObject(storageRef(storage, photoResult.thumbPath)); } catch (_) {}
         }
         throw err;
       }
@@ -259,14 +257,9 @@ function CreatePost() {
                   </HStack>
                 </Field.Label>
                 <FileUpload
+                  ref={photoUploadRef}
                   type="post-image"
-                  onUpload={(url, thumbUrl, path, thumbPath) => {
-                    setFormData(prev => ({ ...prev, photoUrl: url, photoThumbUrl: thumbUrl || null }));
-                    setPhotoPath(path || null);
-                    setPhotoThumbPath(thumbPath || null);
-                  }}
-                  onUploadStart={() => setPhotoUploading(true)}
-                  onUploadEnd={() => setPhotoUploading(false)}
+                  disabled={loading}
                 />
               </Field.Root>
 
@@ -277,7 +270,7 @@ function CreatePost() {
                     <Box flex={1} minWidth={0}>
                       <ReactPlayer src={songObjectUrl} controls width="100%" height="50px" />
                     </Box>
-                    <IconButton size="md" variant="solid" colorPalette="red" aria-label="Remove song" onClick={removeSong}>
+                    <IconButton size="md" variant="solid" colorPalette="red" aria-label="Remove song" onClick={removeSong} disabled={loading}>
                       <LuX />
                     </IconButton>
                   </HStack>
@@ -300,7 +293,7 @@ function CreatePost() {
                     <ChakraFileUpload.HiddenInput />
                     <HStack gap={1}>
                       <ChakraFileUpload.Trigger asChild>
-                        <Button type="button" variant="outline" size="sm">
+                        <Button type="button" variant="outline" size="sm" disabled={loading}>
                           <LuUpload /> Add Song
                         </Button>
                       </ChakraFileUpload.Trigger>
@@ -321,7 +314,6 @@ function CreatePost() {
                   size="lg"
                   width="70%"
                   loading={loading}
-                  disabled={photoUploading}
                   loadingText="Creating Post..."
                 >
                   Create Post
