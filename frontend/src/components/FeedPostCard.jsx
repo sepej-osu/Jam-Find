@@ -10,16 +10,18 @@ import {
   Separator,
   Link,
   Badge,
-  Wrap
+  Wrap,
+  Image,
+  Skeleton,
 } from '@chakra-ui/react';
-import { toaster } from "./ui/toaster"
 import { FaMapMarkerAlt, FaCommentAlt } from 'react-icons/fa';
 import { IoHeart, IoHeartOutline } from 'react-icons/io5';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import postService from '../services/postService';
-import conversationService from '../services/conversationService';
 import { useAuth } from '../contexts/AuthContext';
+import { useLike } from '../hooks/useLike';
+import { useStartConversation } from '../hooks/useStartConversation';
+import { postImageDialog } from './ui/PostImageDialog';
 import { INSTRUMENT_DISPLAY_NAMES, GENRE_DISPLAY_NAMES, POST_TYPE_DISPLAY_NAMES, POST_TYPE_PLAY_LABELS } from '../utils/displayNameMappings';
 import { getSkillColor, getInstrumentIcon } from '../utils/iconMappings';
 import { getRelativeTime, getDistanceMiles } from '../utils/helpers';
@@ -27,14 +29,13 @@ import { Tooltip } from './ui/tooltip';
 
 function FeedPostCard({ post, userLat = null, userLng = null }) {
   const { currentUser } = useAuth();
-  const [likesCount, setLikesCount] = useState(post.likes || 0);
-  const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
-  const [likingInProgress, setLikingInProgress] = useState(false);
-  const [messagingInProgress, setMessagingInProgress] = useState(false);
+  const [thumbLoaded, setThumbLoaded] = useState(false);
   const navigate = useNavigate();
   const instrumentLabel = POST_TYPE_PLAY_LABELS[post.postType];
   const isOwnPost = currentUser?.uid === post.userId;
   const canMessageOwner = !!currentUser?.uid && currentUser.uid !== post.userId;
+  const { likesCount, isLiked, likingInProgress, handleLikeToggle } = useLike(post.postId, post.likes || 0, post.likedByCurrentUser || false);
+  const { messagingInProgress, handleStartConversation } = useStartConversation();
 
   const distanceMiles =
     userLat !== null && userLng !== null &&
@@ -42,49 +43,8 @@ function FeedPostCard({ post, userLat = null, userLng = null }) {
       ? getDistanceMiles(userLat, userLng, post.location.lat, post.location.lng)
       : null;
 
-  const handleLikeToggle = async () => {
-    if (likingInProgress) return;
-
-    try {
-      setLikingInProgress(true);
-      const response = await postService.toggleLike(post.postId);
-      setLikesCount(response.likes);
-      setIsLiked(response.liked);
-    } catch (err) {
-      console.error('Failed to toggle like:', err);
-      toaster.create({
-        title: 'Failed to update like',
-        description: err.message || 'Please try again later',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setLikingInProgress(false);
-    }
-  };
-
-  const handleStartConversation = async () => {
-    if (!canMessageOwner || messagingInProgress) return;
-
-    try {
-      setMessagingInProgress(true);
-      const conversation = await conversationService.createConversation(post.userId);
-      navigate(`/messages/${conversation.conversationId}`);
-    } catch (err) {
-      toaster.create({
-        title: 'Unable to start conversation',
-        description: err.message || 'Please try again later',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setMessagingInProgress(false);
-    }
-  };
-  
 return (
+    <>
     <Box maxW="1000px" mx="auto" mb={4} layerStyle="card">
         <Flex align="center" mb={4}>
           <Avatar.Root size="xl" shape="rounded" mr={3} cursor="pointer" onClick={() => navigate(`/profile/${post.userId}`)}>
@@ -127,44 +87,72 @@ return (
 
         <Separator mb={2} />
 
-        <Box mb={3}>
-          <Text fontSize="lg" color="jam.text" whiteSpace="pre-wrap">
-            {post.body}
-          </Text>
-        </Box>
-        
-        {post.instruments?.length > 0 && (
-          <Box mb={2}>
-            {instrumentLabel && (
-              <Text fontSize="sm" color="jam.textMuted" fontWeight="normal" mb={1}>{instrumentLabel}</Text>
-            )}
-            <Wrap gap={1}>
-              {post.instruments.map((i, index) => (
-                <Tooltip key={index} openDelay={10} closeDelay={10} content={`Skill level: ${i.skillLevel}/5`}>
-                  <Badge
-                    bg={`${getSkillColor(i.skillLevel)}.subtle`}
-                    color={`${getSkillColor(i.skillLevel)}.fg`}
-                    cursor="default">
-                    <Icon as={getInstrumentIcon(i.name)} />
-                    {INSTRUMENT_DISPLAY_NAMES[i.name] ?? i.name}
-                  </Badge>
-                </Tooltip>
-              ))}
-            </Wrap>
-          </Box>
-        )}
+        <Flex gap={3} mb={3} align="flex-start">
+          <Box flex="1">
+            <Text fontSize="lg" color="jam.text" whiteSpace="pre-wrap">
+              {post.body}
+            </Text>
 
-        {post.genres?.length > 0 && (
-          <Box mb={3}>
-            <Wrap gap={1}>
-              {post.genres.map((g, index) => (
-                <Badge key={index} variant="jam">
-                  {GENRE_DISPLAY_NAMES[g] ?? g}
-                </Badge>
-              ))}
-            </Wrap>
+            {post.instruments?.length > 0 && (
+              <Box mt={2} mb={2}>
+                {instrumentLabel && (
+                  <Text fontSize="sm" color="jam.textMuted" fontWeight="normal" mb={1}>{instrumentLabel}</Text>
+                )}
+                <Wrap gap={1}>
+                  {post.instruments.map((i, index) => (
+                    <Tooltip key={index} openDelay={10} closeDelay={10} content={`Skill level: ${i.skillLevel}/5`}>
+                      <Badge
+                        bg={`${getSkillColor(i.skillLevel)}.subtle`}
+                        color={`${getSkillColor(i.skillLevel)}.fg`}
+                        cursor="default">
+                        <Icon as={getInstrumentIcon(i.name)} />
+                        {INSTRUMENT_DISPLAY_NAMES[i.name] ?? i.name}
+                      </Badge>
+                    </Tooltip>
+                  ))}
+                </Wrap>
+              </Box>
+            )}
+
+            {post.genres?.length > 0 && (
+              <Box>
+                <Wrap gap={1}>
+                  {post.genres.map((g, index) => (
+                    <Badge key={index} variant="jam">
+                      {GENRE_DISPLAY_NAMES[g] ?? g}
+                    </Badge>
+                  ))}
+                </Wrap>
+              </Box>
+            )}
+
+            {post.songUrl && (
+              <Box mt={2}>
+                <audio controls src={post.songUrl} style={{ width: '300px' }} />
+              </Box>
+            )}
           </Box>
-        )}
+
+          {post.photoUrl && (
+            <Box flexShrink={0} layerStyle="postImage">
+              <Skeleton loading={!thumbLoaded} borderRadius="md" width="100%" height="100%">
+                <Image
+                  src={post.photoThumbUrl || post.photoUrl}
+                  alt="Post photo"
+                  borderRadius="md"
+                  maxH="100%"
+                  maxW="100%"
+                  fit="cover"
+                  display="block"
+                  ml="auto"
+                  cursor="pointer"
+                  onLoad={() => setThumbLoaded(true)}
+                  onClick={() => postImageDialog.open(post.postId, { photoUrl: post.photoUrl })}
+                />
+              </Skeleton>
+            </Box>
+          )}
+        </Flex>
 
         <Separator my={4} />
         
@@ -185,7 +173,7 @@ return (
             <Button
               size="sm"
               variant="jam"
-              onClick={handleStartConversation}
+              onClick={() => handleStartConversation(post.userId)}
               loading={messagingInProgress}
             >
               <Icon as={FaCommentAlt} />
@@ -194,6 +182,7 @@ return (
           )}
         </Flex>
     </Box>
+    </>
   );
 }
 

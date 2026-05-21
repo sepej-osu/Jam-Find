@@ -172,10 +172,12 @@ const handleStep2Submit = async (e) => {
     const token = await user.getIdToken();
 
     // Upload profile picture now that the account exists and we have a UID
-    const profilePicUrl = await fileUploadRef.current?.upload(user.uid) ?? null;
+    const photoResult = await fileUploadRef.current?.upload(user.uid) ?? null;
+    if (photoResult?.path) uploadedPaths.push(photoResult.path);
+    if (photoResult?.thumbPath) uploadedPaths.push(photoResult.thumbPath);
 
       const { samples: uploadedSamples, uploadedPaths: newPaths } = await uploadMusicSamples(user.uid, musicSamples);
-      uploadedPaths = newPaths;
+      uploadedPaths = [...uploadedPaths, ...newPaths];
     const instruments = instrumentsFromSelected(formData.selectedInstruments);
 
     const payload = {
@@ -190,7 +192,7 @@ const handleStep2Submit = async (e) => {
       location: formData.location,
       instruments: instruments,
       genres: formData.selectedGenres,
-      profilePicUrl: profilePicUrl,
+      profilePicUrl: photoResult?.url ?? null,
       musicSamples: uploadedSamples,
     };
 
@@ -386,7 +388,7 @@ const handleStep2Submit = async (e) => {
                   maxLength={500}
                 />
 
-                <FileUpload ref={fileUploadRef} type="profile-image" label="Profile Picture" onUpload={(url) => setFormData((prev) => ({ ...prev, profilePicUrl: url }))} />
+                <FileUpload ref={fileUploadRef} type="profile-image" label="Profile Picture" disabled={loading} />
 
                 <InputField
                   label="Years of Experience"
@@ -432,6 +434,7 @@ const handleStep2Submit = async (e) => {
                             colorPalette="red"
                             aria-label="Remove sample"
                             onClick={() => removeMusicSample(index, musicSamples)}
+                            disabled={loading}
                           >
                             <LuX />
                           </IconButton>
@@ -443,6 +446,7 @@ const handleStep2Submit = async (e) => {
                         key={musicRejectionKey}
                         maxFiles={1}
                         accept={ACCEPTED_AUDIO_RECORD}
+                        disabled={loading}
                         onFileChange={async ({ acceptedFiles }) => {
                           if (acceptedFiles[0]) {
                             await handleMusicFileAdd(acceptedFiles[0], musicSamples.length);
@@ -457,7 +461,7 @@ const handleStep2Submit = async (e) => {
                         <ChakraFileUpload.HiddenInput />
                         <HStack gap={1}>
                           <ChakraFileUpload.Trigger asChild>
-                            <Button type="button" variant="outline" size="sm">
+                            <Button type="button" variant="outline" size="sm" disabled={loading}>
                               <LuUpload /> Add Sample
                             </Button>
                           </ChakraFileUpload.Trigger>

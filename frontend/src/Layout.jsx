@@ -3,6 +3,7 @@ import { Grid, GridItem, Box, Text, Separator } from '@chakra-ui/react';
 import NavBar from './components/NavBar';
 import ProfileMenu from './components/ProfileMenu';
 import JamLogo from './assets/JamLogo.jsx';
+import { postImageDialog } from './components/ui/PostImageDialog';
 
 // This layout component is used to wrap all pages in our app, so we can have
 // a consistent navbar and footer across all pages without repeating code.
@@ -105,6 +106,7 @@ const Layout = () => {
                     </Grid>
                 )}
             </Box>
+            <postImageDialog.Viewport />
         </Box>
     );
 };

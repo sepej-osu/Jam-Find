@@ -35,6 +35,7 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
               name={name}
               value={String(value)}
               onChange={onChange}
+              required={required}
               placeholder="Select...">
               {selectOptions ? (
                 selectOptions.map((option) => (
@@ -64,6 +65,7 @@ function InputField({ label, name, type, value, onChange, placeholder, error, re
             value={String(value)}
             onChange={onChange}
             placeholder={placeholder}
+            required={required}
           />
         );
     }
