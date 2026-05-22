@@ -1,0 +1,716 @@
+{
+  "users": [
+    {
+      "email": "lisa.simpson@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Lisa",
+        "lastName": "Simpson",
+        "birthDate": "2000-05-09T00:00:00.000Z",
+        "gender": "female",
+        "bio": "I'm Lisa Simpson, and music is my lifeblood. From the soulful wail of my alto saxophone to the delicate touch on piano keys, I pour my intellect and emotion into every note. Jazz speaks to the complexity of the human condition, and I find classical music to be the pinnacle of artistic achievement. I'm looking for fellow musicians who take their craft seriously and want to create something meaningful together.",
+        "experienceYears": 8,
+        "location": { "zipCode": "97333" },
+        "instruments": [
+          { "name": "saxophone", "skillLevel": 5 },
+          { "name": "piano", "skillLevel": 4 },
+          { "name": "vocals", "skillLevel": 3 }
+        ],
+        "genres": ["jazz", "classical", "blues"],
+        "profileImageLocalPath": "seed_images/profile_images/lisa_simpson.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Devonshire Waltz Andante.mp3", "title": "Devonshire Waltz Andante" },
+          { "localPath": "seed_music/Pleasant Porridge.mp3", "title": "Pleasant Porridge" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Seeking Serious Jazz Collaborators in Corvallis",
+          "body": "Fellow musicians of the Corvallis area, I am reaching out in the earnest hope of finding individuals who share my commitment to jazz as a genuine art form. I have been studying saxophone under various teachers and self-teaching piano for eight years, and I believe I have reached a level of proficiency that demands similarly skilled collaborators. I am particularly interested in exploring modal jazz, bebop, and the more cerebral end of the jazz spectrum. If you can appreciate the genius of Miles Davis, John Coltrane, and Dave Brubeck, and if you are willing to put in the hours of practice required to truly master your instrument, I would love to hear from you. My vision is for a small ensemble, perhaps a quartet or quintet, that performs original compositions as well as reinterpretations of the jazz canon. Serious inquiries only, please.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97333" },
+          "instruments": ["saxophone", "piano"],
+          "genres": ["jazz", "blues"],
+          "localImagePath": "seed_images/post_images/1.png",
+          "localSongPath": "seed_music/Devonshire Waltz Andante.mp3"
+        },
+        {
+          "title": "Classical Piano Duet Partner Wanted",
+          "body": "I am searching for an accomplished pianist to explore the classical piano duet repertoire with me. There is something profoundly beautiful about two musicians sharing a keyboard, negotiating musical ideas in real time. I have in mind the Schubert four-hand fantasies, some Brahms Hungarian Dances, and perhaps some more contemporary classical works. I practice daily and expect my partner to have a similar level of dedication. Music theory knowledge is a significant plus, as I enjoy dissecting the harmonic structure of the pieces we play. Please reach out if you have at least a few years of classical training and a genuine love for the art form.",
+          "postType": "looking_to_jam",
+          "location": { "zipCode": "97333" },
+          "instruments": ["piano"],
+          "genres": ["classical"],
+          "localImagePath": null,
+          "localSongPath": null
+        },
+        {
+          "title": "Original Blues Composition — Open to Feedback",
+          "body": "I have been working on an original blues composition that draws from the Delta tradition while incorporating some contemporary jazz harmony. The piece started as a simple saxophone melody but has grown into something more complex that I think deserves a full band arrangement. I am posting it here both to share the work-in-progress and to gauge interest from other musicians who might want to be part of bringing it to life. The composition explores themes of intellectual isolation and the struggle to be understood in a world that does not always appreciate nuance. I welcome thoughtful feedback and would love to connect with musicians who can hear the potential in this piece and help me develop it further.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97333" },
+          "instruments": ["saxophone", "piano", "vocals"],
+          "genres": ["blues", "jazz"],
+          "localImagePath": "seed_images/post_images/3.png",
+          "localSongPath": "seed_music/Pleasant Porridge.mp3"
+        }
+      ]
+    },
+    {
+      "email": "bart.simpson@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Bart",
+        "lastName": "Simpson",
+        "birthDate": "1998-04-01T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Ay caramba! I'm Bart Simpson. I shred on drums and guitar, and I play loud and fast because life's too short for slow songs. If you want someone who's gonna bring the energy and never play it safe, I'm your guy. I've been playing drums since I was ten and guitar since I was twelve. Rock and punk are my life. Don't have a cow if I'm a bit rough around the edges — that's what punk is all about.",
+        "experienceYears": 6,
+        "location": { "zipCode": "97330" },
+        "instruments": [
+          { "name": "drums", "skillLevel": 4 },
+          { "name": "electric_guitar", "skillLevel": 3 }
+        ],
+        "genres": ["rock", "punk", "alternative"],
+        "profileImageLocalPath": "seed_images/profile_images/bart_simpson.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Boogie Party.mp3", "title": "Boogie Party" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Drummer Looking to Start a Punk Band — No Rules",
+          "body": "Listen up, Corvallis. I am Bart Simpson and I am done playing by the rules. I need a band. Not some boring cover band that plays the same old stuff every weekend, but a real, raw punk outfit that wants to make noise and have fun. I have been playing drums for six years and I can keep a beat that will make your head explode. I want a guitarist who is not afraid to crank up the distortion, a bassist who hits hard, and maybe a vocalist who can scream as loud as they want. We are talking fast songs, loud shows, and zero interest in being polished or professional. If you think music should be fun and a little dangerous, hit me up. We can practice in my friend's garage on weekends. Bring your gear and your attitude.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97330" },
+          "instruments": ["drums", "electric_guitar"],
+          "genres": ["punk", "rock"],
+          "localImagePath": "seed_images/post_images/4.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Wanna Jam? Drums and Guitar, Whatever Style",
+          "body": "Okay so I know I said punk is my thing but honestly I just want to play with other people and have a good time. If you play any instrument and want to jam on a Saturday afternoon, I am totally down. We do not have to have a plan. We can just plug in and see what happens. That is honestly the best way to make music anyway. I have been told I have pretty good instincts for following along with what other musicians are doing, even if I have never heard the song before. So if you have been wanting to jam but never had anyone to play with, I am your guy. Just do not make it too complicated or too slow, or I will probably get bored.",
+          "postType": "looking_to_jam",
+          "location": { "zipCode": "97330" },
+          "instruments": ["drums"],
+          "genres": ["rock", "alternative", "punk"],
+          "localImagePath": null,
+          "localSongPath": null
+        },
+        {
+          "title": "Check Out This Riff I've Been Working On",
+          "body": "So I have been messing around with this guitar riff for a couple weeks now and I think it is actually pretty cool. It started as something I was just noodling on during a study break — okay, fine, I was supposed to be doing homework but whatever — and it turned into this full riff that I think could be the backbone of a really sick rock song. I recorded it on my phone so the quality is not amazing but you can hear the idea. If anyone wants to build a song around it or add some other instruments, I am totally interested. Drums, I am thinking something driving and energetic. Maybe some bass underneath. Let me know what you think in the comments.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97330" },
+          "instruments": ["electric_guitar", "drums"],
+          "genres": ["rock", "punk"],
+          "localImagePath": "seed_images/post_images/2.png",
+          "localSongPath": "seed_music/Boogie Party.mp3"
+        }
+      ]
+    },
+    {
+      "email": "marge.simpson@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Marge",
+        "lastName": "Simpson",
+        "birthDate": "1996-03-19T00:00:00.000Z",
+        "gender": "female",
+        "bio": "Hi, I'm Marge Simpson. I've been singing and playing piano most of my life, and music has always been the heart of my home. I love pop music with a good melody and meaningful lyrics, folk songs that tell a story, and soul music that makes you feel something deep. I'm looking for warm, collaborative musicians who enjoy making music together in a friendly, supportive environment. I believe music is about connection, not competition.",
+        "experienceYears": 10,
+        "location": { "zipCode": "97339" },
+        "instruments": [
+          { "name": "vocals", "skillLevel": 4 },
+          { "name": "piano", "skillLevel": 3 }
+        ],
+        "genres": ["pop", "folk", "soul"],
+        "profileImageLocalPath": "seed_images/profile_images/marge_simpson.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Fox Tale Waltz Part 1 Instrumental.mp3", "title": "Fox Tale Waltz Part 1 Instrumental" },
+          { "localPath": "seed_music/Feral Angel Waltz .mp3", "title": "Feral Angel Waltz" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Looking for a Warm, Welcoming Band",
+          "body": "Hello everyone! My name is Marge and I am a vocalist and pianist with about ten years of experience. I have always loved making music but I have been without a regular group to play with for a few years now, and I am really hoping to change that. I am looking for a band or ensemble that is friendly, patient, and enjoys the process of making music together as much as the performance itself. My style leans toward pop, folk, and soul music — music with heart and melody. I am a reliable and committed musician who shows up to rehearsal prepared and on time. I would love to join a group that plays local venues, community events, or even just regular jam sessions at someone's home. If you are looking for a warm, dependable vocalist or pianist, please reach out!",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97339" },
+          "instruments": ["vocals", "piano"],
+          "genres": ["pop", "folk", "soul"],
+          "localImagePath": "seed_images/post_images/5.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Seeking a Guitarist for Folk Songwriting Sessions",
+          "body": "I have been writing original folk songs for the past couple of years and I am looking for a guitarist to collaborate with on the songwriting and arrangement side. I typically start with a piano melody and lyrics, and I think a good acoustic guitarist could add so much to these songs. I envision something in the style of artists like Carole King or James Taylor, where the song and the lyrics are the center of everything. I am a patient collaborator and I am very open to the guitarist's ideas and contributions. If you enjoy sitting around with instruments and building a song from scratch, and if you are based in or near Philomath, I would love to set up a songwriting session.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97339" },
+          "instruments": ["vocals", "piano"],
+          "genres": ["folk", "pop"],
+          "localImagePath": null,
+          "localSongPath": null
+        },
+        {
+          "title": "A Little Song I Wrote — Sharing with the Community",
+          "body": "I hope you do not mind me sharing something a little personal. I wrote this song a few months ago during a particularly thoughtful time in my life. It is a pop folk piece about finding beauty in the everyday moments that we sometimes take for granted. The melody came to me while I was playing piano after the house had finally gotten quiet, and the lyrics just followed. I recorded it at home, so it is just piano and vocals, but I have always imagined it with a full folk arrangement — maybe some guitar and light percussion. If anyone is moved by the song and wants to talk about collaborating on a fuller version, I would be absolutely delighted to hear from you.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97339" },
+          "instruments": ["vocals", "piano"],
+          "genres": ["folk", "pop", "soul"],
+          "localImagePath": "seed_images/post_images/6.png",
+          "localSongPath": "seed_music/Fox Tale Waltz Part 1 Instrumental.mp3"
+        }
+      ]
+    },
+    {
+      "email": "maggie.simpson@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Maggie",
+        "lastName": "Simpson",
+        "birthDate": "2002-01-14T00:00:00.000Z",
+        "gender": "female",
+        "bio": "*sucks pacifier thoughtfully* I may not say much, but I speak volumes through my trumpet. A prodigy of jazz and classical music, I have been playing trumpet since before I could walk — or talk. My playing has a maturity far beyond my years. I am searching for musicians who can appreciate musical conversation that transcends words.",
+        "experienceYears": 5,
+        "location": { "zipCode": "97333" },
+        "instruments": [
+          { "name": "trumpet", "skillLevel": 5 },
+          { "name": "vocals", "skillLevel": 2 }
+        ],
+        "genres": ["jazz", "classical"],
+        "profileImageLocalPath": "seed_images/profile_images/maggie_simpson.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Cretaceous Dawn.mp3", "title": "Cretaceous Dawn" },
+          { "localPath": "seed_music/Brain Dance.mp3", "title": "Brain Dance" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Trumpet Prodigy Seeking Jazz Ensemble",
+          "body": "I do not speak often, but when I do it is through my trumpet, and I believe the music says everything that needs to be said. I have been playing for five years and have developed what I am told is an unusual level of expressiveness and technical control for someone my age. Jazz and classical music speak to me in ways that words simply cannot. I am searching for a small jazz ensemble — perhaps a quartet — that meets regularly to play standards as well as original compositions. I am not interested in groups that treat rehearsal as a social hour. The music is the priority. My trumpet playing can fill any space with warmth and depth, and I can follow even complex chord changes instinctively. If you are serious about jazz, let us talk. Or rather, let us play.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97333" },
+          "instruments": ["trumpet"],
+          "genres": ["jazz", "classical"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Cretaceous Dawn.mp3"
+        },
+        {
+          "title": "Classical Brass Collaboration Opportunity",
+          "body": "I am interested in connecting with other brass players in the Corvallis area for classical chamber music. There is a wonderful repertoire of brass quintet and quartet music that is rarely performed locally, and I think there is an audience for it. I envision a group that meets regularly to work through this repertoire with care and precision. I bring strong sight-reading skills and a classical training background to the table. If you play trumpet, horn, trombone, or tuba and have a classical background, please reach out. I am committed to creating something of genuine musical quality.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97333" },
+          "instruments": ["trumpet"],
+          "genres": ["classical", "jazz"],
+          "localImagePath": "seed_images/post_images/7.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Original Trumpet Composition — A Musical Statement",
+          "body": "I composed this piece after a period of deep reflection. It is a trumpet-led work that moves between jazz and classical idioms, exploring the space between structure and spontaneity. The melody in the first section draws from a classical tradition, while the middle section opens up into a more improvisational jazz language before returning to the opening theme with new harmonic color. I recorded it simply — just trumpet — but the composition is designed to eventually have a full rhythm section behind it. I am sharing it here because I believe music is meant to be heard, and because I hope it might attract musicians who understand this kind of cross-genre conversation and want to build something larger around it.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97333" },
+          "instruments": ["trumpet"],
+          "genres": ["jazz", "classical"],
+          "localImagePath": "seed_images/post_images/1.png",
+          "localSongPath": "seed_music/Brain Dance.mp3"
+        }
+      ]
+    },
+    {
+      "email": "moe.szyslak@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Moe",
+        "lastName": "Szyslak",
+        "birthDate": "1975-11-24T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Yeah, Moe here. I run a bar, I serve drinks, and when the last customer staggers home I pick up my bass and play the blues until the sun comes up. I got a voice like gravel and a heart full of heartbreak and that makes for pretty decent music. I play bass, some acoustic guitar, and I can sing if nobody's watching too close. Blues, country, folk — real music for real people who've had real problems.",
+        "experienceYears": 20,
+        "location": { "zipCode": "97330" },
+        "instruments": [
+          { "name": "electric_bass", "skillLevel": 4 },
+          { "name": "acoustic_guitar", "skillLevel": 3 },
+          { "name": "vocals", "skillLevel": 2 }
+        ],
+        "genres": ["blues", "country", "folk"],
+        "profileImageLocalPath": "seed_images/profile_images/moe.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Southern Gothic.mp3", "title": "Southern Gothic" },
+          { "localPath": "seed_music/Lord of the Rangs.mp3", "title": "Lord of the Rangs" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Bass Player Looking for Blues Band — Serious Musicians Only",
+          "body": "Alright, let me be straight with ya. I have been playing bass for twenty years. I learned the hard way, by ear, in bars and back rooms and basements. I know my way around a twelve-bar blues and I can lock in with a drummer like nobody's business. What I am looking for is a real blues band. Not some weekend warriors who learned three chords from YouTube. I mean people who have paid their dues, who understand that the blues is not just a genre but a way of living. I can also play acoustic guitar and do some backup vocals, though I will warn you the vocals are more character than technique. If you run a blues outfit in the Corvallis area and you need a solid, experienced bass player who shows up and plays his heart out, get in touch.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97330" },
+          "instruments": ["electric_bass", "acoustic_guitar"],
+          "genres": ["blues", "country"],
+          "localImagePath": "seed_images/post_images/2.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Open Mic Night at My Bar — Looking for Musicians",
+          "body": "So I run a bar right here in the area and I have been thinking about starting a regular open mic night. I need musicians who want a place to play and an audience of regulars who actually appreciate live music rather than just background noise. I am thinking blues, country, folk, maybe some singer-songwriter stuff. Nothing too fancy. Just real people playing real music. If you are interested in performing or just want to come jam, let me know. I will probably get up and play bass or guitar myself if the lineup needs filling out. The bar is warm, the drinks are cheap, and the crowd is honest. What more do you want?",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97330" },
+          "instruments": ["electric_bass", "acoustic_guitar", "vocals"],
+          "genres": ["blues", "country", "folk"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Southern Gothic.mp3"
+        },
+        {
+          "title": "A Blues Song I Recorded Alone at 2 AM",
+          "body": "Do not judge me. It was two in the morning, the bar was closed, and I had my acoustic guitar and too many feelings. I recorded this on my phone sitting on the bar stool where I normally serve other people their sorrows. It is a blues song, obviously. Three chords and the truth, like they say. The lyrics are about things I probably should not put in writing but you will hear them in the song and you will understand. I am not looking for feedback on my singing — I know what my singing sounds like. What I am hoping is that maybe somebody out there hears the bones of this song and thinks they could do something with it. Add some drums, some harmonica, make it into a full band arrangement. It has got potential, I think. Underneath all the roughness.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97330" },
+          "instruments": ["acoustic_guitar", "vocals"],
+          "genres": ["blues", "folk"],
+          "localImagePath": "seed_images/post_images/3.png",
+          "localSongPath": null
+        }
+      ]
+    },
+    {
+      "email": "ned.flanders@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Ned",
+        "lastName": "Flanders",
+        "birthDate": "1970-09-10T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Well, hi-diddly-ho, music-a-rinos! I'm Ned Flanders and I am just over-the-moon excited to be part of this community. I play acoustic guitar and sing, and my musical heart lives at the intersection of gospel, folk, and country music. I believe music is a gift and I try to use it to uplift and encourage everyone around me. I am looking for kind-hearted musicians who want to make music that means something and brings people together.",
+        "experienceYears": 25,
+        "location": { "zipCode": "97339" },
+        "instruments": [
+          { "name": "acoustic_guitar", "skillLevel": 5 },
+          { "name": "vocals", "skillLevel": 4 }
+        ],
+        "genres": ["gospel", "folk", "country"],
+        "profileImageLocalPath": "seed_images/profile_images/ned_flanders.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Feral Angel Waltz .mp3", "title": "Feral Angel Waltz" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Gospel Choir Looking for Instrumentalists — All Welcome!",
+          "body": "Well, hey there, neighbors! I am putting together a small gospel group for community events and I am just tickled pink to be looking for some wonderful musicians to join us. We will be playing a mix of traditional gospel hymns, contemporary Christian music, and some folk and country gospel that really speaks to the soul. I play guitar and sing, and right now we have a lovely vocalist who has been with me for a few years. What we really need is a pianist or keyboardist, maybe a bassist, and anyone who can add some warmth and heart to the music. This is not an audition — it is an invitation. Everyone who loves music and wants to use it for good is welcome. Please reach out and let us make some joyful music together!",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97339" },
+          "instruments": ["acoustic_guitar", "vocals"],
+          "genres": ["gospel", "folk", "country"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Feral Angel Waltz .mp3"
+        },
+        {
+          "title": "Sunday Afternoon Folk Jam — Everyone Invited!",
+          "body": "Friends and neighbors, I host a regular Sunday afternoon folk music gathering at my home and I would love to have some new faces join us! It is a completely casual, welcoming environment where musicians of all levels come together to play folk, country, and gospel songs. We go around the circle and everyone gets a chance to share a song or a tune. Some people are quite experienced and some are just learning, and that is perfectly fine — music is for everyone! I always have lemonade and some home-baked treats available. If you play any instrument at all and enjoy the folk and acoustic tradition, please come by. Just send me a message first so I know to expect you. The more the merrier, as I always say, and I say it quite a lot!",
+          "postType": "looking_to_jam",
+          "location": { "zipCode": "97339" },
+          "instruments": ["acoustic_guitar", "vocals"],
+          "genres": ["folk", "gospel", "country"],
+          "localImagePath": "seed_images/post_images/4.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Original Gospel Song — 'Every Good Thing'",
+          "body": "Well, I just finished writing a new gospel song and I am so, so pleased with how it turned out that I just had to share it! It is called Every Good Thing and it is based on the idea that gratitude opens our hearts to all the beauty around us. The melody is simple and singable — I believe the best songs are the ones everyone can join in on — and the guitar arrangement builds from a gentle fingerpicked intro into something more full and joyful by the final chorus. I recorded a simple demo at home with just my guitar and my voice, and I am sharing it here in the hope that it might bring a little light to someone's day. If any musicians hear something in this song that they want to contribute to, I would absolutely love to collaborate on a full arrangement.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97339" },
+          "instruments": ["acoustic_guitar", "vocals"],
+          "genres": ["gospel", "folk"],
+          "localImagePath": null,
+          "localSongPath": null
+        }
+      ]
+    },
+    {
+      "email": "krusty.theclown@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Krusty",
+        "lastName": "TheClown",
+        "birthDate": "1968-07-04T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Hey hey, it's Krusty! When the cameras are off and the makeup comes off, I sit down at my keyboard and I play. Nobody knows this about me but music — real music, not the junk they put in my TV segments — is what keeps me going. I've been playing keyboards since the Catskills and I've got a feel for pop, funk, and soul that I rarely get to show the public. Looking to play with people who can appreciate a keyboard player who's seen it all.",
+        "experienceYears": 30,
+        "location": { "zipCode": "97333" },
+        "instruments": [
+          { "name": "keyboard", "skillLevel": 4 },
+          { "name": "vocals", "skillLevel": 3 }
+        ],
+        "genres": ["pop", "funk", "soul"],
+        "profileImageLocalPath": "seed_images/profile_images/krusty.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Mesmerizing Galaxy Loop.mp3", "title": "Mesmerizing Galaxy Loop" },
+          { "localPath": "seed_music/Boogie Party.mp3", "title": "Boogie Party" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Keyboard Player Looking for Funk/Soul Band",
+          "body": "All right, I am going to level with you. My day job is entertainment — I perform for a living — but that is not the music I love. What I love is getting behind a Hammond organ or a Fender Rhodes and laying down some serious funk and soul. I have been playing keyboards for thirty years. I started in the Catskills circuit playing weddings and bar mitzvahs, and I learned to read a crowd and serve the music. But what I really want is to be in a proper funk and soul band where I can stretch out and play what I feel. If you have a groove-oriented outfit that needs a keyboard player with experience, stage presence, and a genuine love for the music, I am your guy. Let us put on a show worth remembering.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97333" },
+          "instruments": ["keyboard", "vocals"],
+          "genres": ["funk", "soul", "pop"],
+          "localImagePath": "seed_images/post_images/5.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Looking for a Producer or Arranger for Pop Project",
+          "body": "I have got a batch of pop songs that I have been sitting on for years and I think it is finally time to do something with them. I have the keyboard parts and rough vocal melodies worked out, but what I need is someone who can help me produce and arrange these songs into something polished and finished. I am thinking lush production, real soul and pop influences, something that sounds like it could have been a hit in the seventies or eighties but with a modern production sensibility. If you are a producer, arranger, or multi-instrumentalist who works in a home studio environment and loves this kind of music, please reach out. I can pay for proper studio time if it comes to that.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97333" },
+          "instruments": ["keyboard", "vocals"],
+          "genres": ["pop", "soul", "funk"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Mesmerizing Galaxy Loop.mp3"
+        },
+        {
+          "title": "Keyboard Groove I've Been Developing — Take a Listen",
+          "body": "Between shows I have been working on this keyboard groove that I cannot get out of my head. It started as a funk vamp that I was noodling on backstage and it turned into something I actually want to develop into a full song. The harmony is kind of George Duke meets early Earth, Wind and Fire — funky but with some jazz color in the chord voicings. I recorded a simple loop of it just to have something to share. If you hear this and you have a bass line or a drum groove that you think fits, I want to hear it. A proper funk and soul collaboration is exactly what I have been looking for. Leave a comment or send me a message.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97333" },
+          "instruments": ["keyboard"],
+          "genres": ["funk", "soul"],
+          "localImagePath": "seed_images/post_images/6.png",
+          "localSongPath": null
+        }
+      ]
+    },
+    {
+      "email": "groundskeeper.willie@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Groundskeeper",
+        "lastName": "Willie",
+        "birthDate": "1965-03-17T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Willie's the name and music's the game! I hail from the bonnie highlands of Scotland and I bring that spirit to every note I play. I play acoustic guitar and a wee bit of bagpipes — aye, I said bagpipes, and I'm not ashamed — along with some other folk instruments. My music is raw and from the earth, just like the work I do. Folk, rock, and indie music speak to my soul. Looking for musicians with passion and grit, not people who think they're better than everyone.",
+        "experienceYears": 15,
+        "location": { "zipCode": "97330" },
+        "instruments": [
+          { "name": "other", "skillLevel": 4 },
+          { "name": "acoustic_guitar", "skillLevel": 3 }
+        ],
+        "genres": ["folk", "rock", "indie"],
+        "profileImageLocalPath": "seed_images/profile_images/groundskeeper_willie.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Lord of the Rangs.mp3", "title": "Lord of the Rangs" },
+          { "localPath": "seed_music/Burn The World Waltz .mp3", "title": "Burn The World Waltz" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Acoustic Folk Musician Looking for Like-Minded Players",
+          "body": "Willie here. I am a groundskeeper by trade but a musician by nature, and I have been playing folk music for fifteen years. I play acoustic guitar, some traditional folk instruments including the great highland bagpipes, and I know my way around a Celtic session better than most. What I am looking for is a group of musicians who take their folk music seriously but know how to have a good time while playing it. I am not looking for perfection — I am looking for passion. Music should feel like something, not just sound like something. If you play any acoustic instruments and you have that fire in you, especially if you have any connection to folk traditions from anywhere in the world, please get in touch. We will make some music that means something.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97330" },
+          "instruments": ["acoustic_guitar", "other"],
+          "genres": ["folk", "indie"],
+          "localImagePath": "seed_images/post_images/7.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Traditional Celtic Session — Saturday Mornings",
+          "body": "I have been hosting a casual Celtic and folk session at a local spot on Saturday mornings for a few months now and I am looking to grow the group. We play traditional Irish and Scottish tunes, some folk songs, a bit of contemporary folk and indie. All skill levels welcome as long as you have a good attitude and respect for the music. I play guitar and other folk instruments. We have a few regular fiddle players and a bodhran player who shows up most weeks. What we could really use is another guitarist, maybe a flute or tin whistle player, or honestly anyone who plays any kind of folk instrument. It is a relaxed session, no pressure, just good music and good company. Show up, tune up, and play.",
+          "postType": "looking_to_jam",
+          "location": { "zipCode": "97330" },
+          "instruments": ["acoustic_guitar", "other"],
+          "genres": ["folk", "indie"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Lord of the Rangs.mp3"
+        },
+        {
+          "title": "Original Folk-Rock Tune — Recorded in the Shed",
+          "body": "I recorded this in my shed last week after finishing the day's work. It is not fancy — you might hear the wind outside and the occasional bird — but I think it captures something real. It is a folk-rock song about working the land and what that feels like over a lifetime. There is acoustic guitar, some other folk elements I played, and my voice. I have been told my singing is an acquired taste, which I take as a compliment. The song has a driving energy in the chorus that I am proud of. If anyone hears this and wants to add some electric guitar or drums to give it more of a rock feel, I am absolutely open to that conversation. Music made by real people with real instruments for real listeners.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97330" },
+          "instruments": ["acoustic_guitar", "other"],
+          "genres": ["folk", "rock"],
+          "localImagePath": "seed_images/post_images/1.png",
+          "localSongPath": null
+        }
+      ]
+    },
+    {
+      "email": "professor.frink@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Professor",
+        "lastName": "Frink",
+        "birthDate": "1962-06-15T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Glavin! I am Professor John Frink and I approach music with the same rigorous scientific methodology I apply to all my research. My compositions utilize algorithmic processes, microtonal scales, and experimental electronic synthesis alongside more traditional keyboard and theremin-adjacent instruments. My work exists at the intersection of classical structure and experimental electronic music, which is a very exciting space mathematically speaking. I seek collaborators who are not intimidated by complexity.",
+        "experienceYears": 12,
+        "location": { "zipCode": "97339" },
+        "instruments": [
+          { "name": "other", "skillLevel": 5 },
+          { "name": "keyboard", "skillLevel": 4 }
+        ],
+        "genres": ["experimental", "electronic", "classical"],
+        "profileImageLocalPath": "seed_images/profile_images/professor_frink.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Brain Dance.mp3", "title": "Brain Dance" },
+          { "localPath": "seed_music/Cretaceous Dawn.mp3", "title": "Cretaceous Dawn" },
+          { "localPath": "seed_music/Mesmerizing Galaxy Loop.mp3", "title": "Mesmerizing Galaxy Loop" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Seeking Electronic/Experimental Collaborators for Research Project",
+          "body": "Glavin! This is most exciting! I am Professor Frink, and I am currently engaged in a musical research project that I believe represents a significant advance in the field of experimental composition. The project involves algorithmic generation of melodic material using a modified Lindenmayer system, which I will not explain fully here due to space constraints but which produces remarkably organic-feeling musical structures through purely mathematical processes. I am looking for collaborators who can contribute electronic production skills, synthesis expertise, or classical training to help realize these algorithmically generated scores. You do not need to understand the mathematics — though it would help greatly, yes with the numbers and the equations — but you do need to be open to working in unconventional ways. The result will be something that has never been heard before, which is precisely the point.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97339" },
+          "instruments": ["keyboard", "other"],
+          "genres": ["experimental", "electronic", "classical"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Brain Dance.mp3"
+        },
+        {
+          "title": "Demo of My Microtonal Keyboard Composition — Feedback Welcome",
+          "body": "I have completed the first movement of what I am calling my Microtonal Sonata for Keyboard and Electronics, and I am sharing a demo recording here for scientific peer review, or alternatively for feedback from interested musicians. The piece employs a 31-tone equal temperament tuning system, which I have implemented through custom software modifications to a standard digital keyboard. The result is a harmonic palette significantly richer than conventional twelve-tone equal temperament, with the tradeoff that it sounds, to untrained ears, somewhat peculiar at first. But I assure you, by the end of the third listening, the microtonal intervals begin to feel completely natural, yes with the small intervals and the unusual harmonics. If you are a musician interested in tuning systems, spectral music, or experimental composition, I would genuinely value your response.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97339" },
+          "instruments": ["keyboard", "other"],
+          "genres": ["experimental", "classical"],
+          "localImagePath": "seed_images/post_images/2.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Looking for a Drummer for Electronic-Acoustic Hybrid Ensemble",
+          "body": "My current research suggests, quite conclusively actually, that the addition of live acoustic percussion to my electronic compositions would increase the perceived biological warmth of the music by a factor I calculate to be approximately 2.7, which is a very significant improvement, yes with the humanizing effect and the rhythmic imprecision that electronic instruments simply cannot replicate without extensive algorithmic modeling. In short, glavin, I need a drummer. Preferably one who is comfortable playing alongside electronic sequences and who can follow a click track while also responding to live keyboard improvisation. Some exposure to experimental music would be ideal. I have a studio space with good acoustic isolation and all the necessary equipment. Please contact me if you are interested in participating in what I believe will be a genuinely novel musical experiment.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97339" },
+          "instruments": ["keyboard", "other"],
+          "genres": ["experimental", "electronic"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Cretaceous Dawn.mp3"
+        }
+      ]
+    },
+    {
+      "email": "waylon.smithers@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Waylon",
+        "lastName": "Smithers",
+        "birthDate": "1973-08-22T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Hello. I am Waylon Smithers and I am an accomplished pianist and vocalist with a deep love for soul, classical, and pop music. I have studied piano formally for many years and I bring precision, dedication, and genuine passion to my playing. I am meticulous about preparation and deeply committed to musical excellence. I am seeking a small, serious ensemble of like-minded musicians who value craftsmanship and are willing to put in the work to create something truly exceptional.",
+        "experienceYears": 18,
+        "location": { "zipCode": "97333" },
+        "instruments": [
+          { "name": "piano", "skillLevel": 5 },
+          { "name": "vocals", "skillLevel": 4 }
+        ],
+        "genres": ["soul", "classical", "pop"],
+        "profileImageLocalPath": "seed_images/profile_images/smithers.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Devonshire Waltz Andante.mp3", "title": "Devonshire Waltz Andante" },
+          { "localPath": "seed_music/Pleasant Porridge.mp3", "title": "Pleasant Porridge" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Concert Pianist Seeking Chamber Music Ensemble",
+          "body": "I have been playing classical piano for eighteen years and I am seeking a chamber music ensemble with which to perform and record. My training is primarily in the classical tradition, with a particular focus on the Romantic period, but I am also deeply interested in contemporary classical music and crossover works that incorporate soul and jazz influences. I am an extremely reliable and prepared musician who takes rehearsals seriously and maintains a very high standard of performance. I am looking for similarly dedicated musicians — ideally strings, winds, or another pianist for four-hand work — who want to build a serious chamber music practice in the Corvallis area. I have connections to performance venues and am willing to help coordinate logistics for the right group.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97333" },
+          "instruments": ["piano", "vocals"],
+          "genres": ["classical", "soul"],
+          "localImagePath": "seed_images/post_images/3.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Piano Accompanist Available for Vocalists",
+          "body": "I am making myself available as an accompanist for vocalists in the Corvallis area. I have extensive experience accompanying singers in classical, pop, and soul repertoire and I read music fluently. Whether you are preparing for an audition, a performance, a recording session, or simply want to practice with a live accompanist instead of a backing track, I am available and happy to help. I am professional, punctual, and I will come fully prepared with the material. I do not charge for informal practice sessions with serious musicians, though I do request at least a week's notice and access to the sheet music in advance. Please reach out with your repertoire and your goals and we can arrange a session.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97333" },
+          "instruments": ["piano"],
+          "genres": ["classical", "soul", "pop"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Devonshire Waltz Andante.mp3"
+        },
+        {
+          "title": "Piano and Vocal Demo — Original Soul Composition",
+          "body": "I have been working on an original soul composition for piano and voice that I am now ready to share. The piece draws from the classic soul tradition — Stevie Wonder, Marvin Gaye, Nina Simone — while incorporating some classical harmonic language that I believe elevates the material. The recording is a home demo, piano and vocal only, but the arrangement is fully realized in my mind and I know exactly what instruments it needs. I am sharing it here because I am looking for the right musicians to bring it to life. If you are a bassist, drummer, or horn player with soul and classical sensibility, this could be the collaboration you have been waiting for. The music is complete — it just needs its full ensemble.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97333" },
+          "instruments": ["piano", "vocals"],
+          "genres": ["soul", "classical", "pop"],
+          "localImagePath": "seed_images/post_images/4.png",
+          "localSongPath": null
+        }
+      ]
+    },
+    {
+      "email": "comic.bookguy@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Comic",
+        "lastName": "BookGuy",
+        "birthDate": "1971-12-03T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Worst. Band search. Ever. But here I am. I am the Comic Book Guy, and I am arguably the finest electric guitarist in the Pacific Northwest, though the competition is admittedly not as sophisticated as one might hope. I play a meticulously maintained 1978 Gibson Les Paul Custom through a vintage Marshall stack, and I have encyclopedic knowledge of metal and hard rock. I am seeking musicians of equivalent caliber. Mediocrity will be met with a withering review.",
+        "experienceYears": 22,
+        "location": { "zipCode": "97330" },
+        "instruments": [
+          { "name": "electric_guitar", "skillLevel": 5 },
+          { "name": "keyboard", "skillLevel": 4 }
+        ],
+        "genres": ["metal", "rock", "alternative"],
+        "profileImageLocalPath": "seed_images/profile_images/comic_book_guy.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Burn The World Waltz .mp3", "title": "Burn The World Waltz" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Seeking Musicians for Progressive Metal Project — High Standards Required",
+          "body": "I will be brief, as my time is valuable and I suspect yours is as well if you are a serious musician. I am forming a progressive metal band. Not a conventional metal band — progressive metal. This means technical proficiency is non-negotiable. I am talking polyrhythmic compositions, extended technique, and a genuine understanding of music theory at a level most contemporary musicians frankly do not possess. I play electric guitar and keyboard and I have twenty-two years of experience. I am looking for a drummer who can handle odd time signatures without collapsing, a bassist with actual technique and not merely the ability to follow the root notes, and optionally a vocalist with range and theatrical sensibility. If you are intimidated by this description, you are probably not who I am looking for. Best. Application. Now.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97330" },
+          "instruments": ["electric_guitar", "keyboard"],
+          "genres": ["metal", "rock"],
+          "localImagePath": "seed_images/post_images/5.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Looking to Jam — Metal and Hard Rock Only",
+          "body": "In an effort to be somewhat less selective than my previous post apparently required me to be, I am now also open to informal metal and hard rock jam sessions with musicians who have at least a basic command of their instrument. I maintain that technical proficiency is the hallmark of worthwhile musicianship, but I acknowledge that some musicians of genuine potential have not yet fully realized their abilities. I am therefore willing to jam with players who are serious about improving, provided they demonstrate a commitment to the genre and an understanding of its history. I have an extensive collection of classic metal and hard rock albums that we can draw inspiration from, and I am happy to discuss the relative merits of various approaches before we play. Arrive prepared. I will know if you have not.",
+          "postType": "looking_to_jam",
+          "location": { "zipCode": "97330" },
+          "instruments": ["electric_guitar"],
+          "genres": ["metal", "rock", "alternative"],
+          "localImagePath": null,
+          "localSongPath": null
+        },
+        {
+          "title": "Guitar Solo Composition — Best. Recording. Ever. (Possibly)",
+          "body": "I have recorded what I believe to be a guitar solo composition of considerable merit. I am perhaps the only one qualified to make this assessment in this region, but I invite you to form your own opinion, with the caveat that I reserve the right to find it incorrect. The piece is a solo electric guitar work that draws from the classical guitar tradition while applying the tonal language and extended technique of progressive metal. The result is something that transcends genre in a way that most musicians simply do not have the musical vocabulary to attempt. I am sharing it here partly to gauge the response of the community and partly because even the greatest works deserve an audience, however limited that audience's ability to fully appreciate them might be. Do try to listen with open ears.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97330" },
+          "instruments": ["electric_guitar"],
+          "genres": ["metal", "alternative"],
+          "localImagePath": "seed_images/post_images/6.png",
+          "localSongPath": "seed_music/Mesmerizing Galaxy Loop.mp3"
+        }
+      ]
+    },
+    {
+      "email": "ralph.wiggum@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Ralph",
+        "lastName": "Wiggum",
+        "birthDate": "2003-04-22T00:00:00.000Z",
+        "gender": "male",
+        "bio": "Hi! I'm Ralph Wiggum! I like music! My cat's name is Mittens and she likes music too but she does not play drums. I play drums sometimes! They are very loud. My daddy says I have natural rhythm which I think means I like to hit things. I also sing a little bit. Music is fun! If you want to play music with me that would be super fun!",
+        "experienceYears": 2,
+        "location": { "zipCode": "97339" },
+        "instruments": [
+          { "name": "drums", "skillLevel": 2 },
+          { "name": "vocals", "skillLevel": 1 }
+        ],
+        "genres": ["pop", "rock", "folk"],
+        "profileImageLocalPath": "seed_images/profile_images/ralph_wiggums.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Pleasant Porridge.mp3", "title": "Pleasant Porridge" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "I Want to Be in a Band!!",
+          "body": "Hi everybody! My name is Ralph and I want to be in a band! I play drums and they are really really loud and my daddy says I am getting better every day. I have been playing for two years which is a long time I think. I like all kinds of music especially when it is happy and fun. I can also sing a little bit but mostly I like the drums because you get to hit things and that is fun. My friend told me about this website and said I should make a post so here I am making a post! If you want to be in a band with me please say hi because I think being in a band would be the best thing ever and also my cat Mittens could be our mascot. She does not play any instruments but she is very supportive.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97339" },
+          "instruments": ["drums", "vocals"],
+          "genres": ["pop", "rock"],
+          "localImagePath": null,
+          "localSongPath": null
+        },
+        {
+          "title": "Does Anyone Want to Jam With Me?",
+          "body": "Hi! I made a post before about being in a band but also I just want to play music with someone because it is more fun than playing by myself. I have been practicing my drums a lot and I think I am pretty good now. My daddy listened and said it was very impressive for my age which made me feel really happy. I like playing rock songs and pop songs and sometimes folk songs because my uncle plays folk music and he lets me play along on the drums. I do not know very many songs by name but if you play something I can usually follow along eventually. I am a fast learner mostly. If you want to jam with me I live in the Philomath area. We could play in the garage! It has good acoustics, I think. I do not know what acoustics means exactly but people say it a lot.",
+          "postType": "looking_to_jam",
+          "location": { "zipCode": "97339" },
+          "instruments": ["drums"],
+          "genres": ["pop", "rock", "folk"],
+          "localImagePath": "seed_images/post_images/7.png",
+          "localSongPath": "seed_music/Pleasant Porridge.mp3"
+        },
+        {
+          "title": "I Recorded Myself Playing Drums!!",
+          "body": "Hi again it is Ralph! I recorded myself playing drums on my dad's phone and I am putting it on here because my teacher said sharing your music is brave and I want to be brave. It is me playing along to a song I like and I think it sounds pretty good but I might be wrong about that. My dad said it was great but he also says my drawings are great so I am not sure if he is a reliable source. If you listen to it please be nice because I am still learning and I know it is not perfect but I tried really hard. Also if you have any tips on how to get better at drums I would love to hear them. Except for the tip that says practice more because I already know that one and I am doing it. Thank you for listening!",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97339" },
+          "instruments": ["drums"],
+          "genres": ["pop", "rock"],
+          "localImagePath": null,
+          "localSongPath": null
+        }
+      ]
+    },
+    {
+      "email": "itchy.mouse@springfield.com",
+      "password": "JamFind2026!",
+      "profile": {
+        "firstName": "Itchy",
+        "lastName": "Mouse",
+        "birthDate": "1994-10-31T00:00:00.000Z",
+        "gender": "prefer_not_to_say",
+        "bio": "I play drums. Fast. Very, very fast. I have been drumming for ten years and my blast beats have been described as 'inhuman' and 'physically alarming' which I take as the highest possible compliments. I play hardcore, metal, and punk exclusively. I have no interest in slow songs, quiet songs, or any music that would not cause structural damage to a poorly built venue. If that sounds good to you, let's talk.",
+        "experienceYears": 10,
+        "location": { "zipCode": "97333" },
+        "instruments": [
+          { "name": "drums", "skillLevel": 5 }
+        ],
+        "genres": ["hardcore", "punk", "metal"],
+        "profileImageLocalPath": "seed_images/profile_images/itchy.png",
+        "musicSamples": [
+          { "localPath": "seed_music/Boogie Party.mp3", "title": "Boogie Party" }
+        ]
+      },
+      "posts": [
+        {
+          "title": "Drummer Seeking Hardcore / Metal Band — Must Be Loud",
+          "body": "I play drums. I have been playing for ten years. I play fast, I play hard, and I do not play quiet. My blast beat is clocked at two hundred and twenty beats per minute and I can sustain it through an entire song without falling apart. I have double kick technique that I have been developing for six years and my single stroke roll is technically flawless. What I am looking for is a hardcore or metal band that matches my intensity. Not a band that calls itself hardcore but plays at reasonable volumes. A band that commits to the genre fully and plays shows that leave people's ears ringing in a way they will remember. I will show up to every practice, I will be tighter than your other options, and I will never complain about volume. Reach out if you are serious.",
+          "postType": "looking_for_band",
+          "location": { "zipCode": "97333" },
+          "instruments": ["drums"],
+          "genres": ["hardcore", "metal", "punk"],
+          "localImagePath": "seed_images/post_images/1.png",
+          "localSongPath": null
+        },
+        {
+          "title": "Seeking Guitarists for Hardcore Project",
+          "body": "I have riffs. Well, I have drumbeats that are demanding enough that they basically dictate the riffs, which amounts to the same thing compositionally. I am looking for one or two guitarists who can match the technical demands and sonic intensity I bring on drums. The project I have in mind is hardcore-leaning but with strong metal influences — think the intersection of powerviolence and technical death metal, but with the energy and brevity of classic hardcore. Songs will be short, brutal, and precise. I want guitarists who have practiced their craft seriously, who can handle complex rhythmic figures, and who are not afraid of tuning down. Bassist and vocalist would also be welcome at this stage. Come prepared to play loud.",
+          "postType": "looking_for_musicians",
+          "location": { "zipCode": "97333" },
+          "instruments": ["drums"],
+          "genres": ["hardcore", "metal", "punk"],
+          "localImagePath": null,
+          "localSongPath": "seed_music/Boogie Party.mp3"
+        },
+        {
+          "title": "Drum Demo — Blast Beats and Double Kick",
+          "body": "Recorded this last week as a demo for a band I was auditioning for. The audition went well but the band was not playing fast enough for me so I am back to searching. In the meantime, here is the demo. It is about four minutes of drumming that covers blast beats, double kick patterns, some groove sections to show I can also play with dynamics, and a few experimental rhythm ideas I have been developing. The recording quality is decent — I used overhead mics and a kick drum mic at minimum. I am sharing this so that any bands out there who are looking for a drummer can hear what I bring before we waste each other's time with an audition. If you hear this and think it matches what you need, contact me and we can talk. If you think it is too fast or too aggressive, we are probably not compatible.",
+          "postType": "sharing_music",
+          "location": { "zipCode": "97333" },
+          "instruments": ["drums"],
+          "genres": ["hardcore", "metal"],
+          "localImagePath": "seed_images/post_images/2.png",
+          "localSongPath": null
+        }
+      ]
+    }
+  ]
+}

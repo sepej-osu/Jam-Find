@@ -17,9 +17,12 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from fastapi import HTTPException
+from firebase_config import initialize_firebase
 from models import PostListParams
 import services.post_service as post_service_module
 from services.post_service import list_posts
+
+initialize_firebase()
 
 # ── probe config ─────────────────────────────────────────────────────────────
 USER_LAT    = 44.0995566

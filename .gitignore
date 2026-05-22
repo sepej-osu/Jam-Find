@@ -65,3 +65,6 @@ backend/data/sql_app.db
 *.sw?
 *.swp
 *.swo
+# ===== Seed Assets (binary, not committed) =====
+backend/scripts/seed_images/
+backend/scripts/seed_music/
