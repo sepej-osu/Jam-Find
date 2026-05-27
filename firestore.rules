@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function hasProfile() {
+      return request.auth != null &&
+             exists(/databases/$(database)/documents/profiles/$(request.auth.uid));
+    }
+
+    function isConversationParticipant(conversationId) {
+      return hasProfile() &&
+             request.auth.uid in
+             get(/databases/$(database)/documents/conversations/$(conversationId)).data.participant_ids;
+    }
+
+    // 1. LOCATION CACHE
+    match /location_cache/{zipCode} {
+      allow get: if hasProfile();
+      allow list, write: if false;
+    }
+
+    // 2. PROFILES
+    match /profiles/{userId} {
+      allow read: if hasProfile();
+      allow create, update: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // 3. POSTS
+    match /posts/{postId} {
+      allow read: if hasProfile();
+
+      allow create: if hasProfile()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.location.geohash.size() == 5;
+
+      allow update, delete: if request.auth != null
+                             && request.auth.uid == resource.data.userId;
+    }
+
+    // 4. CONVERSATIONS
+    match /conversations/{conversationId} {
+      // Read only if current user is a participant
+      allow read: if hasProfile()
+                  && request.auth.uid in resource.data.participant_ids;
+
+      // Backend (Admin SDK) should own writes
+      allow create, update, delete: if false;
+
+      // 5. MESSAGES SUBCOLLECTION
+      match /messages/{messageId} {
+        // Read only if current user is a participant of parent conversation
+        allow read: if isConversationParticipant(conversationId);
+
+        // Backend (Admin SDK) should own writes
+        allow create, update, delete: if false;
+      }
+    }
+
+    // 6. CATCH-ALL
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

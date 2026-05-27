@@ -27,8 +27,8 @@ from services import message_service
 def client():
     app.dependency_overrides[get_current_user] = lambda: settings.DEV_USER_ID
     with patch("main.initialize_firebase", return_value=None):
-        with TestClient(app) as c:
-            yield c
+        with TestClient(app) as test_client:
+            yield test_client
     app.dependency_overrides.clear()
 
 
