@@ -1,9 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
 
@@ -28,3 +28,23 @@ export const auth = getAuth(app);
 // This db reference is required to use onSnapshot and other firestore functions in the app
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+const useEmulators = import.meta.env.VITE_USE_EMULATORS === "true";
+
+if (useEmulators) {
+  connectAuthEmulator(
+    auth,
+    `http://${import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_HOST}:${import.meta.env.VITE_FIREBASE_AUTH_EMULATOR_PORT}`,
+    { disableWarnings: true }
+  );
+  connectFirestoreEmulator(
+    db,
+    import.meta.env.VITE_FIREBASE_FIRESTORE_EMULATOR_HOST,
+    Number(import.meta.env.VITE_FIREBASE_FIRESTORE_EMULATOR_PORT)
+  );
+  connectStorageEmulator(
+    storage,
+    import.meta.env.VITE_FIREBASE_STORAGE_EMULATOR_HOST,
+    Number(import.meta.env.VITE_FIREBASE_STORAGE_EMULATOR_PORT)
+  );
+}

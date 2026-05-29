@@ -1,0 +1,23 @@
+$kind: http-request
+name: Get Conversation
+method: GET
+url: '{{baseUrl}}/api/v1/conversations/{{testConversationId}}'
+order: 3000
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response has conversationId", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("conversationId");
+      });
+      pm.test("Response has participants", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("participants");
+      });

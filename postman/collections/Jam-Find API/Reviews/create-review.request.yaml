@@ -1,0 +1,35 @@
+$kind: http-request
+name: Create Review
+method: POST
+url: '{{baseUrl}}/api/v1/profiles/{{testUserId}}/reviews'
+order: 1000
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "rating": 5,
+      "comment": "Great musician to jam with! Very talented and punctual."
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200 or 201", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+      pm.test("Response has reviewId", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.satisfy(function (r) {
+          return r.hasOwnProperty("reviewId") || r.hasOwnProperty("id");
+        });
+        const reviewId = json.reviewId || json.id;
+        if (reviewId) {
+          pm.environment.set("testReviewId", reviewId);
+          console.log("Captured testReviewId:", reviewId);
+        }
+      });

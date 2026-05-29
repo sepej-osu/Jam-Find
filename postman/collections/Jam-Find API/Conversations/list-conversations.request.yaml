@@ -1,0 +1,21 @@
+$kind: http-request
+name: List Conversations
+method: GET
+url: '{{baseUrl}}/api/v1/conversations'
+order: 2000
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response is array or has conversations key", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.satisfy(function (r) {
+          return Array.isArray(r) || Array.isArray(r.conversations);
+        });
+      });

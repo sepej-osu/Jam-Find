@@ -1,0 +1,27 @@
+$kind: http-request
+name: List Profiles
+method: GET
+url: '{{baseUrl}}/api/v1/profiles'
+order: 3900
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+queryParams:
+  - key: limit
+    value: '10'
+  - key: last_doc_id
+    value: ''
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response is array or has profiles key", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.satisfy(function (r) {
+          return Array.isArray(r) || Array.isArray(r.profiles);
+        });
+      });

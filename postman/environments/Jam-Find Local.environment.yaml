@@ -1,0 +1,14 @@
+name: Jam-Find Local
+values:
+  - key: baseUrl
+    value: 'http://localhost:8000'
+  - key: authToken
+    value: ''
+  - key: devUserId
+    value: dev_test_user_123
+  - key: testPostId
+    value: ''
+  - key: testConversationId
+    value: ''
+  - key: testUserId
+    value: dev_test_user_456

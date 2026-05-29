@@ -1,0 +1,46 @@
+$kind: http-request
+name: Create Profile
+method: POST
+url: "{{baseUrl}}/api/v1/profiles"
+auth:
+  type: bearer
+order: 1000
+headers:
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "userId": "{{devUserId}}",
+      "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "bio": "Guitarist looking for jam sessions in LA.",
+      "instruments": [
+        { "name": "electric_guitar", "skillLevel": 3 },
+        { "name": "electric_bass", "skillLevel": 2 }
+      ],
+      "genres": ["blues", "rock"],
+      "location": {
+        "zipCode": null,
+        "formattedAddress": "Beverly Hills, CA 90210, USA",
+        "lat": 34.0901,
+        "lng": -118.4065,
+        "placeId": "ChIJWRSBHBjEwoARvBFJAMmVAAQ",
+        "geohash": "9q5cc"
+      }
+    }
+
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Create profile succeeds (201) or already exists (409)', function () {
+          pm.expect(pm.response.code).to.be.oneOf([201, 409]);
+      });
+      pm.test('New profile has userId', function () {
+          if (pm.response.code !== 201) return;
+          const json = pm.response.json();
+          pm.expect(json).to.have.property('userId');
+      });
+    language: text/javascript

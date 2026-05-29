@@ -1,0 +1,19 @@
+$kind: http-request
+name: Delete Post
+method: DELETE
+url: '{{baseUrl}}/api/v1/posts/{{testPostId}}'
+order: 4000
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200 or 204", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 204]);
+      });
+      if (pm.response.code === 200 || pm.response.code === 204) {
+        pm.environment.set("testPostId", "");
+        console.log("Cleared testPostId after deletion");
+      }

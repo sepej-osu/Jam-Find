@@ -1,0 +1,19 @@
+$kind: http-request
+name: Get Post - Not Found
+method: GET
+url: '{{baseUrl}}/api/v1/posts/nonexistent-post-id-99999'
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Returns 404 for non-existent post", function () {
+        pm.response.to.have.status(404);
+      });
+      pm.test("Error response has detail field", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("detail");
+      });
+order: 3754

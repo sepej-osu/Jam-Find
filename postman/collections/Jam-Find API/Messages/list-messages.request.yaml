@@ -1,0 +1,28 @@
+$kind: http-request
+name: List Messages
+method: GET
+url: '{{baseUrl}}/api/v1/conversations/{{testConversationId}}/messages'
+order: 2000
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+queryParams:
+  - key: limit
+    value: '20'
+    disabled: true
+  - key: before
+    value: ''
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response is array or has messages key", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.satisfy(function (r) {
+          return Array.isArray(r) || Array.isArray(r.messages);
+        });
+      });

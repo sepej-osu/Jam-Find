@@ -1,0 +1,87 @@
+$kind: http-request
+name: Create Conversation
+method: POST
+url: '{{baseUrl}}/api/v1/conversations'
+order: 1000
+headers:
+  - key: X-Dev-User-ID
+    value: "{{devUserId}}"
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "recipientId": "{{testUserId}}"
+    }
+
+scripts:
+
+  - type: beforeRequest
+    language: text/javascript
+    code: |-
+      // Ensure both test user profiles exist before creating a conversation.
+      // Profiles are created sequentially (chained callbacks) so the main
+      // request only fires after BOTH are confirmed. 409 = already exists is fine.
+      const baseUrl = pm.environment.get('baseUrl') || 'http://localhost:8000';
+      const devUserId = pm.environment.get('devUserId') || 'dev_test_user_123';
+      const testUserId = pm.environment.get('testUserId') || 'dev_test_user_456';
+
+      console.log("devUserId:", pm.variables.get("devUserId"));
+      console.log("testUserId:", pm.variables.get("testUserId"));
+
+      function ensureProfile(userId, callback) {
+          pm.sendRequest({
+              url: baseUrl + '/api/v1/profiles',
+              method: 'POST',
+              header: {
+                  'X-Dev-User-ID': userId,
+                  'Content-Type': 'application/json'
+              },
+              body: {
+                  mode: 'raw',
+                  raw: JSON.stringify({
+                      userId: userId,
+                      email: userId + '@example.com',
+                      firstName: 'Test',
+                      lastName: 'User',
+                      bio: 'Test user for local development.',
+                      instruments: [{ name: 'electric_guitar', skillLevel: 3 }],
+                      genres: ['rock'],
+                      location: {
+                          zipCode: null,
+                          formattedAddress: 'Beverly Hills, CA 90210, USA',
+                          lat: 34.0901,
+                          lng: -118.4065,
+                          placeId: 'ChIJWRSBHBjEwoARvBFJAMmVAAQ',
+                          geohash: '9q5cc'
+                      }
+                  })
+              }
+          }, function(err, res) {
+              if (err) console.error('[pre-req] Error creating profile for ' + userId + ':', err);
+              else if (res.code === 201) console.log('[pre-req] Created profile for ' + userId);
+              else if (res.code === 409) console.log('[pre-req] Profile already exists for ' + userId);
+              else console.warn('[pre-req] Unexpected ' + res.code + ' for ' + userId + ':', res.text());
+              callback();
+          });
+      }
+      // Chain sequentially — main request fires only after both profiles are confirmed
+      ensureProfile(devUserId, function() {
+      ensureProfile(testUserId, function() {
+      // Both profiles confirmed, main request will now fire
+          });
+      });
+      
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200 or 201", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+      pm.test("Response has conversationId", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.have.property("conversationId");
+        pm.environment.set("testConversationId", json.conversationId);
+        console.log("Captured testConversationId:", json.conversationId);
+      });

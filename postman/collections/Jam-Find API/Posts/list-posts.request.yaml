@@ -1,0 +1,63 @@
+$kind: http-request
+name: List Posts
+method: GET
+url: '{{baseUrl}}/api/v1/posts'
+order: 3664
+headers:
+  - key: Authorization
+    value: 'Bearer {{authToken}}'
+queryParams:
+  - key: limit
+    value: '10'
+  - key: last_doc_id
+    value: ''
+    disabled: true
+  - key: post_type
+    value: 'jam_session'
+    disabled: true
+  - key: instruments
+    value: 'guitar'
+    disabled: true
+  - key: instrument_mode
+    value: 'any'
+    disabled: true
+  - key: genres
+    value: 'blues'
+    disabled: true
+  - key: genre_mode
+    value: 'any'
+    disabled: true
+  - key: radius_miles
+    value: '25'
+    disabled: true
+  - key: user_lat
+    value: '34.0522'
+    disabled: true
+  - key: user_lng
+    value: '-118.2437'
+    disabled: true
+  - key: sort_by
+    value: 'createdAt'
+    disabled: true
+  - key: sort_order
+    value: 'desc'
+    disabled: true
+  - key: user_id
+    value: '{{devUserId}}'
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response has posts array or data key", function () {
+        const json = pm.response.json();
+        pm.expect(json).to.satisfy(function (r) {
+          return Array.isArray(r) || Array.isArray(r.posts) || Array.isArray(r.data);
+        });
+      });

@@ -25,6 +25,7 @@ from services import message_service
 
 @pytest.fixture
 def client():
+    """Fixture to provide a test client for FastAPI app with overridden dependencies."""
     app.dependency_overrides[get_current_user] = lambda: settings.DEV_USER_ID
     with patch("main.initialize_firebase", return_value=None):
         with TestClient(app) as test_client:
@@ -33,6 +34,7 @@ def client():
 
 
 def test_delete_conversation_route_propagates_service_error(client):
+    """Test that the delete conversation route correctly propagates errors from the service layer."""
     with patch("routers.conversations.conversation_service.delete_conversation", new_callable=AsyncMock) as mock_delete:
         mock_delete.side_effect = HTTPException(
             status_code=403,
