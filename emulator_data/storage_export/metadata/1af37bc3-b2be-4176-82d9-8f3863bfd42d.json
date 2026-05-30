@@ -1,0 +1,19 @@
+{
+  "name": "users/mRMUyo8fbBPKcN2fHlB0PHyiRjTk/post-songs/caebef32-1485-4900-bd09-5bfc8d345af2.mp3",
+  "bucket": "jam-find.firebasestorage.app",
+  "metageneration": 1,
+  "generation": 1779915998852,
+  "contentType": "audio/mpeg",
+  "storageClass": "STANDARD",
+  "contentDisposition": "inline",
+  "downloadTokens": [
+    "7d115dff-0d07-41a5-a434-d23cc194995d"
+  ],
+  "etag": "IaqFR9bT+NBtJ23kd8L7xbqhV98",
+  "customMetadata": {},
+  "timeCreated": "2026-05-27T21:06:38.852Z",
+  "updated": "2026-05-27T21:06:38.852Z",
+  "size": 3912707,
+  "md5Hash": "8NTqwdnkfFe5m7J8SxiioA==",
+  "crc32c": "3681650965"
+}
