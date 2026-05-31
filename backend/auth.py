@@ -10,14 +10,12 @@ security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-    x_dev_user_id: Optional[str] = Header(default=None)
-) -> str:
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> str:
     # Development mode bypass — X-Dev-User-ID header lets the Postman
     # seeder impersonate a specific test user (e.g. dev_test_user_456)
     # while keeping verify_user_access intact.
     if settings.DEV_MODE:
-        return x_dev_user_id if x_dev_user_id else settings.DEV_USER_ID
+        return settings.DEV_USER_ID
     
     if not credentials:
         raise HTTPException(

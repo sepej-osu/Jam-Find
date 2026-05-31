@@ -36,7 +36,7 @@ test('create a post and verify it appears in the feed', async ({ page }) => {
   );
 
   // Zipcode
-  await page.locator('input[name="zipCode"]').fill('90210');
+  await page.locator('input[name="zipCode"]').fill('93065');
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   await page.getByRole('button', { name: 'Create Post' }).click();
