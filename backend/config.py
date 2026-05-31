@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     # bypass authentication for testing changing DEV_MODE to True in the .env file
     DEV_MODE: bool = False
     DEV_USER_ID: str = "dev_test_user_123"
+    DEV_USER_ID_2: str = "dev_test_user_456"
     
     # CORS configuration
     CORS_ORIGINS: List[str] = [
@@ -32,6 +33,13 @@ class Settings(BaseSettings):
 
     # Google Cloud Storage configuration
     GOOGLE_STORAGE_BUCKET: str = ""
+
+    # Firebase emulator configuration (local only)
+    FIRESTORE_EMULATOR_HOST: str = ""
+    FIREBASE_AUTH_EMULATOR_HOST: str = ""
+    STORAGE_EMULATOR_HOST: str = ""
+    FIREBASE_STORAGE_EMULATOR_HOST: str = ""
+    GOOGLE_CLOUD_PROJECT: str = ""
     
     model_config = ConfigDict(
         env_file=".env",

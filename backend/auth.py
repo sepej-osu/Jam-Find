@@ -1,4 +1,4 @@
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status, Depends, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 from typing import Optional
@@ -10,21 +10,10 @@ security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)
-) -> str:
-    """
-    Verify Firebase ID token from the frontend and return the user's UID.
-    
-    In DEV_MODE: Returns a test user ID without requiring authentication.
-    In production: Requires valid Firebase ID token.
-    
-    The frontend should send the token in the Authorization header as:
-    Authorization: Bearer <firebase_id_token>
-    
-    Usage in routes:
-        current_user_id: str = Depends(get_current_user)
-    """
-    # Development mode bypass
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security)) -> str:
+    # Development mode bypass — X-Dev-User-ID header lets the Postman
+    # seeder impersonate a specific test user (e.g. dev_test_user_456)
+    # while keeping verify_user_access intact.
     if settings.DEV_MODE:
         return settings.DEV_USER_ID
     

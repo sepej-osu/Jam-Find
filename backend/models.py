@@ -3,6 +3,7 @@ from typing import Optional, List, Dict, Tuple, Literal
 from datetime import datetime
 from enum import Enum
 from urllib.parse import urlparse
+import os
 
 _FIREBASE_STORAGE_HOSTS = {"firebasestorage.googleapis.com", "storage.googleapis.com"}
 
@@ -14,6 +15,11 @@ def _validate_firebase_storage_url(v: Optional[str]) -> Optional[str]:
         parsed = urlparse(v)
     except Exception:
         raise ValueError("Invalid URL format")
+    emulator_host = os.getenv("STORAGE_EMULATOR_HOST")
+    if emulator_host:
+        emulator_netloc = urlparse(emulator_host).netloc or emulator_host
+        if parsed.netloc == emulator_netloc:
+            return v
     if parsed.scheme != "https":
         raise ValueError("Media URL must use HTTPS")
     if parsed.netloc not in _FIREBASE_STORAGE_HOSTS:

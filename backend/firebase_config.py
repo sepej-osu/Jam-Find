@@ -3,6 +3,9 @@ from firebase_admin import credentials, firestore
 from functools import lru_cache
 from config import settings
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 _db = None
 
