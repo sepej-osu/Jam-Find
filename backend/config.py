@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     FIRESTORE_EMULATOR_HOST: str = ""
     FIREBASE_AUTH_EMULATOR_HOST: str = ""
     STORAGE_EMULATOR_HOST: str = ""
+    FIREBASE_STORAGE_EMULATOR_HOST: str = ""
     GOOGLE_CLOUD_PROJECT: str = ""
     
     model_config = ConfigDict(

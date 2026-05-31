@@ -129,6 +129,25 @@
         }
       ],
       "density": "SPARSE_ALL"
+    },
+    {
+      "collectionGroup": "test_posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "location.lat",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "location.lng",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ],
+      "density": "SPARSE_ALL"
     }
   ],
   "fieldOverrides": []

@@ -92,5 +92,7 @@ echo -e "  URL: http://localhost:5173\n"
 echo -e "${GREEN}=== All servers running ===${NC}"
 echo -e "${YELLOW}Press Ctrl+C to stop all servers${NC}\n"
 
-# Wait for processes
-wait
+# Keep the script alive until Ctrl+C
+while true; do
+    sleep 1
+done
