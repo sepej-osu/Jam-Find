@@ -8,7 +8,6 @@ from google.cloud import exceptions as gcp_exceptions
 from firebase_admin import auth, storage
 from auth import get_current_user, verify_user_access
 from utils.location import resolve_location_from_zip
-from config import settings
 
 router = APIRouter()
 
@@ -295,14 +294,13 @@ async def delete_profile(
         _delete_storage_files(user_id)
 
         # The order of the delete operations matter to prevent orphaned profiles.
-        if not settings.DEV_MODE:
-            try:
-                auth.delete_user(user_id)
-            except Exception as e:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail=f"Failed to delete auth account: {str(e)}"
-                )
+        try:
+            auth.delete_user(user_id)
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to delete auth account: {str(e)}"
+            )
 
         try:
             profiles_ref.document(user_id).delete()
