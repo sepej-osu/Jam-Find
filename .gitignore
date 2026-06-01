@@ -47,7 +47,6 @@ frontend.log
 
 # ===== Firebase =====
 serviceAccountKey.json
-emulator_data/
 
 # ===== Database =====
 *.db

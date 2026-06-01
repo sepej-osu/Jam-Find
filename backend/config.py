@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # Google Cloud Storage configuration
     GOOGLE_STORAGE_BUCKET: str = ""
 
+    # Set to True to connect to local Firebase emulators instead of production
+    USE_EMULATOR: bool = False
+
     # Firebase emulator configuration (local only)
     FIRESTORE_EMULATOR_HOST: str = ""
     FIREBASE_AUTH_EMULATOR_HOST: str = ""
