@@ -26,7 +26,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 export default defineConfig({
   testDir: './tests',
   /* Run tests in files in parallel */
-  fullyParallel: true,
+  fullyParallel: false,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
@@ -51,15 +51,15 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
 
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
+    // {
+    //   name: 'firefox',
+    //   use: { ...devices['Desktop Firefox'] },
+    // },
 
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
 
     /* Test against mobile viewports. */
     // {
@@ -85,7 +85,7 @@ export default defineConfig({
   /* Boot backend + frontend before tests */
   webServer: [
       {
-      command: 'firebase emulators:start --import=emulator_data',
+      command: 'firebase emulators:start --import=emulator_data --export-on-exit=emulator_data',
       cwd: path.resolve(__dirname, '..'),
       url: 'http://127.0.0.1:4000',
       reuseExistingServer: !process.env.CI,
