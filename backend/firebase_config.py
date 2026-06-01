@@ -3,9 +3,6 @@ from firebase_admin import credentials, firestore
 from functools import lru_cache
 from config import settings
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # When USE_EMULATOR is True, inject emulator env vars so the Firebase SDKs
 # and URL validators (models.py) all route to the local emulators.

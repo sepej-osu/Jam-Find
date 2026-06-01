@@ -7,6 +7,8 @@ import os
 
 _FIREBASE_STORAGE_HOSTS = {"firebasestorage.googleapis.com", "storage.googleapis.com"}
 
+_EMULATOR_HOSTS = {"localhost", "127.0.0.1"}
+
 def _validate_firebase_storage_url(v: Optional[str]) -> Optional[str]:
     """Validate that a URL is HTTPS and points to Firebase Storage."""
     if v is None:
@@ -15,11 +17,11 @@ def _validate_firebase_storage_url(v: Optional[str]) -> Optional[str]:
         parsed = urlparse(v)
     except Exception:
         raise ValueError("Invalid URL format")
-    emulator_host = os.getenv("STORAGE_EMULATOR_HOST")
-    if emulator_host:
-        emulator_netloc = urlparse(emulator_host).netloc or emulator_host
-        if parsed.netloc == emulator_netloc:
-            return v
+    # Accept any localhost/127.0.0.1 URL when running against the storage emulator,
+    # regardless of port or bucket name (the frontend SDK may use a different hostname
+    # than the backend's STORAGE_EMULATOR_HOST env var).
+    if os.getenv("STORAGE_EMULATOR_HOST") and parsed.hostname in _EMULATOR_HOSTS:
+        return v
     if parsed.scheme != "https":
         raise ValueError("Media URL must use HTTPS")
     if parsed.netloc not in _FIREBASE_STORAGE_HOSTS:
