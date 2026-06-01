@@ -14,7 +14,7 @@ from firebase_admin import credentials, firestore
 os.environ["FIRESTORE_EMULATOR_HOST"] = "127.0.0.1:8080"
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session", autouse=False)
 def seed_dev_profile():
     """
     Create a minimal profile document for DEV_USER_ID in the emulator

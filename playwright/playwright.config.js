@@ -82,8 +82,15 @@ export default defineConfig({
     // },
   ],
 
-  /* Boot backend + frontend before tests */
+  /* Boot Firebase emulators + backend + frontend before tests */
   webServer: [
+      {
+      command: 'firebase emulators:start --import=emulator_data',
+      cwd: path.resolve(__dirname, '..'),
+      url: 'http://127.0.0.1:4000',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120 * 1000,
+    },
     {
       command: `"${backendPython}" main.py`,
       cwd: backendCwd,

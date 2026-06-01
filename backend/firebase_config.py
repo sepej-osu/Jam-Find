@@ -3,9 +3,6 @@ from firebase_admin import credentials, firestore
 from functools import lru_cache
 from config import settings
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 _db = None
 
@@ -15,6 +12,12 @@ def initialize_firebase():
     
     if _db is not None:
         return _db
+    
+    if settings.USE_EMULATOR:
+        os.environ.setdefault("FIRESTORE_EMULATOR_HOST", settings.FIRESTORE_EMULATOR_HOST)
+        os.environ.setdefault("FIREBASE_AUTH_EMULATOR_HOST", settings.FIREBASE_AUTH_EMULATOR_HOST)
+        os.environ.setdefault("STORAGE_EMULATOR_HOST", settings.STORAGE_EMULATOR_HOST)
+        os.environ.setdefault("GOOGLE_CLOUD_PROJECT", settings.GOOGLE_CLOUD_PROJECT)
     
     try:
         # Check if Firebase is already initialized
