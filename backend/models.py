@@ -4,6 +4,7 @@ from datetime import datetime
 from enum import Enum
 from urllib.parse import urlparse
 import os
+from config import settings
 
 _FIREBASE_STORAGE_HOSTS = {"firebasestorage.googleapis.com", "storage.googleapis.com"}
 
@@ -22,10 +23,12 @@ def _validate_firebase_storage_url(v: Optional[str]) -> Optional[str]:
     # than the backend's STORAGE_EMULATOR_HOST env var).
     if os.getenv("STORAGE_EMULATOR_HOST") and parsed.hostname in _EMULATOR_HOSTS:
         return v
-    if parsed.scheme != "https":
-        raise ValueError("Media URL must use HTTPS")
-    if parsed.netloc not in _FIREBASE_STORAGE_HOSTS:
-        raise ValueError("Media URL must point to Firebase Storage (firebasestorage.googleapis.com)")
+    
+    if not settings.USE_EMULATOR:
+        if parsed.scheme != "https":
+            raise ValueError("Media URL must use HTTPS")
+        if parsed.netloc not in _FIREBASE_STORAGE_HOSTS:
+            raise ValueError("Media URL must point to Firebase Storage (firebasestorage.googleapis.com)")
     return v
 
 MAX_MUSIC_SAMPLES = 3
