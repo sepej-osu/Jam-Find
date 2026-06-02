@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_TITLE = `Playwright delete test post ${Date.now()}`;
+const TEST_TITLE = `Playwright post ${Date.now()}`;
 
-test('create a post, open it, delete it, and confirm it is gone', async ({ page }) => {
+test('create a post, verify it in the feed, then delete it', async ({ page }) => {
   const email = process.env.TEST_USER_EMAIL || process.env.TEST_USER_EMAIL_1;
   const password = process.env.TEST_USER_PASSWORD || process.env.TEST_USER_PASSWORD_1;
+  const zipCode = process.env.TEST_USER_ZIP || '90210';
 
   // ── Log in ──────────────────────────────────────────────────────────────────
   await page.goto('http://localhost:5173/login');
@@ -24,30 +25,28 @@ test('create a post, open it, delete it, and confirm it is gone', async ({ page 
   await page.locator('textarea[name="body"]').fill(
     'This is an automated Playwright test post. Please ignore.'
   );
-  await page.locator('input[name="zipCode"]').fill('93065');
+  await page.locator('input[name="zipCode"]').fill(zipCode);
   await page.getByRole('button', { name: 'Create Post' }).click();
 
+  // After successful creation the app navigates to /feed
   await expect(page).toHaveURL(/\/feed/, { timeout: 10000 });
+
+  // ── Verify the post appears in the feed ─────────────────────────────────────
   await expect(page.getByText(TEST_TITLE)).toBeVisible({ timeout: 10000 });
 
-  // ── Click the post title to open the detail page ────────────────────────────
+  // ── Open the post detail page ────────────────────────────────────────────────
   await page.getByText(TEST_TITLE).click();
   await expect(page).toHaveURL(/\/posts\//, { timeout: 10000 });
-
-  // Capture the post URL so we can verify it is gone after deletion
   const postUrl = page.url();
 
   // ── Delete the post ─────────────────────────────────────────────────────────
   await page.getByRole('button', { name: 'Delete Post' }).click();
-
-  // Confirm the deletion in the dialog
   await page.getByRole('button', { name: 'Delete' }).click();
 
   // After deletion the app navigates back to /feed
   await expect(page).toHaveURL(/\/feed/, { timeout: 10000 });
 
   // ── Verify the post is gone ─────────────────────────────────────────────────
-  // The title should no longer appear in the feed
   await expect(page.getByText(TEST_TITLE)).not.toBeVisible({ timeout: 5000 });
 
   // Navigating directly to the old URL should not show the post

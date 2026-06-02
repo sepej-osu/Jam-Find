@@ -42,5 +42,11 @@ service firebase.storage {
       allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
+    // Seed data — publicly readable (emulator dev data only, no auth token support)
+    match /seed/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
   }
 }

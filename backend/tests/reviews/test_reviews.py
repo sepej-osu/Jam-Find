@@ -1,5 +1,5 @@
-# AI Generated Tests - Reviewed by sepej-osu 2026-05-10
-# All tests are passing as of 2026-05-10
+# AI Generated Tests - Reviewed by sepej-osu 2026-06-1
+# All tests are passing as of 2026-06-1
 
 import os
 import sys
@@ -196,6 +196,77 @@ def test_list_reviews():
     review = data["reviews"][0]
     assert review["reviewedUserId"] == REVIEWED_USER_ID
     assert review["rating"] == 4
+
+
+def test_list_reviews_nonexistent_user_returns_404():
+    """GET reviews for a user that doesn't exist should return 404."""
+    response = client.get("/api/v1/profiles/nonexistent_user_xyz/reviews")
+    assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Review with no text (optional field)
+# ---------------------------------------------------------------------------
+
+THIRD_USER_ID = "test_third_user_jam_789"
+
+
+@pytest.fixture(scope="module", autouse=True)
+def setup_third_profile():
+    """Create a third profile used for multi-reviewer and text-less review tests."""
+    from firebase_config import get_db
+    db = get_db()
+    db.collection("test_profiles").document(THIRD_USER_ID).set({
+        "userId": THIRD_USER_ID,
+        "firstName": "Third",
+        "lastName": "User",
+        "birthDate": "1995-03-20T00:00:00Z",
+        "email": "third@test.com",
+        "gender": "male",
+        "profilePicUrl": None,
+        "instruments": [],
+        "genres": [],
+        "averageRating": None,
+        "reviewCount": 0,
+    })
+    yield
+    db.collection("test_profiles").document(THIRD_USER_ID).delete()
+
+
+def test_create_review_without_text():
+    """A review with only a rating (no text) should succeed."""
+    response = client.post(
+        f"/api/v1/profiles/{THIRD_USER_ID}/reviews",
+        json={"rating": 3},
+    )
+    assert response.status_code == 201
+    data = response.json()
+    assert data["rating"] == 3
+    assert data.get("text") is None or data.get("text") == ""
+
+
+# ---------------------------------------------------------------------------
+# Average rating math with multiple reviewers
+# ---------------------------------------------------------------------------
+
+def test_average_rating_with_multiple_reviewers():
+    """Two reviews (ratings 3 and 5) on THIRD_USER_ID should yield averageRating 4.0."""
+    def override_as_second():
+        return REVIEWED_USER_ID
+
+    app.dependency_overrides[get_current_user] = override_as_second
+    response = client.post(
+        f"/api/v1/profiles/{THIRD_USER_ID}/reviews",
+        json={"rating": 5, "text": "Second reviewer here"},
+    )
+    assert response.status_code == 201
+    app.dependency_overrides[get_current_user] = override_as_reviewer
+
+    from firebase_config import get_db
+    db = get_db()
+    profile_data = db.collection("test_profiles").document(THIRD_USER_ID).get().to_dict()
+    assert profile_data["reviewCount"] == 2
+    assert profile_data["averageRating"] == 4.0  # (3 + 5) / 2
 
 
 def test_list_reviews_pagination():

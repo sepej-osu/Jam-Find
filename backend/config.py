@@ -18,6 +18,9 @@ class Settings(BaseSettings):
         "http://localhost:5173", 
         "http://localhost:3000",
         "http://localhost:8091",
+        "http://127.0.0.1:5173", 
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8091",
         "https://jamfind.com"    # Your production domain
     ]
     
@@ -33,6 +36,9 @@ class Settings(BaseSettings):
 
     # Google Cloud Storage configuration
     GOOGLE_STORAGE_BUCKET: str = ""
+
+    # Set to True to connect to local Firebase emulators instead of production
+    USE_EMULATOR: bool = False
 
     # Firebase emulator configuration (local only)
     FIRESTORE_EMULATOR_HOST: str = ""

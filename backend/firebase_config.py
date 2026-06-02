@@ -3,9 +3,17 @@ from firebase_admin import credentials, firestore
 from functools import lru_cache
 from config import settings
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+# When USE_EMULATOR is True, inject emulator env vars so the Firebase SDKs
+# and URL validators (models.py) all route to the local emulators.
+if settings.USE_EMULATOR:
+    if settings.FIRESTORE_EMULATOR_HOST:
+        os.environ.setdefault("FIRESTORE_EMULATOR_HOST", settings.FIRESTORE_EMULATOR_HOST)
+    if settings.FIREBASE_AUTH_EMULATOR_HOST:
+        os.environ.setdefault("FIREBASE_AUTH_EMULATOR_HOST", settings.FIREBASE_AUTH_EMULATOR_HOST)
+    if settings.FIREBASE_STORAGE_EMULATOR_HOST:
+        os.environ.setdefault("FIREBASE_STORAGE_EMULATOR_HOST", settings.FIREBASE_STORAGE_EMULATOR_HOST)
+        os.environ.setdefault("STORAGE_EMULATOR_HOST", f"http://{settings.FIREBASE_STORAGE_EMULATOR_HOST}")
 
 _db = None
 
