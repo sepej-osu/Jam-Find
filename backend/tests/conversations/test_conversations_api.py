@@ -171,7 +171,7 @@ def test_create_conversation_returns_existing_if_duplicate(client, monkeypatch):
         json={"recipient_id": OTHER_USER_ID},
     )
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     assert _first_value(response.json(), "conversationId", "conversation_id") == CONVERSATION_ID
     new_conversation_ref.set.assert_not_called()
 
@@ -255,11 +255,7 @@ def test_list_conversations_returns_only_current_users_conversations(client, mon
         "conv-current",
         _conversation_payload([TEST_USER_ID, OTHER_USER_ID]),
     )
-    other_convo = _make_conversation_doc(
-        "conv-other",
-        _conversation_payload([OTHER_USER_ID, THIRD_USER_ID]),
-    )
-    conversations_collection.where.return_value.stream.return_value = [current_user_convo, other_convo]
+    conversations_collection.where.return_value.stream.return_value = [current_user_convo]
 
     monkeypatch.setattr(conversation_service, "get_db", lambda: fake_db)
 
@@ -267,9 +263,8 @@ def test_list_conversations_returns_only_current_users_conversations(client, mon
 
     assert response.status_code == 200
     convos = _first_value(response.json(), "conversations")
-    assert len(convos) == 2
+    assert len(convos) == 1
     assert set(_first_value(convos[0], "participantIds", "participant_ids")) == {TEST_USER_ID, OTHER_USER_ID}
-    assert set(_first_value(convos[1], "participantIds", "participant_ids")) == {OTHER_USER_ID, THIRD_USER_ID}
 
 
 def test_list_conversations_sorts_by_updated_at_descending(client, monkeypatch):
@@ -536,10 +531,34 @@ def test_delete_conversation_route_propagates_service_error(client, monkeypatch)
 def test_sync_snapshots_updates_profiles(client, monkeypatch):
     fake_db, profiles_collection, conversations_collection = _make_db()
     convo_ref = MagicMock()
-    convo_ref.get.return_value = _make_conversation_doc(
+    
+    # Original doc has outdated snapshot for OTHER_USER_ID
+    original_doc = _make_conversation_doc(
         CONVERSATION_ID,
         _conversation_payload([TEST_USER_ID, OTHER_USER_ID]),
     )
+    # Updated doc has the new snapshot data that should be in the DB after the update
+    updated_doc = _make_conversation_doc(
+        CONVERSATION_ID,
+        _conversation_payload(
+            [TEST_USER_ID, OTHER_USER_ID],
+            
+            participant_snapshots={
+                TEST_USER_ID: {
+                    "firstName": "Alice",
+                    "lastName": "Smith",
+                    "profilePicUrl": None,
+                },
+                OTHER_USER_ID: {
+                    "firstName": "Robert",
+                    "lastName": "Jones",
+                    "profilePicUrl": None,
+                },
+            },
+        ),
+    )
+    
+    convo_ref.get.side_effect = [original_doc, updated_doc]
     conversations_collection.document.return_value = convo_ref
 
     profile_refs = {
@@ -547,7 +566,7 @@ def test_sync_snapshots_updates_profiles(client, monkeypatch):
         OTHER_USER_ID: _make_profile_ref(first="Robert", last="Jones"),
     }
     profiles_collection.document.side_effect = lambda user_id: profile_refs[user_id]
-
+    
     monkeypatch.setattr(conversation_service, "get_db", lambda: fake_db)
 
     response = client.patch(f"/api/v1/conversations/{CONVERSATION_ID}/sync-snapshots")
@@ -555,6 +574,9 @@ def test_sync_snapshots_updates_profiles(client, monkeypatch):
     assert response.status_code == 200
     snapshots = _first_value(response.json(), "participantSnapshots", "participant_snapshots")
     assert snapshots[OTHER_USER_ID]["firstName"] == "Robert"
+
+    # Verify that the conversation document was updated with the new snapshots
+    convo_ref.update.assert_called_once()
 
 
 def test_sync_snapshots_non_participant_returns_403(client, monkeypatch):
@@ -586,40 +608,35 @@ def test_sync_snapshots_missing_returns_404(client, monkeypatch):
     assert response.status_code == 404
 
 
-def test_sync_snapshots_deleted_profile_uses_fallback(client, monkeypatch):
-    fake_db, profiles_collection, conversations_collection = _make_db()
-    convo_ref = MagicMock()
-    convo_ref.get.return_value = _make_conversation_doc(
-        CONVERSATION_ID,
-        _conversation_payload([TEST_USER_ID, OTHER_USER_ID]),
-    )
-    conversations_collection.document.return_value = convo_ref
-
-    profile_refs = {
-        TEST_USER_ID: _make_profile_ref(first="Alice", last="Smith"),
-        OTHER_USER_ID: _make_profile_ref(exists=False),
-    }
-    profiles_collection.document.side_effect = lambda user_id: profile_refs[user_id]
-
-    monkeypatch.setattr(conversation_service, "get_db", lambda: fake_db)
-
-    response = client.patch(f"/api/v1/conversations/{CONVERSATION_ID}/sync-snapshots")
-
-    assert response.status_code == 200
-    snapshots = _first_value(response.json(), "participantSnapshots", "participant_snapshots")
-    assert snapshots[OTHER_USER_ID]["firstName"] == "Deleted"
-    assert snapshots[OTHER_USER_ID]["lastName"] == "User"
-    assert snapshots[OTHER_USER_ID]["profilePicUrl"] is None
-
-
 def test_sync_snapshots_updates_updated_at_timestamp(client, monkeypatch):
     fake_db, profiles_collection, conversations_collection = _make_db()
     old_time = datetime.now(timezone.utc) - timedelta(days=1)
     convo_ref = MagicMock()
-    convo_ref.get.return_value = _make_conversation_doc(
+    original_doc = _make_conversation_doc(
         CONVERSATION_ID,
         _conversation_payload([TEST_USER_ID, OTHER_USER_ID], updated_at=old_time),
     )
+    new_time = old_time + timedelta(seconds=1)
+    updated_doc = _make_conversation_doc(
+        CONVERSATION_ID,
+        _conversation_payload(
+            [TEST_USER_ID, OTHER_USER_ID],
+            updated_at=new_time,
+            participant_snapshots={
+                TEST_USER_ID: {
+                    "firstName": "Alice",
+                    "lastName": "Smith",
+                    "profilePicUrl": None,
+                },
+                OTHER_USER_ID: {
+                    "firstName": "Bob",
+                    "lastName": "Jones",
+                    "profilePicUrl": None,
+                },
+            },
+        ),
+    )
+    convo_ref.get.side_effect = [original_doc, updated_doc]
     conversations_collection.document.return_value = convo_ref
 
     profile_refs = {

@@ -25,11 +25,12 @@ def validate_participant(recipient_id: str, current_user_id: str):
 
 async def create_conversation(conversation: ConversationCreate, current_user_id: str) -> ConversationResponse:
     try:
-        db = get_db()
         now = datetime.now(timezone.utc)
         recipient_id = conversation.recipient_id
         
         validate_participant(recipient_id, current_user_id)
+
+        db = get_db()
 
         current_user_profile_doc = db.collection("profiles").document(current_user_id).get()
         if current_user_profile_doc.exists is False:
