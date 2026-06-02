@@ -145,7 +145,7 @@ return (
 
           </Flex>
           {(post.location?.formattedAddress) && (
-            <Flex align="center" color="jam.textMuted">
+            <Flex data-testid="post-location" align="center" color="jam.textMuted">
               <Link fontSize="sm" color="jam.text" fontWeight="semibold" mr={1} onClick={() => navigate(`/profile/${post.userId}`)} cursor="pointer">{post.firstName} {post.lastName}</Link>
               <Text fontSize="sm" mx={1}>·</Text>
               <Tooltip content={new Date(post.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })} contentProps={{ bg: "jam.800", color: "jam.50" }}>
