@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import pytest
 from unittest.mock import AsyncMock, patch
-from utils.location import normalize_zip_code
+from utils.location import normalize_zip_code, calculate_geohash, haversine_miles, bounding_box_from_miles
 
 # Set working directory to backend folder, matching the pattern in other backend tests
 backend_dir = Path(__file__).parent.parent.parent
@@ -67,6 +67,21 @@ def test_resolve_location_invalid_zip(client):
         assert response.status_code == 400
 
 
+def test_resolve_location_gcp_error(client):
+    from google.cloud import exceptions as gcp_exceptions
+    with patch("routers.location.resolve_location_from_zip", new_callable=AsyncMock) as mock_resolve:
+        mock_resolve.side_effect = gcp_exceptions.GoogleCloudError("Firestore unavailable")
+        response = client.get("/api/v1/location/resolve/97209")
+        assert response.status_code == 503
+
+
+def test_resolve_location_unexpected_error(client):
+    with patch("routers.location.resolve_location_from_zip", new_callable=AsyncMock) as mock_resolve:
+        mock_resolve.side_effect = RuntimeError("Unexpected failure")
+        response = client.get("/api/v1/location/resolve/97209")
+        assert response.status_code == 500
+
+
 @pytest.mark.parametrize("zip_input,expected", [
     ("97209", "97209"),
     (" 97209 ", "97209"),
@@ -88,3 +103,55 @@ def test_normalize_zip_code_valid(zip_input, expected):
 def test_normalize_zip_code_invalid(bad_zip):
     with pytest.raises(ValueError):
         normalize_zip_code(bad_zip)
+
+
+# --- calculate_geohash ---
+
+def test_calculate_geohash_default_precision():
+    result = calculate_geohash(45.5, -122.7)
+    assert isinstance(result, str)
+    assert len(result) == 5
+
+
+def test_calculate_geohash_known_value():
+    # Portland-area coordinates used throughout the test suite
+    assert calculate_geohash(45.5, -122.7, precision=5) == "c20dz"
+
+
+def test_calculate_geohash_custom_precision():
+    result = calculate_geohash(45.5, -122.7, precision=8)
+    assert len(result) == 8
+
+
+# --- haversine_miles ---
+
+def test_haversine_miles_same_point():
+    assert haversine_miles(45.5, -122.7, 45.5, -122.7) == pytest.approx(0.0, abs=0.01)
+
+
+def test_haversine_miles_known_distance():
+    # Portland, OR to Seattle, WA — approximately 145 miles
+    result = haversine_miles(45.5231, -122.6765, 47.6062, -122.3321)
+    assert result == pytest.approx(145, abs=5)
+
+
+# --- bounding_box_from_miles ---
+
+def test_bounding_box_from_miles_structure():
+    min_lat, max_lat, min_lng, max_lng = bounding_box_from_miles(45.5, -122.7, 10)
+    assert min_lat < 45.5 < max_lat
+    assert min_lng < -122.7 < max_lng
+
+
+def test_bounding_box_from_miles_pole_longitude_unconstrained():
+    # At the north pole cos(lat) ≈ 0, so longitude should be unconstrained
+    min_lat, max_lat, min_lng, max_lng = bounding_box_from_miles(90.0, 0.0, 10)
+    assert min_lng == -180.0
+    assert max_lng == 180.0
+
+
+def test_bounding_box_from_miles_large_radius_clamps_lat():
+    # A large radius near a pole must not push lat outside ±90
+    min_lat, max_lat, min_lng, max_lng = bounding_box_from_miles(80.0, 0.0, 1000)
+    assert min_lat >= -90.0
+    assert max_lat <= 90.0
