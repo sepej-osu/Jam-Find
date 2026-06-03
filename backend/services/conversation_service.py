@@ -25,6 +25,7 @@ def validate_participant(recipient_id: str, current_user_id: str):
 
 async def create_conversation(conversation: ConversationCreate, current_user_id: str) -> ConversationResponse:
     try:
+        
         db = get_db()
         now = datetime.now(timezone.utc)
         recipient_id = conversation.recipient_id
